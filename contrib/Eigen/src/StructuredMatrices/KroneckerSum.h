@@ -79,8 +79,8 @@ struct kron_factor_ops<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor> {
   using InverseFactor = DenseMatrix;
   static constexpr bool StoresAllEntries = false;
 
-  static void prepare(Factor&) {}
-  static bool coeffIfStored(const Factor& f, Index row, Index col, Scalar& value) {
+  static constexpr void prepare(Factor&) {}
+  static constexpr bool coeffIfStored(const Factor& f, Index row, Index col, Scalar& value) {
     const Index n2 = f.rhs().rows();
     Scalar a(0), b(0);
     const bool storedA = row % n2 == col % n2 && LhsOps::coeffIfStored(f.lhs(), row / n2, col / n2, a);
@@ -90,27 +90,29 @@ struct kron_factor_ops<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor> {
     return true;
   }
   template <typename Visitor>
-  static void forEachNonZero(const Factor& f, Visitor&& visit) {
+  static constexpr void forEachNonZero(const Factor& f, Visitor&& visit) {
     kron_factor_ops<SparseFactor>::forEachNonZero(kron_factor_visitable<Factor>::get(f), visit);
   }
-  static Matrix<Index, Dynamic, 1> innerNonZeros(const Factor& f, bool rowMajor) {
+  static constexpr Matrix<Index, Dynamic, 1> innerNonZeros(const Factor& f, bool rowMajor) {
     return kron_factor_ops<SparseFactor>::innerNonZeros(kron_factor_visitable<Factor>::get(f), rowMajor);
   }
-  static TransposedFactor transposed(const Factor& f) { return f.transpose(); }
-  static Factor conjugated(const Factor& f) { return f.conjugate(); }
-  static TransposedFactor adjointed(const Factor& f) { return f.adjoint(); }
-  static InverseFactor inversed(const Factor& f) { return f.solve(DenseMatrix::Identity(f.rows(), f.cols())); }
-  static DenseMatrix denseFactor(const Factor& f) { return DenseMatrix(f); }
-  static DenseMatrix blockOperand(const Factor& f) { return denseFactor(f); }
-  static bool isSquareIdentity(const Factor&) { return false; }
+  static constexpr TransposedFactor transposed(const Factor& f) { return f.transpose(); }
+  static constexpr Factor conjugated(const Factor& f) { return f.conjugate(); }
+  static constexpr TransposedFactor adjointed(const Factor& f) { return f.adjoint(); }
+  static constexpr InverseFactor inversed(const Factor& f) {
+    return f.solve(DenseMatrix::Identity(f.rows(), f.cols()));
+  }
+  static constexpr DenseMatrix denseFactor(const Factor& f) { return DenseMatrix(f); }
+  static constexpr DenseMatrix blockOperand(const Factor& f) { return denseFactor(f); }
+  static constexpr bool isSquareIdentity(const Factor&) { return false; }
   template <typename Dst, typename Alpha, typename Xpr>
-  static void addLeftProduct(Dst& dst, const Alpha& alpha, const Factor& f, const Xpr& X) {
+  static constexpr void addLeftProduct(Dst& dst, const Alpha& alpha, const Factor& f, const Xpr& X) {
     f.addProduct(dst, X, alpha);
   }
   // With X_j = X(:, j n2 : (j+1) n2 - 1), j < n1, the p x n2 slices of X,
   //   X (L (+) R)^T = X (L (x) I)^T + X (I (x) R)^T = X_{[p n2 x n1]} L^T + [X_j R^T]_j.
   template <typename Dst, typename Alpha, typename Xpr, typename Work>
-  static void addRightProduct(Dst& dst, const Alpha& alpha, const Xpr& X, const Factor& f, Work& work) {
+  static constexpr void addRightProduct(Dst& dst, const Alpha& alpha, const Xpr& X, const Factor& f, Work& work) {
     const Index p = X.rows(), n1 = f.lhs().rows(), n2 = f.rhs().rows();
     auto dstL = dst.reshaped(p * n2, n1);
     LhsOps::addRightProduct(dstL, alpha, X.reshaped(p * n2, n1), f.lhs(), work);
@@ -124,7 +126,7 @@ struct kron_factor_ops<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor> {
   // split across L and R makes |lambda_i + mu_j| << |lambda_i| + |mu_j|. Against
   // a 256-bit reference that product lost 1 to 6 digits to the LU of the
   // materialized sum.
-  static Scalar balancedDet(const Factor& f, Index& exponent) {
+  static constexpr Scalar balancedDet(const Factor& f, Index& exponent) {
     return kron_factor_ops<DenseMatrix>::balancedDet(denseFactor(f), exponent);
   }
 };
@@ -133,7 +135,7 @@ template <typename LhsMatrix, typename RhsMatrix>
 struct kron_factor_visitable<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor> {
   using Factor = KroneckerSum<LhsMatrix, RhsMatrix>;
   using type = SparseMatrix<typename Factor::Scalar>;
-  static type get(const Factor& f) {
+  static constexpr type get(const Factor& f) {
     type S;
     S = f;
     return S;
@@ -151,8 +153,8 @@ struct kron_factor_spectrum<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor>
   using Eigenvectors = KroneckerOperator<typename kron_factor_spectrum<LhsMatrix>::Eigenvectors,
                                          typename kron_factor_spectrum<RhsMatrix>::Eigenvectors>;
 
-  static typename Factor::ComplexVector eigenvalues(const Factor& f) { return f.eigenvalues(); }
-  static Eigenvectors eigenvectors(const Factor& f) { return f.eigenvectors(); }
+  static constexpr typename Factor::ComplexVector eigenvalues(const Factor& f) { return f.eigenvalues(); }
+  static constexpr Eigenvectors eigenvectors(const Factor& f) { return f.eigenvectors(); }
 };
 
 template <typename LhsMatrix, typename RhsMatrix>
@@ -162,14 +164,14 @@ class kron_factor_solver<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor> {
   using Scalar = typename Factor::Scalar;
   using DenseMatrix = Matrix<Scalar, Dynamic, Dynamic, ColMajor>;
 
-  explicit kron_factor_solver(const Factor& f) : m_solver(f) {}
+  explicit constexpr kron_factor_solver(const Factor& f) : m_solver(f) {}
   template <typename Xpr>
-  DenseMatrix solveLeft(const Xpr& M) const {
+  constexpr DenseMatrix solveLeft(const Xpr& M) const {
     return m_solver.solve(M);
   }
   // X = M S^{-T} solves S X^T = M^T, written through a transposed view of X.
   template <typename Xpr>
-  DenseMatrix solveTransposedRight(const Xpr& M) const {
+  constexpr DenseMatrix solveTransposedRight(const Xpr& M) const {
     DenseMatrix X(M.rows(), M.cols());
     X.transpose() = m_solver.solve(M.transpose());
     return X;
@@ -270,40 +272,41 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
   /** Builds the operator \c A (+) \c B from the two square factors, evaluated
    * into the operator's factor types as for \ref KroneckerOperator. */
   template <typename LhsDerived, typename RhsDerived>
-  KroneckerSum(const EigenBase<LhsDerived>& a, const EigenBase<RhsDerived>& b) : m_A(a.derived()), m_B(b.derived()) {
+  constexpr KroneckerSum(const EigenBase<LhsDerived>& a, const EigenBase<RhsDerived>& b)
+      : m_A(a.derived()), m_B(b.derived()) {
     eigen_assert(m_A.size() > 0 && m_B.size() > 0 && "KroneckerSum factors must be non-empty");
     eigen_assert(m_A.rows() == m_A.cols() && m_B.rows() == m_B.cols() && "KroneckerSum factors must be square");
     LhsOps::prepare(m_A);
     RhsOps::prepare(m_B);
   }
 
-  EIGEN_DEVICE_FUNC Index rows() const { return m_A.rows() * m_B.rows(); }
-  EIGEN_DEVICE_FUNC Index cols() const { return rows(); }
+  EIGEN_DEVICE_FUNC constexpr Index rows() const { return m_A.rows() * m_B.rows(); }
+  EIGEN_DEVICE_FUNC constexpr Index cols() const { return rows(); }
 
   /** \returns the left factor \c A. */
-  const LhsMatrix& lhs() const { return m_A; }
+  constexpr const LhsMatrix& lhs() const { return m_A; }
   /** \returns the right factor \c B. */
-  const RhsMatrix& rhs() const { return m_B; }
+  constexpr const RhsMatrix& rhs() const { return m_B; }
 
   /** \returns the coefficient at row \a row and column \a col:
    * \f$ A(i_1, j_1)\,\delta_{i_2 j_2} + \delta_{i_1 j_1} B(i_2, j_2) \f$ with
    * \c row = i1*n2 + i2 and \c col = j1*n2 + j2. */
-  Scalar coeff(Index row, Index col) const {
+  constexpr Scalar coeff(Index row, Index col) const {
     eigen_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
     Scalar value;
     return internal::kron_factor_ops<KroneckerSum>::coeffIfStored(*this, row, col, value) ? value : Scalar(0);
   }
 
   /** \returns the transpose \f$ A^T \oplus B^T \f$, itself a Kronecker sum. */
-  KroneckerSum<typename LhsOps::TransposedFactor, typename RhsOps::TransposedFactor> transpose() const {
+  constexpr KroneckerSum<typename LhsOps::TransposedFactor, typename RhsOps::TransposedFactor> transpose() const {
     return {LhsOps::transposed(m_A), RhsOps::transposed(m_B)};
   }
 
   /** \returns the conjugate \f$ \bar A \oplus \bar B \f$, itself a Kronecker sum. */
-  KroneckerSum conjugate() const { return {LhsOps::conjugated(m_A), RhsOps::conjugated(m_B)}; }
+  constexpr KroneckerSum conjugate() const { return {LhsOps::conjugated(m_A), RhsOps::conjugated(m_B)}; }
 
   /** \returns the adjoint \f$ A^H \oplus B^H \f$, itself a Kronecker sum. */
-  KroneckerSum<typename LhsOps::TransposedFactor, typename RhsOps::TransposedFactor> adjoint() const {
+  constexpr KroneckerSum<typename LhsOps::TransposedFactor, typename RhsOps::TransposedFactor> adjoint() const {
     return {LhsOps::adjointed(m_A), RhsOps::adjointed(m_B)};
   }
 
@@ -311,7 +314,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
    * solver set up for this call; construct the solver once instead to reuse its
    * Schur forms across calls. */
   template <typename Rhs>
-  Matrix<Scalar, ColsAtCompileTime, Rhs::ColsAtCompileTime> solve(const MatrixBase<Rhs>& b) const {
+  constexpr Matrix<Scalar, ColsAtCompileTime, Rhs::ColsAtCompileTime> solve(const MatrixBase<Rhs>& b) const {
     const BartelsStewart<KroneckerSum> solver(*this);
     return solver.solve(b);
   }
@@ -330,7 +333,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
    * are thus the more accurate for ill-conditioned or defective factors, whose
    * Jordan blocks lengthen in the sum, and the less accurate when a shift
    * splits across the factors, as in \f$ (A + cI) \oplus (B - cI) \f$. */
-  ComplexVector eigenvalues() const {
+  constexpr ComplexVector eigenvalues() const {
     const ComplexVector lambda = LhsSpectrum::eigenvalues(m_A), mu = RhsSpectrum::eigenvalues(m_B);
     return (mu.replicate(fix<1>, lambda.size()) + lambda.transpose().replicate(mu.size(), fix<1>)).reshaped();
   }
@@ -340,14 +343,15 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
    * \f$ (A \oplus B)(v_i \otimes w_j) = (\lambda_i + \mu_j)(v_i \otimes w_j) \f$:
    * column \c i*n2 + j matches \c eigenvalues()[i*n2 + j]. Assign it to a dense
    * matrix to materialize. */
-  KroneckerOperator<typename LhsSpectrum::Eigenvectors, typename RhsSpectrum::Eigenvectors> eigenvectors() const {
+  constexpr KroneckerOperator<typename LhsSpectrum::Eigenvectors, typename RhsSpectrum::Eigenvectors> eigenvectors()
+      const {
     return {LhsSpectrum::eigenvectors(m_A), RhsSpectrum::eigenvectors(m_B)};
   }
 
   /** \returns the product expression \c (*this) * \a x, evaluated through
    * \f$ \mathrm{mat}(y) = B\,\mathrm{mat}(x) + \mathrm{mat}(x)\,A^T \f$. */
   template <typename Rhs>
-  Product<KroneckerSum, Rhs> operator*(const MatrixBase<Rhs>& x) const {
+  constexpr Product<KroneckerSum, Rhs> operator*(const MatrixBase<Rhs>& x) const {
     EIGEN_STATIC_ASSERT(ColsAtCompileTime == Dynamic || Rhs::RowsAtCompileTime == Dynamic ||
                             int(ColsAtCompileTime) == int(Rhs::RowsAtCompileTime),
                         INVALID_MATRIX_PRODUCT)
@@ -360,7 +364,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
    * in place for a single right-hand side, and for several on the stacked layout
    * of KroneckerOperator::addProduct(), one product per factor per batch. */
   template <typename Dest, typename Rhs, typename ProductScalar>
-  void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
+  constexpr void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
     using ProductMatrix = Matrix<ProductScalar, Dynamic, Dynamic, ColMajor>;
     const Index n1 = m_A.rows(), n2 = m_B.rows(), r = rhs.cols();
     eigen_assert(rhs.rows() == n1 * n2 && "invalid product: dimensions do not match");
@@ -389,19 +393,19 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
    * to the destination's storage kind; invoked through \c dense = sum; and
    * \c sparse = sum;. */
   template <typename Dest>
-  void evalTo(Dest& dst) const {
+  constexpr void evalTo(Dest& dst) const {
     evalToImpl(dst, IsSparseDestination<Dest>());
   }
 
   /** \internal Computes \c dst += (*this), see evalTo(). */
   template <typename Dest>
-  void addTo(Dest& dst) const {
+  constexpr void addTo(Dest& dst) const {
     addToImpl(dst, Scalar(1), IsSparseDestination<Dest>());
   }
 
   /** \internal Computes \c dst -= (*this), see evalTo(). */
   template <typename Dest>
-  void subTo(Dest& dst) const {
+  constexpr void subTo(Dest& dst) const {
     addToImpl(dst, Scalar(-1), IsSparseDestination<Dest>());
   }
 
@@ -410,7 +414,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
   using IsSparseDestination = std::is_same<typename internal::traits<Dest>::StorageKind, Sparse>;
 
   template <typename Dest>
-  void evalToImpl(Dest& dst, std::false_type) const {
+  constexpr void evalToImpl(Dest& dst, std::false_type) const {
     dst.setZero();
     addToImpl(dst, Scalar(1), std::false_type());
   }
@@ -418,7 +422,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
   /** \internal dst += s (A (x) I + I (x) B): each stored entry of A on the
    * diagonal of its block, B on every diagonal block. */
   template <typename Dest>
-  void addToImpl(Dest& dst, const Scalar& s, std::false_type) const {
+  constexpr void addToImpl(Dest& dst, const Scalar& s, std::false_type) const {
     const Index n1 = m_A.rows(), n2 = m_B.rows();
     LhsOps::forEachNonZero(m_A, [&dst, &s, n2](Index i, Index j, const Scalar& a) {
       dst.block(i * n2, j * n2, n2, n2).diagonal().array() += s * a;
@@ -433,7 +437,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
    * vector k2 of B. Both visitors insert each inner vector in increasing inner
    * index, see kron_factor_ops. */
   template <typename Dest>
-  void evalToImpl(Dest& S, std::true_type) const {
+  constexpr void evalToImpl(Dest& S, std::true_type) const {
     using IndexVector = Matrix<Index, Dynamic, 1>;
     using LhsVisitable = internal::kron_factor_visitable<LhsMatrix>;
     using RhsVisitable = internal::kron_factor_visitable<RhsMatrix>;
@@ -457,7 +461,7 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
   }
 
   template <typename Dest>
-  void addToImpl(Dest& dst, const Scalar& s, std::true_type) const {
+  constexpr void addToImpl(Dest& dst, const Scalar& s, std::true_type) const {
     typename Dest::PlainObject sum;
     evalTo(sum);
     if (s == Scalar(1))
@@ -474,8 +478,8 @@ class KroneckerSum : public EigenBase<KroneckerSum<LhsMatrix, RhsMatrix>> {
  * \returns the \ref KroneckerSum \c a (+) \c b, with the factor types deduced as
  * for makeKroneckerOperator(). */
 template <typename LhsDerived, typename RhsDerived>
-KroneckerSum<typename internal::kron_factor_storage<LhsDerived>::type,
-             typename internal::kron_factor_storage<RhsDerived>::type>
+constexpr KroneckerSum<typename internal::kron_factor_storage<LhsDerived>::type,
+                       typename internal::kron_factor_storage<RhsDerived>::type>
 makeKroneckerSum(const EigenBase<LhsDerived>& a, const EigenBase<RhsDerived>& b) {
   return {a.derived(), b.derived()};
 }
@@ -484,7 +488,8 @@ makeKroneckerSum(const EigenBase<LhsDerived>& a, const EigenBase<RhsDerived>& b)
  * \returns the \ref KroneckerSum \c a (+) \c b (+) \c c (+) ..., nested to the
  * right: \c makeKroneckerSum(a, makeKroneckerSum(b, c, ...)). */
 template <typename D1, typename D2, typename D3, typename... Rest>
-auto makeKroneckerSum(const EigenBase<D1>& a, const EigenBase<D2>& b, const EigenBase<D3>& c, const Rest&... rest) {
+constexpr auto makeKroneckerSum(const EigenBase<D1>& a, const EigenBase<D2>& b, const EigenBase<D3>& c,
+                                const Rest&... rest) {
   return makeKroneckerSum(a, makeKroneckerSum(b, c, rest...));
 }
 
@@ -564,14 +569,14 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
   using RealVector = Matrix<RealScalar, Dynamic, 1>;
 
   /** Default constructor; call \ref compute before \ref solve. */
-  BartelsStewart() = default;
+  constexpr BartelsStewart() = default;
 
   /** Computes the factor decompositions of \a op. */
-  explicit BartelsStewart(const KroneckerSumType& op) { compute(op); }
+  explicit constexpr BartelsStewart(const KroneckerSumType& op) { compute(op); }
 
   /** Computes the Schur forms (eigendecompositions, when every factor is
    * exactly Hermitian) of the non-sum factors of \a op. */
-  BartelsStewart& compute(const KroneckerSumType& op) {
+  constexpr BartelsStewart& compute(const KroneckerSumType& op) {
     std::vector<DenseMatrix> leaves;
     collectLeaves(op, leaves);
     const std::size_t d = leaves.size();
@@ -637,19 +642,19 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
     return *this;
   }
 
-  Index rows() const noexcept { return m_size; }
-  Index cols() const noexcept { return m_size; }
+  constexpr Index rows() const noexcept { return m_size; }
+  constexpr Index cols() const noexcept { return m_size; }
 
   /** \returns \c Success, \c InvalidInput for a non-finite factor, or
    * \c NoConvergence when a factor decomposition did not converge. */
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "BartelsStewart is not initialized.");
     return m_info;
   }
 
   /** \returns whether every factor is exactly Hermitian, so that the solve runs
    * the fast diagonalization method. */
-  bool isHermitian() const {
+  constexpr bool isHermitian() const {
     eigen_assert(m_isInitialized && "BartelsStewart is not initialized.");
     return m_path == Path::Diagonal;
   }
@@ -659,18 +664,18 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
    * expression. Supports multiple right-hand sides.
    * \pre \ref compute has been called. */
   template <typename Rhs>
-  inline const Solve<BartelsStewart, Rhs> solve(const MatrixBase<Rhs>& b) const;
+  constexpr const Solve<BartelsStewart, Rhs> solve(const MatrixBase<Rhs>& b) const;
 #endif
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   template <typename RhsType, typename DstType>
-  void _solve_impl(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl(const RhsType& rhs, DstType& dst) const {
     solveImpl(rhs, dst, /*adjoint=*/false);
   }
 
   // M^T = conj(M^H): M^{-T} b = conj(M^{-H} conj(b)).
   template <bool Conjugate, typename RhsType, typename DstType>
-  void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
     constexpr bool ConjugateRhs = !Conjugate && NumTraits<Scalar>::IsComplex;
     solveImpl(rhs.template conjugateIf<ConjugateRhs>(), dst, /*adjoint=*/true);
     if (ConjugateRhs) dst = dst.conjugate();
@@ -681,7 +686,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
   /** \internal x = M^{-1} b, or M^{-H} b when \a adjoint; on the Hermitian path
    * M^H = M. */
   template <typename RhsType, typename DstType>
-  void solveImpl(const RhsType& rhs, DstType& dst, bool adjoint) const {
+  constexpr void solveImpl(const RhsType& rhs, DstType& dst, bool adjoint) const {
     if (m_info != Success) {
       // No usable decompositions; the nested solves never see info().
       dst.setConstant(Scalar(NumTraits<RealScalar>::quiet_NaN()));
@@ -719,16 +724,16 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
   }
 
   template <typename Factor>
-  static void collectLeaves(const Factor& f, std::vector<DenseMatrix>& leaves) {
+  static constexpr void collectLeaves(const Factor& f, std::vector<DenseMatrix>& leaves) {
     collectLeaves(f, leaves, internal::kron_factor_is_kronecker_sum<Factor>());
   }
   template <typename Factor>
-  static void collectLeaves(const Factor& f, std::vector<DenseMatrix>& leaves, std::true_type) {
+  static constexpr void collectLeaves(const Factor& f, std::vector<DenseMatrix>& leaves, std::true_type) {
     collectLeaves(f.lhs(), leaves);
     collectLeaves(f.rhs(), leaves);
   }
   template <typename Factor>
-  static void collectLeaves(const Factor& f, std::vector<DenseMatrix>& leaves, std::false_type) {
+  static constexpr void collectLeaves(const Factor& f, std::vector<DenseMatrix>& leaves, std::false_type) {
     leaves.push_back(DenseMatrix(internal::kron_factor_ops<Factor>::denseFactor(f)));
   }
 
@@ -738,7 +743,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
    * s x n_k matrix V and the factor acts as V <- V M_k^T, or for s = 1 on all
    * blocks at once as U <- M_k U. */
   template <typename Work, typename Basis>
-  void applyBasis(Work& W, const std::vector<Basis>& Q, bool adjoint) const {
+  constexpr void applyBasis(Work& W, const std::vector<Basis>& Q, bool adjoint) const {
     using WorkMatrix = Matrix<typename Work::Scalar, Dynamic, Dynamic, ColMajor>;
     WorkMatrix T;
     for (std::size_t k = 0; k < Q.size(); ++k) {
@@ -767,7 +772,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
    * length n_k s_k segment \a y, viewed as the s_k x n_k matrix Y whose column i
    * belongs to index i of factor k; see the recurrence in the class
    * documentation. */
-  void triangularSolve(std::size_t k, const ComplexScalar& sigma, ComplexScalar* y) const {
+  constexpr void triangularSolve(std::size_t k, const ComplexScalar& sigma, ComplexScalar* y) const {
     const Index n = m_sizes[k], s = m_inner[k];
     const TriangularMatrix& T = m_triangular[k];
     if (k + 1 == m_sizes.size()) {
@@ -790,7 +795,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
   /** \internal The adjoint of triangularSolve: solves
    * (sigma I + L_k (+) ... (+) L_d) y = y in place by forward substitution on the
    * lower triangular L_k = T_k^H, read by rows as triangularSolve reads T_k. */
-  void adjointTriangularSolve(std::size_t k, const ComplexScalar& sigma, ComplexScalar* y) const {
+  constexpr void adjointTriangularSolve(std::size_t k, const ComplexScalar& sigma, ComplexScalar* y) const {
     const Index n = m_sizes[k], s = m_inner[k];
     const TriangularMatrix& L = m_triangularAdjoint[k];
     if (k + 1 == m_sizes.size()) {
@@ -813,7 +818,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
   using CouplingVector = Matrix<RealScalar, Dynamic, 1, ColMajor, kMaxCoupling, 1>;
   using RealMatrix = Matrix<RealScalar, Dynamic, Dynamic, ColMajor>;
 
-  void computeRealSchur(const std::vector<DenseMatrix>& leaves, std::true_type) {
+  constexpr void computeRealSchur(const std::vector<DenseMatrix>& leaves, std::true_type) {
     RealSchur<DenseMatrix> schur;
     for (const DenseMatrix& leaf : leaves) {
       schur.compute(leaf);
@@ -822,9 +827,9 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
       m_quasiTriangular.push_back(schur.matrixT());
     }
   }
-  void computeRealSchur(const std::vector<DenseMatrix>&, std::false_type) {}
+  constexpr void computeRealSchur(const std::vector<DenseMatrix>&, std::false_type) {}
 
-  void solveRealSchur(DenseMatrix& W, bool adjoint, std::true_type) const {
+  constexpr void solveRealSchur(DenseMatrix& W, bool adjoint, std::true_type) const {
     applyBasis(W, m_basis, /*adjoint=*/true);
     std::vector<RealMatrix> work(m_sizes.size());
     const CouplingMatrix outer = CouplingMatrix::Zero(1, 1);
@@ -832,7 +837,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
       quasiTriangularSolve(0, outer, Map<RealMatrix>(W.col(j).data(), W.rows(), 1), work, adjoint);
     applyBasis(W, m_basis, /*adjoint=*/false);
   }
-  void solveRealSchur(DenseMatrix&, bool, std::false_type) const {}
+  constexpr void solveRealSchur(DenseMatrix&, bool, std::false_type) const {}
 
   /** \internal Solves (Sigma (+) T_k (+) ... (+) T_d) vec(X) = vec(X) in place,
    * X of size n_k s_k x m with column t belonging to index t of the m x m
@@ -840,8 +845,8 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
    * Sigma (+) T_k(I,I) for the next factor; \a work holds one gather buffer per
    * factor. When \a adjoint, T_j is replaced by T_j^T for every j, and the block
    * rows are solved forward, block I coupling Sigma (+) T_k(I,I)^T. */
-  void quasiTriangularSolve(std::size_t k, const CouplingMatrix& Sigma, Map<RealMatrix> X,
-                            std::vector<RealMatrix>& work, bool adjoint) const {
+  constexpr void quasiTriangularSolve(std::size_t k, const CouplingMatrix& Sigma, Map<RealMatrix> X,
+                                      std::vector<RealMatrix>& work, bool adjoint) const {
     const Index n = m_sizes[k], s = m_inner[k], m = Sigma.rows();
     const QuasiTriangularMatrix& T = m_quasiTriangular[k];
     const bool last = k + 1 == m_sizes.size();
@@ -898,7 +903,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
 
   /** \internal Sigma (+) S = Sigma (x) I_p + I_m (x) S. */
   template <typename Block>
-  static CouplingMatrix kroneckerSum(const CouplingMatrix& Sigma, const Block& S) {
+  static constexpr CouplingMatrix kroneckerSum(const CouplingMatrix& Sigma, const Block& S) {
     const Index m = Sigma.rows(), p = S.rows();
     eigen_internal_assert(m * p <= kMaxCoupling);
     CouplingMatrix R = CouplingMatrix::Zero(m * p, m * p);
@@ -911,7 +916,7 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
 
   /** \internal Solves coupled * vec(XI) = vec(XI), XI of size p x m. */
   template <typename Block>
-  static void solveCoupled(const CouplingMatrix& coupled, Block& XI) {
+  static constexpr void solveCoupled(const CouplingMatrix& coupled, Block& XI) {
     if (coupled.rows() == 1) {
       XI(0, 0) /= coupled(0, 0);
       return;
