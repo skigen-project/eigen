@@ -1430,24 +1430,27 @@ void bool_logical_ops() {
   const Index size = 67;
   ArrayX<bool> lhs = ArrayXi::Random(size) > 0;
   ArrayX<bool> rhs = ArrayXi::Random(size) > 0;
-  lhs[0] = false;
-  rhs[0] = false;
-  lhs[1] = false;
-  rhs[1] = true;
-  lhs[2] = true;
-  rhs[2] = false;
-  lhs[3] = true;
-  rhs[3] = true;
+  for (Index i = 0; i < 4; ++i) {
+    lhs[i] = lhs[size - 4 + i] = (i & 2) != 0;
+    rhs[i] = rhs[size - 4 + i] = (i & 1) != 0;
+  }
 
-  ArrayX<bool> actual_and(size), actual_or(size), expected_and(size), expected_or(size);
+  ArrayX<bool> actual_and(size), actual_or(size), actual_xor(size), actual_not(size);
+  ArrayX<bool> expected_and(size), expected_or(size), expected_xor(size), expected_not(size);
   actual_and = lhs && rhs;
   actual_or = lhs || rhs;
+  actual_xor = lhs.binaryExpr(rhs, internal::scalar_boolean_xor_op<bool>());
+  actual_not = !lhs;
   for (Index i = 0; i < size; ++i) {
     expected_and[i] = lhs[i] && rhs[i];
     expected_or[i] = lhs[i] || rhs[i];
+    expected_xor[i] = lhs[i] != rhs[i];
+    expected_not[i] = !lhs[i];
   }
   VERIFY_IS_CWISE_EQUAL(actual_and, expected_and);
   VERIFY_IS_CWISE_EQUAL(actual_or, expected_or);
+  VERIFY_IS_CWISE_EQUAL(actual_xor, expected_xor);
+  VERIFY_IS_CWISE_EQUAL(actual_not, expected_not);
 }
 
 template <typename RealScalar>
