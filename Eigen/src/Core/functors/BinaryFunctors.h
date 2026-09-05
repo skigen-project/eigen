@@ -487,6 +487,10 @@ struct functor_traits<scalar_quotient_op<LhsScalar, RhsScalar>> {
   };
 };
 
+// Packet16b is currently Eigen's only Boolean packet. Its loads contain valid bool objects, and its casts,
+// comparisons, and Boolean packet operations canonicalize every lane to 0 or 1. The direct bitwise fast paths below
+// rely on this invariant.
+
 /** \internal
  * \brief Template functor to compute the and of two scalars as if they were booleans
  *
@@ -502,12 +506,16 @@ struct scalar_boolean_and_op {
   }
   template <typename Packet>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& a, const Packet& b) const {
-    const Packet cst_one = pset1<Packet>(Scalar(1));
-    // and(a,b) == !or(!a,!b)
-    Packet not_a = pcmp_eq(a, pzero(a));
-    Packet not_b = pcmp_eq(b, pzero(b));
-    Packet a_nand_b = por(not_a, not_b);
-    return pandnot(cst_one, a_nand_b);
+    EIGEN_IF_CONSTEXPR ((std::is_same<Scalar, bool>::value)) {
+      return pand(a, b);
+    } else {
+      const Packet cst_one = pset1<Packet>(Scalar(1));
+      // and(a,b) == !or(!a,!b)
+      Packet not_a = pcmp_eq(a, pzero(a));
+      Packet not_b = pcmp_eq(b, pzero(b));
+      Packet a_nand_b = por(not_a, not_b);
+      return pandnot(cst_one, a_nand_b);
+    }
   }
 };
 // Keep bool logical functors eager so scalar evaluator loops remain branch-free.
@@ -535,12 +543,16 @@ struct scalar_boolean_or_op {
     return (a != Scalar(0)) || (b != Scalar(0)) ? Scalar(1) : Scalar(0);
   }
   template <typename Packet>
-  EIGEN_STRONG_INLINE Packet packetOp(const Packet& a, const Packet& b) const {
-    const Packet cst_one = pset1<Packet>(Scalar(1));
-    // if or(a,b) == 0, then a == 0 and b == 0
-    // or(a,b) == !nor(a,b)
-    Packet a_nor_b = pcmp_eq(por(a, b), pzero(a));
-    return pandnot(cst_one, a_nor_b);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& a, const Packet& b) const {
+    EIGEN_IF_CONSTEXPR ((std::is_same<Scalar, bool>::value)) {
+      return por(a, b);
+    } else {
+      const Packet cst_one = pset1<Packet>(Scalar(1));
+      // if or(a,b) == 0, then a == 0 and b == 0
+      // or(a,b) == !nor(a,b)
+      Packet a_nor_b = pcmp_eq(por(a, b), pzero(a));
+      return pandnot(cst_one, a_nor_b);
+    }
   }
 };
 template <>
@@ -567,13 +579,17 @@ struct scalar_boolean_xor_op {
     return (a != Scalar(0)) != (b != Scalar(0)) ? Scalar(1) : Scalar(0);
   }
   template <typename Packet>
-  EIGEN_STRONG_INLINE Packet packetOp(const Packet& a, const Packet& b) const {
-    const Packet cst_one = pset1<Packet>(Scalar(1));
-    // xor(a,b) == xor(!a,!b)
-    Packet not_a = pcmp_eq(a, pzero(a));
-    Packet not_b = pcmp_eq(b, pzero(b));
-    Packet a_xor_b = pxor(not_a, not_b);
-    return pand(cst_one, a_xor_b);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& a, const Packet& b) const {
+    EIGEN_IF_CONSTEXPR ((std::is_same<Scalar, bool>::value)) {
+      return pxor(a, b);
+    } else {
+      const Packet cst_one = pset1<Packet>(Scalar(1));
+      // xor(a,b) == xor(!a,!b)
+      Packet not_a = pcmp_eq(a, pzero(a));
+      Packet not_b = pcmp_eq(b, pzero(b));
+      Packet a_xor_b = pxor(not_a, not_b);
+      return pand(cst_one, a_xor_b);
+    }
   }
 };
 template <typename Scalar>

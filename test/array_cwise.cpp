@@ -1430,17 +1430,54 @@ void bool_logical_ops() {
   const Index size = 67;
   ArrayX<bool> lhs = ArrayXi::Random(size) > 0;
   ArrayX<bool> rhs = ArrayXi::Random(size) > 0;
-  lhs[0] = false;
-  rhs[0] = false;
-  lhs[1] = false;
-  rhs[1] = true;
-  lhs[2] = true;
-  rhs[2] = false;
-  lhs[3] = true;
-  rhs[3] = true;
+  for (Index i = 0; i < 4; ++i) {
+    lhs[i] = lhs[size - 4 + i] = (i & 2) != 0;
+    rhs[i] = rhs[size - 4 + i] = (i & 1) != 0;
+  }
 
-  VERIFY_IS_CWISE_EQUAL(lhs && rhs, (lhs.cast<int>() * rhs.cast<int>()) != 0);
-  VERIFY_IS_CWISE_EQUAL(lhs || rhs, (lhs.cast<int>() + rhs.cast<int>()) != 0);
+  ArrayX<bool> actual_and(size), actual_or(size), actual_xor(size), actual_not(size);
+  ArrayX<bool> expected_and(size), expected_or(size), expected_xor(size), expected_not(size);
+  actual_and = lhs && rhs;
+  actual_or = lhs || rhs;
+  actual_xor = lhs.binaryExpr(rhs, internal::scalar_boolean_xor_op<bool>());
+  actual_not = !lhs;
+  for (Index i = 0; i < size; ++i) {
+    expected_and[i] = lhs[i] && rhs[i];
+    expected_or[i] = lhs[i] || rhs[i];
+    expected_xor[i] = lhs[i] != rhs[i];
+    expected_not[i] = !lhs[i];
+  }
+  VERIFY_IS_CWISE_EQUAL(actual_and, expected_and);
+  VERIFY_IS_CWISE_EQUAL(actual_or, expected_or);
+  VERIFY_IS_CWISE_EQUAL(actual_xor, expected_xor);
+  VERIFY_IS_CWISE_EQUAL(actual_not, expected_not);
+}
+
+template <typename RealScalar>
+void complex_classification() {
+  using Complex = std::complex<RealScalar>;
+  const RealScalar inf = NumTraits<RealScalar>::infinity();
+  const RealScalar nan = NumTraits<RealScalar>::quiet_NaN();
+
+  struct TestCase {
+    Complex value;
+    bool finite;
+    bool infinite;
+    bool not_a_number;
+  };
+  const TestCase test_cases[] = {
+      {Complex(0, 0), true, false, false},     {Complex(inf, 0), false, true, false},
+      {Complex(0, inf), false, true, false},   {Complex(nan, 0), false, false, true},
+      {Complex(0, nan), false, false, true},   {Complex(inf, nan), false, false, true},
+      {Complex(nan, inf), false, false, true}, {Complex(-inf, -inf), false, true, false},
+      {Complex(nan, nan), false, false, true},
+  };
+
+  for (const TestCase& test_case : test_cases) {
+    VERIFY_IS_EQUAL((numext::isfinite)(test_case.value), test_case.finite);
+    VERIFY_IS_EQUAL((numext::isinf)(test_case.value), test_case.infinite);
+    VERIFY_IS_EQUAL((numext::isnan)(test_case.value), test_case.not_a_number);
+  }
 }
 
 EIGEN_DECLARE_TEST(array_cwise) {
@@ -1515,6 +1552,9 @@ EIGEN_DECLARE_TEST(array_cwise) {
     CALL_SUBTEST_18(array_complex(
         ArrayXXcd(internal::random<int>(1, EIGEN_TEST_MAX_SIZE), internal::random<int>(1, EIGEN_TEST_MAX_SIZE))));
   }
+  CALL_SUBTEST_17(complex_classification<float>());
+  CALL_SUBTEST_18(complex_classification<double>());
+  CALL_SUBTEST_18(complex_classification<long double>());
 
   for (int i = 0; i < g_repeat; i++) {
     CALL_SUBTEST_19(float_pow_test());

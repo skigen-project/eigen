@@ -1176,10 +1176,15 @@ struct scalar_boolean_not_op {
     return a == Scalar(0) ? Scalar(1) : Scalar(0);
   }
   template <typename Packet>
-  EIGEN_STRONG_INLINE Packet packetOp(const Packet& a) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& a) const {
     const Packet cst_one = pset1<Packet>(Scalar(1));
-    Packet not_a = pcmp_eq(a, pzero(a));
-    return pand(not_a, cst_one);
+    EIGEN_IF_CONSTEXPR ((std::is_same<Scalar, bool>::value)) {
+      // Boolean packet lanes are canonical, so logical NOT is 1 & ~a.
+      return pandnot(cst_one, a);
+    } else {
+      Packet not_a = pcmp_eq(a, pzero(a));
+      return pand(not_a, cst_one);
+    }
   }
 };
 template <typename Scalar>
