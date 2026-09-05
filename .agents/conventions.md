@@ -31,9 +31,10 @@ current form, and a file being edited heavily should come out uniform rather tha
   temporary and return a dangling reference.
 - An in-class definition is already implicitly `inline`; a bare `inline` there is noise. Use `EIGEN_STRONG_INLINE` or
   `EIGEN_ALWAYS_INLINE` when inlining matters, and nothing otherwise.
-- Write new compile-time checks as `static_assert(cond, "what must hold")`. The `EIGEN_STATIC_ASSERT_*` helpers
-  (`_VECTOR_ONLY`, `_SAME_MATRIX_SIZE`, ...) stay for the API preconditions they name; the two-token
-  `EIGEN_STATIC_ASSERT(cond, TOKEN)` form only stringifies its token and adds nothing over `static_assert`.
+- Compile-time API preconditions use the `EIGEN_STATIC_ASSERT_*` helper that names them (`_VECTOR_ONLY`,
+  `_SAME_MATRIX_SIZE`, ...) or `EIGEN_STATIC_ASSERT(cond, TOKEN)`. These honor `EIGEN_NO_STATIC_ASSERT` and a
+  user-provided `EIGEN_STATIC_ASSERT` override. Write unconditional implementation invariants as
+  `static_assert(cond, "what must hold")`; bare assertions bypass those configuration mechanisms.
 - Deprecate, do not remove: mark the old declaration `EIGEN_DEPRECATED` or `EIGEN_DEPRECATED_WITH_REASON("use ...")`,
   keep it working by forwarding to the replacement, and name the replacement in its Doxygen block.
 - Spell names out (`scratch`, not `scr`) and name traits for the property they assert.

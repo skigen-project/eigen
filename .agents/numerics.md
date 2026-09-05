@@ -47,8 +47,8 @@ Under `-ffast-math`, and `-ffinite-math-only` in particular, those predicates fo
 floating-point argument and return value `nofpclass(nan inf)`: a NaN or infinity constant then provably violates the
 attribute, is folded to poison, and the code consuming it is deleted. Wrap such constants in
 `EIGEN_FAST_MATH_CONSTANT_BARRIER` as the existing packet code does, keep finiteness probes on values the compiler
-cannot see through, and treat special-value behavior as unverified under the flag unless a build with it ran — no CI
-job uses it (see [`testing.md`](testing.md)).
+cannot see through, and verify the changed path in a build with the flag. CI includes focused fast-math tests, including
+packet-mask and constant regressions, but they do not cover every numerical path (see [`testing.md`](testing.md)).
 
 ## Decompositions and Solvers
 

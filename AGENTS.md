@@ -80,9 +80,11 @@ default.
    metadata churn.
 4. Add or update applicable tests and benchmarks in the same patch. Test public behavior through its umbrella header so
    missing exports are caught; follow nearby patterns for focused private-internal tests.
-5. Format only the lines the task changed, with `git clang-format --binary clang-format-17 <base-sha>`; that is the
-   check CI runs. Whole-file `clang-format-17 -i` and `scripts/format.sh` also rewrite pre-existing lines that are not
-   clang-format-17 clean, so use them only when that churn is intended.
+5. Format the task's changed lines with `git clang-format --binary clang-format-17 --force <base-sha> -- <files>`.
+   Inspect the selected files' diffs first to exclude unrelated changes; `--force` permits unstaged edits. Untracked
+   files are absent from the diff, so format task-created files with `clang-format-17 -i <files>`. Whole-file formatting
+   of existing files and `scripts/format.sh` also rewrite pre-existing lines that are not clang-format-17 clean, so use
+   them only when that churn is intended. See [`.agents/ci.md`](.agents/ci.md) for the matching check.
 6. Build and run the narrowest relevant test first, then widen validation according to the change's risk. Use separate
    build directories for materially different CMake configurations.
 7. Review `git diff --check`, `git diff`, and `git status --short`. Report the exact validation run and any unavailable
@@ -193,7 +195,8 @@ Before declaring the task complete:
 - The diff contains only intentional changes and preserves pre-existing work.
 - New public implementation is reachable through the intended umbrella header.
 - New files have correct REUSE metadata and no generated or local-tool files are staged.
-- Changed source files pass `clang-format-17`; `git diff --check` is clean.
+- Changed source lines and task-created source files pass the clang-format-17 checks in `.agents/ci.md`;
+  `git diff --check` is clean.
 - Documentation describing the changed behavior — the Doxygen block above a changed declaration, the module `README`,
   and nearby comments naming a value or precondition the change moved — is updated with it.
 - Focused regression tests pass, with broader tests or benchmarks run when the risk warrants them.

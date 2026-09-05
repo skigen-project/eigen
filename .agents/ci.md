@@ -118,10 +118,16 @@ exactly; the pin lives in [`ci/checkformat.gitlab-ci.yml`](../ci/checkformat.git
 clang-format-17 clean (a whole-file pass rewrites `> >` closers in a couple of dozen headers), so format the diff:
 
 ```bash
-git clang-format --binary clang-format-17 <base-sha>           # rewrite the changed lines in place
-git clang-format --binary clang-format-17 --diff <base-sha>    # show what CI would ask for
-clang-format-17 --dry-run --Werror path/to/new-file.h          # a file the task created
+git clang-format --binary clang-format-17 --force <base-sha> -- path/to/file.cpp path/to/header.h
+git clang-format --binary clang-format-17 --diff <base-sha> -- path/to/file.cpp path/to/header.h
+clang-format-17 -i path/to/new-file.h
+clang-format-17 --dry-run --Werror path/to/new-file.h
 ```
+
+Inspect the selected files' diffs first: every change being formatted must belong to the task. `--force` permits
+unstaged edits; without it, files that need formatting must be staged or committed first. Untracked files are absent
+from the Git diff, so the whole-file commands above cover task-created files. `git clang-format` exits 1 when it makes
+or reports formatting changes; rerun the `--diff` check after applying them.
 
 `.clang-format` intentionally disables include sorting and registers Eigen-specific macros and attributes. Do not
 reorder includes or restyle those macros manually.
@@ -200,7 +206,7 @@ parts it left out, so a capped run names what it did not check rather than repor
 ## Before Review
 
 1. Inspect `git diff` and `git diff --check`.
-2. Format the changed lines with `git clang-format --binary clang-format-17 <base-sha>`.
+2. Format and check the task's changed lines and new files using the Worktree-Safe Formatting recipes above.
 3. Run the focused builds and tests documented in [`testing.md`](testing.md).
 4. Run applicable spelling, REUSE, and clang-tidy checks.
 5. Build the `doc` target when the change touches Doxygen markup, a documented name, or a snippet, and label the merge
