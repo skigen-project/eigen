@@ -8,7 +8,11 @@ current form, and a file being edited heavily should come out uniform rather tha
 ## Declarations
 
 - Trait and evaluator constants are `static constexpr` members, not `enum` blocks; `enum` constants are being phased
-  out. Give each the type it is used as: `Flags` is `unsigned int` by convention, predicates are `bool`.
+  out. Give each the type it is used as: `Flags` is `unsigned int` by convention, predicates are `bool`. In C++14 the
+  in-class declaration is not a definition: odr-using such a member of a class template — binding it to a `const T&`
+  parameter such as `numext::mini`'s, or taking its address — links at -O2 and fails at -O0 unless a namespace-scope
+  `template <...> constexpr T Cls<...>::kName;` definition exists (`arch/Default/Half.h` has the form). Pass a prvalue
+  (`+kName`, `Index(kName)`) or add the definition; the test suite builds optimized and will not catch the omission.
 - Prefer `using` to `typedef`, `nullptr` to `NULL`, `= default` and default member initializers to empty constructor
   bodies that assign each member. `using` binds in every tree, `test/` and `unsupported/` included: those were left
   out of the sweep that converted `Eigen/src`, so the aliases surrounding new code there are mostly still `typedef`
@@ -27,6 +31,12 @@ current form, and a file being edited heavily should come out uniform rather tha
   temporary and return a dangling reference.
 - An in-class definition is already implicitly `inline`; a bare `inline` there is noise. Use `EIGEN_STRONG_INLINE` or
   `EIGEN_ALWAYS_INLINE` when inlining matters, and nothing otherwise.
+- Compile-time API preconditions use the `EIGEN_STATIC_ASSERT_*` helper that names them (`_VECTOR_ONLY`,
+  `_SAME_MATRIX_SIZE`, ...) or `EIGEN_STATIC_ASSERT(cond, TOKEN)`. These honor `EIGEN_NO_STATIC_ASSERT` and a
+  user-provided `EIGEN_STATIC_ASSERT` override. Write unconditional implementation invariants as
+  `static_assert(cond, "what must hold")`; bare assertions bypass those configuration mechanisms.
+- Deprecate, do not remove: mark the old declaration `EIGEN_DEPRECATED` or `EIGEN_DEPRECATED_WITH_REASON("use ...")`,
+  keep it working by forwarding to the replacement, and name the replacement in its Doxygen block.
 - Spell names out (`scratch`, not `scr`) and name traits for the property they assert.
 
 ## The C++14 baseline
@@ -66,14 +76,11 @@ two lines of pseudo-code usually carry more than a paragraph and are read faster
 // Good: tree summation, relative error <= ~2*eps*(log2(n/B) + B) for leaf size B.
 ```
 
-Only when it genuinely fits. A bound, invariant, or identity stated exactly earns the switch even when prose
-already half-carries it — `m` kept in `[1, 2)` says more than "balanced form", and a named theorem should come with
-its statement rather than sending the reader to the paper for one exponent. Notation that restates something already
-obvious from the code is the same defect as prose that does, and the losing case is a symbol invented for a single
-sentence — reuse whatever the surrounding file and the cited reference already use, and spell out any symbol that is
-not standard in context.
-Prose is the right tool for a *reason*: why this form and not the obvious one. Comments are plain text, so write
-expressions the way the rest of the tree does rather than in a markup language that does not render.
+A bound, invariant, or identity stated exactly beats prose that half-carries it (`m` kept in `[1, 2)` says more than
+"balanced form"), and a named theorem comes with its statement. Reuse the symbols of the surrounding file and the
+cited reference rather than inventing one for a sentence; notation that restates what the code shows is the same
+defect as prose that does. Prose remains the tool for a *reason*: why this form and not the obvious one. Comments are
+plain text, so write expressions the way the rest of the tree does, not in a markup language that does not render.
 
 ## REUSE metadata for new files
 

@@ -43,6 +43,13 @@ treat two NaNs as matching and cannot distinguish the sign of zero. Therefore us
 - Check zero by equality and its sign with `(numext::signbit)(value)`.
 - Check finite classification when overflow or invalid results are possible.
 
+Under `-ffast-math`, and `-ffinite-math-only` in particular, those predicates fold to constants, and clang marks every
+floating-point argument and return value `nofpclass(nan inf)`: a NaN or infinity constant then provably violates the
+attribute, is folded to poison, and the code consuming it is deleted. Wrap such constants in
+`EIGEN_FAST_MATH_CONSTANT_BARRIER` as the existing packet code does, keep finiteness probes on values the compiler
+cannot see through, and verify the changed path in a build with the flag. CI includes focused fast-math tests, including
+packet-mask and constant regressions, but they do not cover every numerical path (see [`testing.md`](testing.md)).
+
 ## Decompositions and Solvers
 
 Prefer backward-error and invariant checks over forward comparison with one reference answer. Depending on the

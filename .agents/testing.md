@@ -22,7 +22,7 @@ build may still build enabled auxiliary libraries.
 ```bash
 cmake -G Ninja -S . -B build
 cmake --build build --target buildtests
-ctest --test-dir build --parallel --output-on-failure
+ctest --test-dir build --parallel --output-on-failure --no-tests=error
 ```
 
 Useful aggregate targets are `BuildOfficial`, `BuildUnsupported`, `buildsmoketests`, `buildtests_gpu`, `check`, and
@@ -30,7 +30,7 @@ Useful aggregate targets are `BuildOfficial`, `BuildUnsupported`, `buildsmoketes
 
 ```bash
 cmake --build build --target bdcsvd_3
-ctest --test-dir build -R '^bdcsvd_3$' --output-on-failure
+ctest --test-dir build -R '^bdcsvd_3$' --output-on-failure --no-tests=error
 ```
 
 Run the generated wrappers from the build directory because they invoke the configured build tool relative to their
@@ -127,12 +127,13 @@ else exercises either.
 
 ```bash
 cmake -G Ninja -S . -B build -DEIGEN_BUILD_TESTING=ON
-cmake -E chdir build ctest -L buildsystem --output-on-failure
+cmake -E chdir build ctest -L buildsystem --output-on-failure --no-tests=error
 ```
 
-`ctest --test-dir` would be the shorter spelling, but that option arrived in CMake 3.20; the 3.17 Eigen supports
-accepts and ignores it, inspects the source directory instead, reports that no tests were found, and exits
-successfully.
+`--no-tests=error` belongs on every `ctest` invocation in this guide because CTest otherwise exits 0 when nothing
+matched: an anchored `-R '^name$'` against a split test, a mistyped name, or `--test-dir` under CMake 3.17 to 3.19,
+which predate that option, ignore it, and inspect the source directory instead. `cmake -E chdir` is the spelling that
+also works there.
 
 No target needs building first: each scenario runs its own nested configure, build, and install into the CTest
 binary directory. Add a claim by dropping a scenario in `scenarios/` and naming it in the list in
@@ -156,6 +157,15 @@ tests, a guard that stops matching yields an empty selection rather than a failu
   one object's storage through a view whose default layout is fixed.
 - Cover `EIGEN_TEST_NO_EXPLICIT_VECTORIZATION`, `EIGEN_UNALIGNED_VECTORIZE=0`, or a narrower
   `EIGEN_DEFAULT_DENSE_INDEX_TYPE` when the change reasons about packets, alignment, or index width.
+- Tests build optimized (`CMAKE_BUILD_TYPE` defaults to Release) and no CI job builds Debug, so a `static constexpr`
+  class-template member that is odr-used without its C++14 namespace-scope definition links everywhere CI looks and
+  fails only at -O0; see [`conventions.md`](conventions.md). Build one Debug tree when adding such constants.
+- Compiler fast-math coverage is limited to targets registered with those flags in `test/CMakeLists.txt`.
+  The smoke list includes `packetmath_fastmath`, `packetmath_fastmath_generic_16` where vector extensions are
+  available, and parts of `fastmath`, `bdcsvd_fastmath`, and `stable_norm_fastmath`; these compile with `-ffast-math`
+  where supported. Ordinary `packetmath` uses Eigen's `EIGEN_FAST_MATH=1` approximation switch, which does not enable
+  the compiler flag. Add focused coverage when a changed path falls outside the existing fast-math tests;
+  [`numerics.md`](numerics.md) records the special-value hazards.
 
 ## Numerical Assertions
 

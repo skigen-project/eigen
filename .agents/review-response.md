@@ -18,5 +18,4 @@ it is enabled on the project; they are the bot's rendering of these conventions 
 will flag.
 
 Typeset real mathematics in comments — bounds, recurrences, identities, error terms — as KaTeX, in the form
-[`merge-requests.md`](merge-requests.md) records for descriptions: ``$`h_j = \varepsilon\,\max(|x_j|, 1)`$`` inline,
-since bare `$...$` does not render on gitlab.com.
+[`merge-requests.md`](merge-requests.md) records for descriptions.
