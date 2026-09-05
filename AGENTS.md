@@ -24,6 +24,8 @@ default.
 | Packet math, CUDA, HIP, SYCL, `unsupported/Eigen/GPU` | [`.agents/simd-gpu.md`](.agents/simd-gpu.md) |
 | Tensor, ThreadPool, and multithreading | [`.agents/tensor-threadpool.md`](.agents/tensor-threadpool.md) |
 | Formatting, lint, and GitLab CI | [`.agents/ci.md`](.agents/ci.md) |
+| Doxygen blocks, `doc/` pages, snippets, and examples | [`.agents/docs.md`](.agents/docs.md) |
+| Changes under `ci/`, `.gitlab-ci.yml`, or the test-selection and cache scripts | [`.agents/ci-internals.md`](.agents/ci-internals.md) |
 | Writing or updating a merge request description | [`.agents/merge-requests.md`](.agents/merge-requests.md) |
 | Answering merge request review comments | [`.agents/review-response.md`](.agents/review-response.md) |
 | Expression templates or evaluator internals | [`doc/TopicLazyEvaluation.dox`](doc/TopicLazyEvaluation.dox), [`doc/NewExpressionType.dox`](doc/NewExpressionType.dox), and [`doc/ClassHierarchy.dox`](doc/ClassHierarchy.dox) |
@@ -70,15 +72,17 @@ default.
 
 1. Inspect `git status --short`, the current branch, and the diff. Separate pre-existing work from the requested change.
 2. As applicable, read the public header, implementation, nearby tests, registration in `CMakeLists.txt`, and relevant
-   task guides before deciding on an implementation. Search with `rg` or `rg --files`. Before writing a helper, check
-   `numext`, `NumTraits`, `MathFunctions.h`, `Meta.h`, `XprHelper.h`, and the `test/*_helpers.h` headers for an existing
-   one; if it exists but lacks needed hardening, fix it there rather than adding a local copy.
+   task guides before deciding on an implementation. Search with `rg` or `rg --files` (`--hidden` reaches `.agents/`).
+   Before writing a helper, check `numext`, `NumTraits`, `MathFunctions.h`, `Meta.h`, `XprHelper.h`, and the
+   `test/*_helpers.h` headers for an existing one; if it exists but lacks needed hardening, fix it there rather than
+   adding a local copy.
 3. Keep the patch within the owning module and established patterns. Avoid opportunistic refactors and generated or
    metadata churn.
 4. Add or update applicable tests and benchmarks in the same patch. Test public behavior through its umbrella header so
    missing exports are caught; follow nearby patterns for focused private-internal tests.
-5. Format only files changed by the task with `clang-format-17 -i <files>`. `scripts/format.sh` rewrites matching files
-   across the tree; use it only when the worktree is clean and a whole-tree pass is intentional.
+5. Format only the lines the task changed, with `git clang-format --binary clang-format-17 <base-sha>`; that is the
+   check CI runs. Whole-file `clang-format-17 -i` and `scripts/format.sh` also rewrite pre-existing lines that are not
+   clang-format-17 clean, so use them only when that churn is intended.
 6. Build and run the narrowest relevant test first, then widen validation according to the change's risk. Use separate
    build directories for materially different CMake configurations.
 7. Review `git diff --check`, `git diff`, and `git status --short`. Report the exact validation run and any unavailable
@@ -172,11 +176,12 @@ typical focused workflow is:
 ```bash
 cmake -G Ninja -S . -B build
 cmake --build build --target <test-name>
-ctest --test-dir build -R '^<test-name>$' --output-on-failure
+ctest --test-dir build -R '^<test-name>$' --output-on-failure --no-tests=error
 ```
 
-For a split test such as `foo_3`, build that exact target and match it exactly with CTest. The generated
-`buildtests.sh` and `check.sh` wrappers accept source/test-name regexes and are useful for building all matching parts.
+For a split test such as `foo_3`, build that exact target and match it exactly with CTest, keeping `--no-tests=error`:
+a filter that matches nothing otherwise exits 0. The generated `buildtests.sh` and `check.sh` wrappers accept
+source/test-name regexes and are useful for building all matching parts.
 Use `buildtests`, `BuildOfficial`, `BuildUnsupported`, `buildsmoketests`, or `check` only when the requested validation
 warrants that scope. See [`.agents/testing.md`](.agents/testing.md) for the current test framework, split rules,
 configuration variants, and failure-test workflow.

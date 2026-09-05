@@ -29,6 +29,15 @@ settings. CUDA benchmarks also have a standalone project and instructions in
 [`run.benchmark.sh`](../ci/scripts/run.benchmark.sh) describe the supported-tree scheduled build and result format;
 do not assume they validate `unsupported/benchmarks` changes.
 
+## Adding A Benchmark
+
+One family per translation unit, `bench_<topic>.cpp` under the module directory (`benchmarks/LU/bench_lu.cpp`),
+registered beside it with `eigen_add_benchmark(<target> <source> [LIBRARIES ...] [DEFINITIONS ...])`, which links
+`benchmark_main`, compiles at `-O3` with `NDEBUG`, and takes the include path from the tree. Do not merge families
+into one file: code-layout shifts between combined and separate binaries have shown up as deltas of tens of percent
+in kernels that did not change. Multi-threaded benchmarks call `UseRealTime()` on the registration — the default
+clock is process CPU time, which sums the workers and hides the wall-clock speedup.
+
 ## Benchmark Design
 
 - Benchmark the user-visible operation affected by the change, with representative scalar types, sizes, shapes,
