@@ -553,6 +553,42 @@ void bunchkaufman_no_malloc() {
   VERIFY(bk.info() == Success);
 }
 
+// Regression for GitLab issue #3142: subnormal 2x2 pivot blocks in the blocked factorization
+// can produce NaN in solve() even when info() == Success. This occurred when the trailing
+// update used the 2x2 block inverse, which overflows when the off-diagonal is subnormal.
+void test_subnormal_pivot_block_trailing_update() {
+  typedef double Scalar;
+  typedef Matrix<Scalar, Dynamic, Dynamic> MatrixType;
+  typedef Matrix<Scalar, Dynamic, 1> VectorType;
+  typedef typename NumTraits<Scalar>::Real RealScalar;
+  const RealScalar u = std::numeric_limits<RealScalar>::denorm_min();
+  
+  // 2x2 block at the beginning (rs > 0 case, trailing update) with subnormal off-diagonal.
+  // The blocked factorization processes the first panel, then updates the trailing submatrix.
+  // With a subnormal off-diagonal, the 2x2 block inverse overflows, and the fix ensures the
+  // trailing update correctly handles this case without producing NaN in solve().
+  MatrixType A = MatrixType::Identity(100, 100);
+  A(2, 2) = A(3, 3) = u;
+  A(3, 2) = A(2, 3) = 4 * u;
+  
+  // Regression test for GitLab issue #3142: subnormal 2x2 pivot blocks in the blocked
+  // factorization can produce NaN in solve() even when info() == Success.
+  BunchKaufman<MatrixType, Lower> bk(A);
+  VERIFY_IS_EQUAL(bk.info(), Success);
+  
+  // The RHS should have subnormal entries at the pivot positions to get a finite solution.
+  // Using ones gives a very large (but finite) solution; using subnormals gives a well-scaled solution.
+  VectorType b = VectorType::Ones(100);
+  b(2) = b(3) = (RealScalar)std::numeric_limits<RealScalar>::denorm_min();
+  VectorType x = bk.solve(b);
+  
+  // The solution for the pivot block should be approximately [0.2, 0.2, ...]
+  // (since [u, 4u; 4u, u] * [0.2; 0.2] = [u; u])
+  VERIFY_IS_APPROX(x(2), (RealScalar)0.2);
+  VERIFY_IS_APPROX(x(3), (RealScalar)0.2);
+  VERIFY(x.array().isFinite().all());
+}
+
 EIGEN_DECLARE_TEST(bunchkaufman) {
   for (int i = 0; i < g_repeat; i++) {
     CALL_SUBTEST_1(bunchkaufman(Matrix<double, 1, 1>()));
@@ -631,4 +667,6 @@ EIGEN_DECLARE_TEST(bunchkaufman) {
   // No-malloc regression: the size constructor pre-allocates the panel workspace.
   CALL_SUBTEST_8(bunchkaufman_no_malloc<double>());
   CALL_SUBTEST_8(bunchkaufman_no_malloc<std::complex<double> >());
+  
+  CALL_SUBTEST_8(test_subnormal_pivot_block_trailing_update());
 }
