@@ -640,6 +640,41 @@ void bunchkaufman_subnormal_2x2_block() {
   }
 }
 
+template <typename BKType, typename VectorType>
+void verify_near_max_scale(const BKType& bk, const VectorType& b, const VectorType& x_true) {
+  typedef typename VectorType::RealScalar RealScalar;
+  VERIFY(bk.info() == Success);
+  VERIFY(bk.matrixLDLT().allFinite());
+  // x_true = e_2 comes back through the cancellations 6/5 - 6/5 and -3/5 + 3/5 of values that each carry a
+  // few roundings.
+  VERIFY((bk.solve(b) - x_true).cwiseAbs().maxCoeff() <= RealScalar(16) * NumTraits<RealScalar>::epsilon());
+}
+
+// A 2x2 pivot block at the top of the representable range: A = M [[1/2, 1, 0], [1, 1/2, 9/10], [0, 9/10, 0]]
+// with M = max, so d21 = M, ak = akm1 = 1/2, t = -4/3, and the factor row below the block is (6/5, -3/5).
+// Scaling the numerator ak*u0 - u1 = -9M/10 by t before dividing by d21 overflows although the factor entry
+// is 6/5, in unblocked() and, with the block heading an identity wider than the panel, in partial_factor().
+// L D L^* is not checked: (L D)(2, 1) = 6M/5 - 3M/10 overflows in the middle of its own evaluation.
+template <typename MatrixType>
+void bunchkaufman_near_max_scale() {
+  typedef typename MatrixType::Scalar Scalar;
+  typedef typename MatrixType::RealScalar RealScalar;
+  typedef Matrix<Scalar, Dynamic, 1> VectorType;
+  const RealScalar M = (std::numeric_limits<RealScalar>::max)();
+  for (Index n : {Index(3), 2 * internal::bunch_kaufman_blocksize<Scalar>() + 2}) {
+    MatrixType A = MatrixType::Identity(n, n);
+    A(0, 0) = A(1, 1) = Scalar(M / RealScalar(2));
+    A(1, 0) = A(0, 1) = Scalar(M);
+    A(2, 1) = A(1, 2) = Scalar(RealScalar(0.9) * M);
+    A(2, 2) = Scalar(0);
+    const VectorType b = A.col(2);
+    VectorType e2 = VectorType::Zero(n);
+    e2(2) = Scalar(1);
+    verify_near_max_scale(BunchKaufman<MatrixType, Lower>(A), b, e2);
+    verify_near_max_scale(BunchKaufman<MatrixType, Upper>(A), b, e2);
+  }
+}
+
 // Regression: the size constructor must pre-allocate the panel workspace so that a subsequent compute()
 // on a problem of that size performs no heap allocation. n is chosen above the panel width so the
 // blocked path (the one that uses the workspace) runs. (Uses the default stack-allocation limit so the
@@ -737,6 +772,10 @@ EIGEN_DECLARE_TEST(bunchkaufman) {
   CALL_SUBTEST_6(bunchkaufman_subnormal_2x2_block<MatrixXcd>());
   CALL_SUBTEST_8(bunchkaufman_subnormal_2x2_block<MatrixXf>());
   CALL_SUBTEST_8(bunchkaufman_subnormal_2x2_block<MatrixXcf>());
+  CALL_SUBTEST_5(bunchkaufman_near_max_scale<MatrixXd>());
+  CALL_SUBTEST_6(bunchkaufman_near_max_scale<MatrixXcd>());
+  CALL_SUBTEST_8(bunchkaufman_near_max_scale<MatrixXf>());
+  CALL_SUBTEST_8(bunchkaufman_near_max_scale<MatrixXcf>());
 
   // No-malloc regression: the size constructor pre-allocates the panel workspace.
   CALL_SUBTEST_8(bunchkaufman_no_malloc<double>());

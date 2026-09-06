@@ -551,8 +551,10 @@ struct bunch_kaufman<Lower> {
           // Fused factor-column computation and trailing update, in a single pass over the lower
           // triangle of A22 (the xSYTF2/xHETF2 strategy). For each trailing column j, first form the
           // two unit lower factor entries of row j (the rows of U D^{-1}, in the scaled form above),
-          //   l0_j = t*(ak*u0_j - u1_j)/conj(d21),   l1_j = t*(akm1*u1_j - u0_j)/d21,
-          // then update column j against the ORIGINAL pivot columns u = [u0 u1] (they carry the D
+          //   l0_j = t*((ak*u0_j - u1_j)/conj(d21)),   l1_j = t*((akm1*u1_j - u0_j)/d21),
+          // dividing before scaling by t: the quotient is denom*l_j, within a factor 1 + alpha^2 of the
+          // result, whereas t*(ak*u0_j - u1_j) can overflow (|t| < 1/(1 - alpha^2)) where l_j is finite.
+          // Then update column j against the ORIGINAL pivot columns u = [u0 u1] (they carry the D
           // scale, U = L*D, so no 1/det factor appears):
           //   A22(i,j) -= u0_i*conj(l0_j) + u1_i*conj(l1_j),   i >= j.
           // Rows < j of the pivot columns already hold L, rows >= j still hold U -- exactly the
@@ -565,8 +567,8 @@ struct bunch_kaufman<Lower> {
           for (Index j = 0; j < rs; ++j) {
             const Scalar u0 = c0.coeff(j);
             const Scalar u1 = c1.coeff(j);
-            const Scalar l0 = (t * (ak * u0 - u1)) / cjd;
-            const Scalar l1 = (t * (akm1 * u1 - u0)) / d21;
+            const Scalar l0 = t * ((ak * u0 - u1) / cjd);
+            const Scalar l1 = t * ((akm1 * u1 - u0) / d21);
             const Index len = rs - j;
             mat.col(k + 2 + j).tail(len) -= numext::conj(l0) * c0.tail(len) + numext::conj(l1) * c1.tail(len);
             c0.coeffRef(j) = l0;
@@ -712,13 +714,14 @@ struct bunch_kaufman<Lower> {
         if (info == 0 && !(denom < RealScalar(0) && denom > RealScalar(-2))) info = jc + 1;
         const Index rs = n - jc - 2;
         if (rs > 0) {
-          // L(jc+2:n, jc:jc+1) = W(jc+2:n, j:j+1) * D^{-1}, as vectorized column expressions:
-          //   L_k = t*(ak*w0 - w1)/conj(d21),  L_{k+1} = t*(akm1*w1 - w0)/d21.
+          // L(jc+2:n, jc:jc+1) = W(jc+2:n, j:j+1) * D^{-1}, as vectorized column expressions, divided
+          // before being scaled by t for the reason given in unblocked():
+          //   L_k = t*((ak*w0 - w1)/conj(d21)),  L_{k+1} = t*((akm1*w1 - w0)/d21).
           const RealScalar t = RealScalar(1) / denom;
           auto w0 = W.col(j).segment(jc + 2, rs);
           auto w1 = W.col(j + 1).segment(jc + 2, rs);
-          mat.col(jc).tail(rs) = (t * (ak * w0 - w1)) / cjd;
-          mat.col(jc + 1).tail(rs) = (t * (akm1 * w1 - w0)) / d21;
+          mat.col(jc).tail(rs) = t * ((ak * w0 - w1) / cjd);
+          mat.col(jc + 1).tail(rs) = t * ((akm1 * w1 - w0) / d21);
         }
         subdiag.coeffRef(jc) = d21;
         subdiag.coeffRef(jc + 1) = Scalar(0);
