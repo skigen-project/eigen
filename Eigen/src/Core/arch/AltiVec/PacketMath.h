@@ -1101,15 +1101,6 @@ EIGEN_STRONG_INLINE Packet4i pnegate(const Packet4i& a) {
 }
 
 template <>
-EIGEN_STRONG_INLINE Packet4f pconj(const Packet4f& a) {
-  return a;
-}
-template <>
-EIGEN_STRONG_INLINE Packet4i pconj(const Packet4i& a) {
-  return a;
-}
-
-template <>
 EIGEN_STRONG_INLINE Packet4f pmul<Packet4f>(const Packet4f& a, const Packet4f& b) {
   return vec_madd(a, b, p4f_MZERO);
 }
@@ -1893,16 +1884,8 @@ EIGEN_STRONG_INLINE Packet8s pabs(const Packet8s& a) {
   return vec_abs(a);
 }
 template <>
-EIGEN_STRONG_INLINE Packet8us pabs(const Packet8us& a) {
-  return a;
-}
-template <>
 EIGEN_STRONG_INLINE Packet16c pabs(const Packet16c& a) {
   return vec_abs(a);
-}
-template <>
-EIGEN_STRONG_INLINE Packet16uc pabs(const Packet16uc& a) {
-  return a;
 }
 template <>
 EIGEN_STRONG_INLINE Packet8bf pabs(const Packet8bf& a) {
@@ -2784,7 +2767,14 @@ EIGEN_STRONG_INLINE unsigned char predux_max<Packet16uc>(const Packet16uc& a) {
 
 template <>
 EIGEN_STRONG_INLINE bool predux_any(const Packet4f& x) {
-  return vec_any_ne(x, pzero(x));
+  const Packet4ui zero = {0, 0, 0, 0};
+  return vec_any_ne(reinterpret_cast<Packet4ui>(x), zero);
+}
+
+template <>
+EIGEN_STRONG_INLINE bool predux_any(const Packet8bf& x) {
+  const Packet8us zero = {0, 0, 0, 0, 0, 0, 0, 0};
+  return vec_any_ne(x.m_val, zero);
 }
 
 template <typename T>
@@ -3311,11 +3301,6 @@ EIGEN_STRONG_INLINE Packet2d pnegate(const Packet2d& a) {
 }
 
 template <>
-EIGEN_STRONG_INLINE Packet2d pconj(const Packet2d& a) {
-  return a;
-}
-
-template <>
 EIGEN_STRONG_INLINE Packet2d pmul<Packet2d>(const Packet2d& a, const Packet2d& b) {
   return vec_madd(a, b, p2d_MZERO);
 }
@@ -3661,6 +3646,12 @@ EIGEN_STRONG_INLINE double predux<Packet2d>(const Packet2d& a) {
   b = reinterpret_cast<Packet2d>(vec_sld(reinterpret_cast<Packet4f>(a), reinterpret_cast<Packet4f>(a), 8));
   sum = a + b;
   return pfirst<Packet2d>(sum);
+}
+
+template <>
+EIGEN_STRONG_INLINE bool predux_any(const Packet2d& a) {
+  const Packet2ul zero = {0, 0};
+  return vec_any_ne(reinterpret_cast<Packet2ul>(a), zero);
 }
 
 // Other reduction functions:

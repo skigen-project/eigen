@@ -56,11 +56,6 @@ EIGEN_STRONG_INLINE Packet4Xi pnegate(const Packet4Xi& a) {
 }
 
 template <>
-EIGEN_STRONG_INLINE Packet4Xi pconj(const Packet4Xi& a) {
-  return a;
-}
-
-template <>
 EIGEN_STRONG_INLINE Packet4Xi pmul<Packet4Xi>(const Packet4Xi& a, const Packet4Xi& b) {
   return __riscv_vmul(a, b, unpacket_traits<Packet4Xi>::size);
 }
@@ -243,6 +238,12 @@ EIGEN_STRONG_INLINE numext::int32_t predux<Packet4Xi>(const Packet4Xi& a) {
 }
 
 template <>
+EIGEN_STRONG_INLINE bool predux_all(const Packet4Xi& a) {
+  const PacketMask8 mask = __riscv_vmseq_vx_i32m4_b8(a, 0, unpacket_traits<Packet4Xi>::size);
+  return __riscv_vcpop_m_b8(mask, unpacket_traits<Packet4Xi>::size) == 0;
+}
+
+template <>
 EIGEN_STRONG_INLINE numext::int32_t predux_mul<Packet4Xi>(const Packet4Xi& a) {
   Packet1Xi half1 = __riscv_vmul_vv_i32m1(__riscv_vget_v_i32m4_i32m1(a, 0), __riscv_vget_v_i32m4_i32m1(a, 1),
                                           unpacket_traits<Packet1Xi>::size);
@@ -362,11 +363,6 @@ EIGEN_STRONG_INLINE Packet4Xf psignbit(const Packet4Xf& a) {
 }
 
 template <>
-EIGEN_STRONG_INLINE Packet4Xf pconj(const Packet4Xf& a) {
-  return a;
-}
-
-template <>
 EIGEN_STRONG_INLINE Packet4Xf pmul<Packet4Xf>(const Packet4Xf& a, const Packet4Xf& b) {
   return __riscv_vfmul_vv_f32m4(a, b, unpacket_traits<Packet4Xf>::size);
 }
@@ -397,6 +393,9 @@ EIGEN_STRONG_INLINE Packet4Xf pnmsub(const Packet4Xf& a, const Packet4Xf& b, con
 }
 
 template <>
+struct pminmax_propagates_nan<Packet4Xf> : bool_constant<true> {};
+
+template <>
 EIGEN_STRONG_INLINE Packet4Xf pmin<Packet4Xf>(const Packet4Xf& a, const Packet4Xf& b) {
   Packet4Xf nans = __riscv_vfmv_v_f_f32m4((std::numeric_limits<float>::quiet_NaN)(), unpacket_traits<Packet4Xf>::size);
   PacketMask8 mask = __riscv_vmfeq_vv_f32m4_b8(a, a, unpacket_traits<Packet4Xf>::size);
@@ -404,11 +403,6 @@ EIGEN_STRONG_INLINE Packet4Xf pmin<Packet4Xf>(const Packet4Xf& a, const Packet4X
   mask = __riscv_vmand_mm_b8(mask, mask2, unpacket_traits<Packet4Xf>::size);
 
   return __riscv_vfmin_vv_f32m4_tumu(mask, nans, a, b, unpacket_traits<Packet4Xf>::size);
-}
-
-template <>
-EIGEN_STRONG_INLINE Packet4Xf pmin<PropagateNaN, Packet4Xf>(const Packet4Xf& a, const Packet4Xf& b) {
-  return pmin<Packet4Xf>(a, b);
 }
 
 template <>
@@ -424,11 +418,6 @@ EIGEN_STRONG_INLINE Packet4Xf pmax<Packet4Xf>(const Packet4Xf& a, const Packet4X
   mask = __riscv_vmand_mm_b8(mask, mask2, unpacket_traits<Packet4Xf>::size);
 
   return __riscv_vfmax_vv_f32m4_tumu(mask, nans, a, b, unpacket_traits<Packet4Xf>::size);
-}
-
-template <>
-EIGEN_STRONG_INLINE Packet4Xf pmax<PropagateNaN, Packet4Xf>(const Packet4Xf& a, const Packet4Xf& b) {
-  return pmax<Packet4Xf>(a, b);
 }
 
 template <>
@@ -611,6 +600,25 @@ EIGEN_STRONG_INLINE float predux<Packet4Xf>(const Packet4Xf& a) {
 }
 
 template <>
+EIGEN_STRONG_INLINE bool predux_any(const Packet4Xf& a) {
+  const PacketMask8 mask =
+      __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_f32m4_u32m4(a), 0, unpacket_traits<Packet4Xf>::size);
+  return __riscv_vcpop_m_b8(mask, unpacket_traits<Packet4Xf>::size) != 0;
+}
+
+template <>
+EIGEN_STRONG_INLINE bool predux_all(const Packet4Xf& a) {
+  const PacketMask8 mask = __riscv_vmfeq_vf_f32m4_b8(a, 0.0f, unpacket_traits<Packet4Xf>::size);
+  return __riscv_vcpop_m_b8(mask, unpacket_traits<Packet4Xf>::size) == 0;
+}
+
+template <>
+EIGEN_STRONG_INLINE Index predux_count(const Packet4Xf& a) {
+  const PacketMask8 mask = __riscv_vmfne_vf_f32m4_b8(a, 0.0f, unpacket_traits<Packet4Xf>::size);
+  return static_cast<Index>(__riscv_vcpop_m_b8(mask, unpacket_traits<Packet4Xf>::size));
+}
+
+template <>
 EIGEN_STRONG_INLINE float predux_mul<Packet4Xf>(const Packet4Xf& a) {
   Packet1Xf half1 = __riscv_vfmul_vv_f32m1(__riscv_vget_v_f32m4_f32m1(a, 0), __riscv_vget_v_f32m4_f32m1(a, 1),
                                            unpacket_traits<Packet1Xf>::size);
@@ -698,11 +706,6 @@ EIGEN_STRONG_INLINE Packet4Xl psub<Packet4Xl>(const Packet4Xl& a, const Packet4X
 template <>
 EIGEN_STRONG_INLINE Packet4Xl pnegate(const Packet4Xl& a) {
   return __riscv_vneg(a, unpacket_traits<Packet4Xl>::size);
-}
-
-template <>
-EIGEN_STRONG_INLINE Packet4Xl pconj(const Packet4Xl& a) {
-  return a;
 }
 
 template <>
@@ -888,6 +891,12 @@ EIGEN_STRONG_INLINE numext::int64_t predux<Packet4Xl>(const Packet4Xl& a) {
 }
 
 template <>
+EIGEN_STRONG_INLINE bool predux_all(const Packet4Xl& a) {
+  const PacketMask16 mask = __riscv_vmseq_vx_i64m4_b16(a, 0, unpacket_traits<Packet4Xl>::size);
+  return __riscv_vcpop_m_b16(mask, unpacket_traits<Packet4Xl>::size) == 0;
+}
+
+template <>
 EIGEN_STRONG_INLINE numext::int64_t predux_mul<Packet4Xl>(const Packet4Xl& a) {
   Packet1Xl half1 = __riscv_vmul_vv_i64m1(__riscv_vget_v_i64m4_i64m1(a, 0), __riscv_vget_v_i64m4_i64m1(a, 1),
                                           unpacket_traits<Packet1Xl>::size);
@@ -1013,11 +1022,6 @@ EIGEN_STRONG_INLINE Packet4Xd psignbit(const Packet4Xd& a) {
 }
 
 template <>
-EIGEN_STRONG_INLINE Packet4Xd pconj(const Packet4Xd& a) {
-  return a;
-}
-
-template <>
 EIGEN_STRONG_INLINE Packet4Xd pmul<Packet4Xd>(const Packet4Xd& a, const Packet4Xd& b) {
   return __riscv_vfmul_vv_f64m4(a, b, unpacket_traits<Packet4Xd>::size);
 }
@@ -1048,6 +1052,9 @@ EIGEN_STRONG_INLINE Packet4Xd pnmsub(const Packet4Xd& a, const Packet4Xd& b, con
 }
 
 template <>
+struct pminmax_propagates_nan<Packet4Xd> : bool_constant<true> {};
+
+template <>
 EIGEN_STRONG_INLINE Packet4Xd pmin<Packet4Xd>(const Packet4Xd& a, const Packet4Xd& b) {
   Packet4Xd nans = __riscv_vfmv_v_f_f64m4((std::numeric_limits<double>::quiet_NaN)(), unpacket_traits<Packet4Xd>::size);
   PacketMask16 mask = __riscv_vmfeq_vv_f64m4_b16(a, a, unpacket_traits<Packet4Xd>::size);
@@ -1055,11 +1062,6 @@ EIGEN_STRONG_INLINE Packet4Xd pmin<Packet4Xd>(const Packet4Xd& a, const Packet4X
   mask = __riscv_vmand_mm_b16(mask, mask2, unpacket_traits<Packet4Xd>::size);
 
   return __riscv_vfmin_vv_f64m4_tumu(mask, nans, a, b, unpacket_traits<Packet4Xd>::size);
-}
-
-template <>
-EIGEN_STRONG_INLINE Packet4Xd pmin<PropagateNaN, Packet4Xd>(const Packet4Xd& a, const Packet4Xd& b) {
-  return pmin<Packet4Xd>(a, b);
 }
 
 template <>
@@ -1075,11 +1077,6 @@ EIGEN_STRONG_INLINE Packet4Xd pmax<Packet4Xd>(const Packet4Xd& a, const Packet4X
   mask = __riscv_vmand_mm_b16(mask, mask2, unpacket_traits<Packet4Xd>::size);
 
   return __riscv_vfmax_vv_f64m4_tumu(mask, nans, a, b, unpacket_traits<Packet4Xd>::size);
-}
-
-template <>
-EIGEN_STRONG_INLINE Packet4Xd pmax<PropagateNaN, Packet4Xd>(const Packet4Xd& a, const Packet4Xd& b) {
-  return pmax<Packet4Xd>(a, b);
 }
 
 template <>
@@ -1257,6 +1254,25 @@ EIGEN_STRONG_INLINE double predux<Packet4Xd>(const Packet4Xd& a) {
 }
 
 template <>
+EIGEN_STRONG_INLINE bool predux_any(const Packet4Xd& a) {
+  const PacketMask16 mask =
+      __riscv_vmsne_vx_u64m4_b16(__riscv_vreinterpret_v_f64m4_u64m4(a), 0, unpacket_traits<Packet4Xd>::size);
+  return __riscv_vcpop_m_b16(mask, unpacket_traits<Packet4Xd>::size) != 0;
+}
+
+template <>
+EIGEN_STRONG_INLINE bool predux_all(const Packet4Xd& a) {
+  const PacketMask16 mask = __riscv_vmfeq_vf_f64m4_b16(a, 0.0, unpacket_traits<Packet4Xd>::size);
+  return __riscv_vcpop_m_b16(mask, unpacket_traits<Packet4Xd>::size) == 0;
+}
+
+template <>
+EIGEN_STRONG_INLINE Index predux_count(const Packet4Xd& a) {
+  const PacketMask16 mask = __riscv_vmfne_vf_f64m4_b16(a, 0.0, unpacket_traits<Packet4Xd>::size);
+  return static_cast<Index>(__riscv_vcpop_m_b16(mask, unpacket_traits<Packet4Xd>::size));
+}
+
+template <>
 EIGEN_STRONG_INLINE double predux_mul<Packet4Xd>(const Packet4Xd& a) {
   Packet1Xd half1 = __riscv_vfmul_vv_f64m1(__riscv_vget_v_f64m4_f64m1(a, 0), __riscv_vget_v_f64m4_f64m1(a, 1),
                                            unpacket_traits<Packet1Xd>::size);
@@ -1346,11 +1362,6 @@ EIGEN_STRONG_INLINE Packet4Xs psub<Packet4Xs>(const Packet4Xs& a, const Packet4X
 template <>
 EIGEN_STRONG_INLINE Packet4Xs pnegate(const Packet4Xs& a) {
   return __riscv_vneg(a, unpacket_traits<Packet4Xs>::size);
-}
-
-template <>
-EIGEN_STRONG_INLINE Packet4Xs pconj(const Packet4Xs& a) {
-  return a;
 }
 
 template <>
@@ -1528,6 +1539,12 @@ template <>
 EIGEN_STRONG_INLINE numext::int16_t predux<Packet4Xs>(const Packet4Xs& a) {
   return __riscv_vmv_x(__riscv_vredsum_vs_i16m4_i16m1(a, __riscv_vmv_v_x_i16m1(0, unpacket_traits<Packet4Xs>::size / 4),
                                                       unpacket_traits<Packet4Xs>::size));
+}
+
+template <>
+EIGEN_STRONG_INLINE bool predux_all(const Packet4Xs& a) {
+  const PacketMask4 mask = __riscv_vmseq_vx_i16m4_b4(a, 0, unpacket_traits<Packet4Xs>::size);
+  return __riscv_vcpop_m_b4(mask, unpacket_traits<Packet4Xs>::size) == 0;
 }
 
 template <>
