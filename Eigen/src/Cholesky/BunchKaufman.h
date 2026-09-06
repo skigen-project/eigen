@@ -531,11 +531,9 @@ struct bunch_kaufman<Lower> {
         // (e.g. [[0,s],[s,0]], s=1e200, where det = -s^2 overflows/underflows). Instead divide
         // through by the off-diagonal d21, so the scaled determinant
         //   denom = real(ak*akm1) - 1 = det / |d21|^2     (with ak = d22/d21, akm1 = d11/conj(d21))
-        // stays O(1). The reciprocals MUST use Eigen's overflow-safe Scalar division.
-        const Scalar id = Scalar(1) / d21;
-        const Scalar icjd = numext::conj(id);  // 1 / conj(d21)
-        const Scalar ak = d22 * id;
-        const Scalar akm1 = d11 * icjd;
+        // stays O(1). For subnormal d21, division is overflow-safe while computing 1/d21 is not.
+        const Scalar ak = d22 / d21;
+        const Scalar akm1 = d11 / numext::conj(d21);
         const RealScalar denom = numext::real(ak * akm1) - RealScalar(1);
         // A non-finite 2x2 block (e.g. a NaN pulled in from a candidate row/column) is a numerical
         // failure; flag it so it is reported rather than silently propagated.
@@ -555,15 +553,18 @@ struct bunch_kaufman<Lower> {
           // self-adjoint rank-1/rank-2 updates (syr + syr + syr2) this halves the flops and touches
           // the trailing triangle once instead of three times.
           const RealScalar t = RealScalar(1) / denom;
-          const Scalar tic = t * icjd;
-          const Scalar tid = t * id;
+          const Scalar tic = t / numext::conj(d21);
+          const Scalar tid = t / d21;
           auto c0 = mat.col(k).tail(rs);
           auto c1 = mat.col(k + 1).tail(rs);
           for (Index j = 0; j < rs; ++j) {
             const Scalar u0 = c0.coeff(j);
             const Scalar u1 = c1.coeff(j);
-            const Scalar l0 = tic * (ak * u0 - u1);
-            const Scalar l1 = tid * (akm1 * u1 - u0);
+            // Use explicit checks to avoid NaN when u0=u1=0 but tic/tid are inf
+            const Scalar l0 = (numext::is_exactly_zero(u0) && numext::is_exactly_zero(u1)) ? Scalar(0)
+                                                                                        : tic * (ak * u0 - u1);
+            const Scalar l1 = (numext::is_exactly_zero(u0) && numext::is_exactly_zero(u1)) ? Scalar(0)
+                                                                                        : tid * (akm1 * u1 - u0);
             const Index len = rs - j;
             mat.col(k + 2 + j).tail(len) -= numext::conj(l0) * c0.tail(len) + numext::conj(l1) * c1.tail(len);
             c0.coeffRef(j) = l0;
@@ -701,24 +702,34 @@ struct bunch_kaufman<Lower> {
         // Scaled 2x2 inverse (see unblocked()): divide through by d21 so the scaled determinant
         // denom = det/|d21|^2 stays O(1); det = d11*d22 - |d21|^2 and abs2(d21) are never formed (they
         // over/underflow on extreme-scaled blocks). The deferred level-3 trailing update below uses W
-        // (= L*D, original scale), so it carries no 1/det factor either.
-        const Scalar id = Scalar(1) / d21;
-        const Scalar icjd = numext::conj(id);  // 1 / conj(d21)
-        const Scalar ak = d22 * id;
-        const Scalar akm1 = d11 * icjd;
+        // (= L*D, original scale), so it carries no 1/det factor either. For subnormal d21, division
+        // is overflow-safe while computing 1/d21 is not.
+        const Scalar ak = d22 / d21;
+        const Scalar akm1 = d11 / numext::conj(d21);
         const RealScalar denom = numext::real(ak * akm1) - RealScalar(1);
         if (info == 0 && (numext::isnan)(denom)) info = jc + 1;
         const Index rs = n - jc - 2;
         if (rs > 0) {
           // L(jc+2:n, jc:jc+1) = W(jc+2:n, j:j+1) * D^{-1}, as vectorized column expressions:
           //   L_k = (t*icjd)*(ak*w0 - w1),  L_{k+1} = (t*id)*(akm1*w1 - w0).
-          const RealScalar t = RealScalar(1) / denom;
-          const Scalar tic = t * icjd;
-          const Scalar tid = t * id;
-          auto w0 = W.col(j).segment(jc + 2, rs);
-          auto w1 = W.col(j + 1).segment(jc + 2, rs);
-          mat.col(jc).tail(rs) = tic * (ak * w0 - w1);
-          mat.col(jc + 1).tail(rs) = tid * (akm1 * w1 - w0);
+        const RealScalar t = RealScalar(1) / denom;
+        const Scalar tic = t / numext::conj(d21);
+        const Scalar tid = t / d21;
+        auto w0 = W.col(j).segment(jc + 2, rs);
+        auto w1 = W.col(j + 1).segment(jc + 2, rs);
+        // Avoid NaN when w0=w1=0 but tic/tid overflow to inf
+        for (Index i = 0; i < rs; ++i) {
+          const Scalar wi0 = w0.coeff(i);
+          const Scalar wi1 = w1.coeff(i);
+          // If both w0 and w1 are zero, the result is zero regardless of tic/tid
+          if (numext::is_exactly_zero(wi0) && numext::is_exactly_zero(wi1)) {
+            mat.coeffRef(jc + 2 + i, jc) = Scalar(0);
+            mat.coeffRef(jc + 2 + i, jc + 1) = Scalar(0);
+          } else {
+            mat.coeffRef(jc + 2 + i, jc) = tic * (ak * wi0 - wi1);
+            mat.coeffRef(jc + 2 + i, jc + 1) = tid * (akm1 * wi1 - wi0);
+          }
+        }
         }
         subdiag.coeffRef(jc) = d21;
         subdiag.coeffRef(jc + 1) = Scalar(0);
@@ -841,17 +852,16 @@ void BunchKaufman<MatrixType, UpLo_>::solveInPlaceD(MatrixBase<Derived>& x) cons
       const Scalar d21 = Conjugate ? m_subdiag.coeff(k) : numext::conj(m_subdiag.coeff(k));
       // Scaled 2x2 solve (LAPACK xSYTRS/xHETRS): divide through by d21 so the scaled determinant
       // denom = det/|d21|^2 is O(1); det = d11*d22 - |d21|^2 is never formed (it over/underflows on
-      // extreme-scaled blocks, e.g. [[0,s],[s,0]], s=1e+-200). Reciprocals use overflow-safe division.
-      const Scalar id = Scalar(1) / d21;
-      const Scalar icjd = numext::conj(id);  // 1 / conj(d21)
-      const Scalar ak = d22 * id;
-      const Scalar akm1 = d11 * icjd;
+      // extreme-scaled blocks, e.g. [[0,s],[s,0]], s=1e+-200). For subnormal d21, division is
+      // overflow-safe while computing 1/d21 is not.
+      const Scalar ak = d22 / d21;
+      const Scalar akm1 = d11 / numext::conj(d21);
       const RealScalar t = RealScalar(1) / (numext::real(ak * akm1) - RealScalar(1));
       for (Index j = 0; j < x.cols(); ++j) {
         const Scalar x0 = x.coeff(k, j);
         const Scalar x1 = x.coeff(k + 1, j);
-        const Scalar bk = x1 * id;
-        const Scalar bkm1 = x0 * icjd;
+        const Scalar bk = x1 / d21;
+        const Scalar bkm1 = x0 / numext::conj(d21);
         x.coeffRef(k, j) = t * (ak * bkm1 - bk);
         x.coeffRef(k + 1, j) = t * (akm1 * bk - bkm1);
       }
