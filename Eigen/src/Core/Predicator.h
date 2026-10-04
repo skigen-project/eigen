@@ -208,7 +208,7 @@ template <typename Packet>
 struct count_lane_packet_impl<Packet, void_t<typename unpacket_traits<Packet>::integer_packet>> {
   using IntPacket = typename unpacket_traits<Packet>::integer_packet;
   using type = std::conditional_t<unpacket_traits<IntPacket>::vectorizable &&
-                                      unpacket_traits<IntPacket>::size == unpacket_traits<Packet>::size,
+                                      int(unpacket_traits<IntPacket>::size) == int(unpacket_traits<Packet>::size),
                                   IntPacket, void>;
 };
 template <typename Packet, typename Scalar = typename unpacket_traits<Packet>::type>
@@ -235,17 +235,21 @@ struct predicate_count_packets {
     const Index size = seg.size();
     const Index packetEnd = size - size % PacketSize;
     Index count = 0;
-    while (i < packetEnd) {
-      const Index end = i + numext::mini(packetEnd - i, Chunk);
+    while (packetEnd - i >= 4 * PacketSize) {
+      const Index end = i + numext::mini((packetEnd - i) / (4 * PacketSize) * (4 * PacketSize), Chunk);
       IntPacket c0 = pset1<IntPacket>(IntScalar(0)), c1 = c0, c2 = c0, c3 = c0;
-      for (; i + 4 * PacketSize <= end; i += 4 * PacketSize) {
+      for (; i < end; i += 4 * PacketSize) {
         c0 = psub(c0, lanes(seg, pred, i));
         c1 = psub(c1, lanes(seg, pred, i + PacketSize));
         c2 = psub(c2, lanes(seg, pred, i + 2 * PacketSize));
         c3 = psub(c3, lanes(seg, pred, i + 3 * PacketSize));
       }
-      for (; i < end; i += PacketSize) c0 = psub(c0, lanes(seg, pred, i));
       count += static_cast<Index>(predux(padd(padd(c0, c1), padd(c2, c3))));
+    }
+    if (i < packetEnd) {
+      IntPacket c = lanes(seg, pred, i);
+      for (i += PacketSize; i < packetEnd; i += PacketSize) c = padd(c, lanes(seg, pred, i));
+      count -= static_cast<Index>(predux(c));
     }
     return count;
   }
