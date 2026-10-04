@@ -397,6 +397,35 @@ struct visit_impl {
   }
 };
 
+template <typename Scalar>
+struct count_visitor {
+  using result_type = Index;
+  using Packet = typename packet_traits<Scalar>::type;
+  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index, Index) { res = value != Scalar(0) ? 1 : 0; }
+  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index) { res = value != Scalar(0) ? 1 : 0; }
+  EIGEN_DEVICE_FUNC inline Index count_redux(const Packet& p) const { return predux_count(p); }
+  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index, Index) { res = count_redux(p); }
+  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index) { res = count_redux(p); }
+  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index, Index) {
+    if (value != Scalar(0)) res++;
+  }
+  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index) {
+    if (value != Scalar(0)) res++;
+  }
+  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index, Index) { res += count_redux(p); }
+  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index) { res += count_redux(p); }
+  Index res = 0;
+};
+
+template <typename Scalar>
+struct functor_traits<count_visitor<Scalar>> {
+  enum {
+    Cost = NumTraits<Scalar>::AddCost,
+    LinearAccess = true,
+    PacketAccess = packet_traits<Scalar>::HasCmp && packet_traits<Scalar>::HasAdd
+  };
+};
+
 }  // end namespace internal
 
 /** Applies the visitor \a visitor to the whole coefficients of the matrix or vector.
@@ -423,6 +452,19 @@ template <typename Visitor>
 EIGEN_DEVICE_FUNC void DenseBase<Derived>::visit(Visitor& visitor) const {
   using impl = internal::visit_impl<Derived, Visitor, /*ShortCircuitEvaluation*/ false>;
   impl::run(derived(), visitor);
+}
+
+/** \returns the number of coefficients which evaluate to true
+ *
+ * \sa all(), any()
+ */
+template <typename Derived>
+EIGEN_DEVICE_FUNC Index DenseBase<Derived>::count() const {
+  using Visitor = internal::count_visitor<Scalar>;
+  using impl = internal::visit_impl<Derived, Visitor, /*ShortCircuitEvaluation*/ false>;
+  Visitor visitor;
+  impl::run(derived(), visitor);
+  return visitor.res;
 }
 
 }  // end namespace Eigen

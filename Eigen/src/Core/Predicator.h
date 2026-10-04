@@ -14,7 +14,7 @@ namespace Eigen {
 
 namespace internal {
 
-// Predicate reductions all_of, any_of and count_if. A predicate tests a scalar with operator() and a packet with
+// Predicate reductions all_of and any_of. A predicate tests a scalar with operator() and a packet with
 // packetOp, which returns a truth packet: each lane is zero where the predicate is false and, where it is true, the
 // lane mask pcmp_* produces (all ones, or one for bool packets). Truth packets combine with pand and por, so the
 // traversals below reduce and branch once per block of packets rather than once per packet. Results do not depend on
@@ -190,93 +190,6 @@ struct predicate_search_segment<Search, Packet, true> {
   }
 };
 
-template <typename Packet, bool Vectorize>
-struct predicate_count_segment {
-  template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred) {
-    Index count = 0;
-    for (Index i = 0; i < seg.size(); ++i) count += pred(seg.coeff(i)) ? 1 : 0;
-    return count;
-  }
-};
-// Integer packet with the lanes of Packet, or void. count_if subtracts truth masks from it: a true lane is -1.
-template <typename Packet, typename = void>
-struct count_lane_packet_impl {
-  using type = void;
-};
-template <typename Packet>
-struct count_lane_packet_impl<Packet, void_t<typename unpacket_traits<Packet>::integer_packet>> {
-  using IntPacket = typename unpacket_traits<Packet>::integer_packet;
-  using type = std::conditional_t<unpacket_traits<IntPacket>::vectorizable &&
-                                      int(unpacket_traits<IntPacket>::size) == int(unpacket_traits<Packet>::size),
-                                  IntPacket, void>;
-};
-template <typename Packet, typename Scalar = typename unpacket_traits<Packet>::type>
-using count_lane_packet =
-    std::conditional_t<NumTraits<Scalar>::IsInteger && NumTraits<Scalar>::IsSigned && (sizeof(Scalar) >= 4), Packet,
-                       typename count_lane_packet_impl<Packet>::type>;
-
-template <typename Packet, typename IntPacket = count_lane_packet<Packet>>
-struct predicate_count_packets {
-  using IntScalar = typename unpacket_traits<IntPacket>::type;
-  static constexpr Index PacketSize = unpacket_traits<Packet>::size;
-  // A chunk's count, and so every lane and partial sum, fits in IntScalar.
-  static constexpr Index Chunk = sizeof(IntScalar) < sizeof(Index)
-                                     ? Index(NumTraits<IntScalar>::highest()) / (4 * PacketSize) * (4 * PacketSize)
-                                     : NumTraits<Index>::highest();
-
-  template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE IntPacket lanes(const Segment& seg, const Predicate& pred, Index i) {
-    return preinterpret<IntPacket>(pred.packetOp(seg.template packet<Packet>(i)));
-  }
-
-  template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred, Index& i) {
-    const Index size = seg.size();
-    const Index packetEnd = size - size % PacketSize;
-    Index count = 0;
-    while (packetEnd - i >= 4 * PacketSize) {
-      const Index end = i + numext::mini((packetEnd - i) / (4 * PacketSize) * (4 * PacketSize), Chunk);
-      IntPacket c0 = pset1<IntPacket>(IntScalar(0)), c1 = c0, c2 = c0, c3 = c0;
-      for (; i < end; i += 4 * PacketSize) {
-        c0 = psub(c0, lanes(seg, pred, i));
-        c1 = psub(c1, lanes(seg, pred, i + PacketSize));
-        c2 = psub(c2, lanes(seg, pred, i + 2 * PacketSize));
-        c3 = psub(c3, lanes(seg, pred, i + 3 * PacketSize));
-      }
-      count += static_cast<Index>(predux(padd(padd(c0, c1), padd(c2, c3))));
-    }
-    if (i < packetEnd) {
-      IntPacket c = lanes(seg, pred, i);
-      for (i += PacketSize; i < packetEnd; i += PacketSize) c = padd(c, lanes(seg, pred, i));
-      count -= static_cast<Index>(predux(c));
-    }
-    return count;
-  }
-};
-// Without integer lanes, reduce each packet.
-template <typename Packet>
-struct predicate_count_packets<Packet, void> {
-  template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred, Index& i) {
-    constexpr Index PacketSize = unpacket_traits<Packet>::size;
-    const Index size = seg.size();
-    Index count = 0;
-    for (; i + PacketSize <= size; i += PacketSize) count += predux_count(pred.packetOp(seg.template packet<Packet>(i)));
-    return count;
-  }
-};
-template <typename Packet>
-struct predicate_count_segment<Packet, true> {
-  template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred) {
-    Index i = 0;
-    Index count = predicate_count_packets<Packet>::run(seg, pred, i);
-    for (; i < seg.size(); ++i) count += pred(seg.coeff(i)) ? 1 : 0;
-    return count;
-  }
-};
-
 template <typename Derived, typename Predicate>
 struct predicate_reduction {
   using Evaluator = visitor_evaluator<Derived>;
@@ -301,19 +214,6 @@ struct predicate_reduction {
       return false;
     }
   }
-
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index count(const Derived& xpr, const Predicate& pred) {
-    using impl = predicate_count_segment<Packet, Vectorize>;
-    Evaluator eval(xpr);
-    EIGEN_IF_CONSTEXPR (LinearAccess) {
-      return impl::run(Segment(eval, 0), pred);
-    } else {
-      const Index outerSize = Evaluator::IsRowMajor ? eval.rows() : eval.cols();
-      Index count = 0;
-      for (Index j = 0; j < outerSize; ++j) count += impl::run(Segment(eval, j), pred);
-      return count;
-    }
-  }
 };
 
 /** \internal \returns true if \a pred holds for every coefficient of \a xpr. */
@@ -326,12 +226,6 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool all_of(const Derived& xpr, const Pred
 template <typename Derived, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool any_of(const Derived& xpr, const Predicate& pred) {
   return predicate_reduction<Derived, Predicate>::template search<true>(xpr, pred);
-}
-
-/** \internal \returns the number of coefficients of \a xpr for which \a pred holds. */
-template <typename Derived, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index count_if(const Derived& xpr, const Predicate& pred) {
-  return predicate_reduction<Derived, Predicate>::count(xpr, pred);
 }
 
 template <typename Derived, bool AlwaysTrue = NumTraits<typename traits<Derived>::Scalar>::IsInteger>
@@ -368,15 +262,6 @@ EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::all() const {
 template <typename Derived>
 EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::any() const {
   return internal::any_of(derived(), internal::nonzero_predicate<Scalar>());
-}
-
-/** \returns the number of coefficients which evaluate to true
- *
- * \sa all(), any()
- */
-template <typename Derived>
-EIGEN_DEVICE_FUNC Index DenseBase<Derived>::count() const {
-  return internal::count_if(derived(), internal::nonzero_predicate<Scalar>());
 }
 
 template <typename Derived>

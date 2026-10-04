@@ -397,6 +397,7 @@ void checkBooleanVisitorTraversal() {
   using Reduction = internal::predicate_reduction<MatrixType, internal::nonzero_predicate<Scalar>>;
   STATIC_CHECK((Reduction::LinearAccess));
   STATIC_CHECK((!internal::predicate_reduction<Block<MatrixType>, internal::nonzero_predicate<Scalar>>::LinearAccess));
+  STATIC_CHECK((internal::visitor_has_linear_access<internal::count_visitor<Scalar>>::value));
   // 4 and 9 packets plus a tail reach the blocked loop, the merged remainder packets, and the scalar tail.
   const Index sizes[] = {
       0, 1, PacketSize - 1, PacketSize, PacketSize + 1, 2 * PacketSize + 1, 4 * PacketSize, 9 * PacketSize + 3};
