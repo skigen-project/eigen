@@ -671,6 +671,8 @@ EIGEN_DECLARE_TEST(visitor) {
   CALL_SUBTEST_14((checkBooleanVisitorTraversal<float, ColMajor>()));
   CALL_SUBTEST_14((checkBooleanVisitorTraversal<double, RowMajor>()));
   CALL_SUBTEST_14((checkBooleanVisitorTraversal<int, ColMajor>()));
+  CALL_SUBTEST_14((checkBooleanVisitorTraversal<int64_t, RowMajor>()));
+  CALL_SUBTEST_14((checkBooleanVisitorTraversal<Eigen::half, ColMajor>()));
   CALL_SUBTEST_14((checkBooleanVisitorTraversal<std::complex<float>, RowMajor>()));
   CALL_SUBTEST_14(checkVisitorShortCircuit<ColMajor>());
   CALL_SUBTEST_14(checkVisitorShortCircuit<RowMajor>());

@@ -199,17 +199,76 @@ struct predicate_count_segment {
     return count;
   }
 };
+// Integer packet with the lanes of Packet, or void. count_if subtracts truth masks from it: a true lane is -1.
+template <typename Packet, typename = void>
+struct count_lane_packet_impl {
+  using type = void;
+};
+template <typename Packet>
+struct count_lane_packet_impl<Packet, void_t<typename unpacket_traits<Packet>::integer_packet>> {
+  using IntPacket = typename unpacket_traits<Packet>::integer_packet;
+  using type = std::conditional_t<unpacket_traits<IntPacket>::vectorizable &&
+                                      unpacket_traits<IntPacket>::size == unpacket_traits<Packet>::size,
+                                  IntPacket, void>;
+};
+template <typename Packet, typename Scalar = typename unpacket_traits<Packet>::type>
+using count_lane_packet =
+    std::conditional_t<NumTraits<Scalar>::IsInteger && NumTraits<Scalar>::IsSigned && (sizeof(Scalar) >= 4), Packet,
+                       typename count_lane_packet_impl<Packet>::type>;
+
+template <typename Packet, typename IntPacket = count_lane_packet<Packet>>
+struct predicate_count_packets {
+  using IntScalar = typename unpacket_traits<IntPacket>::type;
+  static constexpr Index PacketSize = unpacket_traits<Packet>::size;
+  // A chunk's count, and so every lane and partial sum, fits in IntScalar.
+  static constexpr Index Chunk = sizeof(IntScalar) < sizeof(Index)
+                                     ? Index(NumTraits<IntScalar>::highest()) / (4 * PacketSize) * (4 * PacketSize)
+                                     : NumTraits<Index>::highest();
+
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE IntPacket lanes(const Segment& seg, const Predicate& pred, Index i) {
+    return preinterpret<IntPacket>(pred.packetOp(seg.template packet<Packet>(i)));
+  }
+
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred, Index& i) {
+    const Index size = seg.size();
+    const Index packetEnd = size - size % PacketSize;
+    Index count = 0;
+    while (i < packetEnd) {
+      const Index end = i + numext::mini(packetEnd - i, Chunk);
+      IntPacket c0 = pset1<IntPacket>(IntScalar(0)), c1 = c0, c2 = c0, c3 = c0;
+      for (; i + 4 * PacketSize <= end; i += 4 * PacketSize) {
+        c0 = psub(c0, lanes(seg, pred, i));
+        c1 = psub(c1, lanes(seg, pred, i + PacketSize));
+        c2 = psub(c2, lanes(seg, pred, i + 2 * PacketSize));
+        c3 = psub(c3, lanes(seg, pred, i + 3 * PacketSize));
+      }
+      for (; i < end; i += PacketSize) c0 = psub(c0, lanes(seg, pred, i));
+      count += static_cast<Index>(predux(padd(padd(c0, c1), padd(c2, c3))));
+    }
+    return count;
+  }
+};
+// Without integer lanes, reduce each packet.
+template <typename Packet>
+struct predicate_count_packets<Packet, void> {
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred, Index& i) {
+    constexpr Index PacketSize = unpacket_traits<Packet>::size;
+    const Index size = seg.size();
+    Index count = 0;
+    for (; i + PacketSize <= size; i += PacketSize) count += predux_count(pred.packetOp(seg.template packet<Packet>(i)));
+    return count;
+  }
+};
 template <typename Packet>
 struct predicate_count_segment<Packet, true> {
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred) {
-    constexpr Index PacketSize = unpacket_traits<Packet>::size;
-    const Index size = seg.size();
-    Index count = 0;
     Index i = 0;
-    for (; i + PacketSize <= size; i += PacketSize)
-      count += predux_count(pred.packetOp(seg.template packet<Packet>(i)));
-    for (; i < size; ++i) count += pred(seg.coeff(i)) ? 1 : 0;
+    Index count = predicate_count_packets<Packet>::run(seg, pred, i);
+    for (; i < seg.size(); ++i) count += pred(seg.coeff(i)) ? 1 : 0;
     return count;
   }
 };
