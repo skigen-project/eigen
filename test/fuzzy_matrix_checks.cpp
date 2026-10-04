@@ -100,9 +100,9 @@ void check_fuzzy_loops() {
 template <typename Scalar, int Order>
 void check_fuzzy_boundaries() {
   using Mat = Matrix<Scalar, Dynamic, Dynamic, Order>;
-  using Visitor = internal::fuzzy_constant_visitor<Scalar, false>;
-  STATIC_CHECK((internal::visit_impl<Mat, Visitor, true>::LinearAccess));
-  STATIC_CHECK((!internal::visit_impl<Block<Mat>, Visitor, true>::LinearAccess));
+  using Predicate = internal::fuzzy_constant_predicate<Scalar, false>;
+  STATIC_CHECK((internal::predicate_reduction<Mat, Predicate>::LinearAccess));
+  STATIC_CHECK((!internal::predicate_reduction<Block<Mat>, Predicate>::LinearAccess));
   constexpr int packetSize = internal::packet_traits<Scalar>::size;
   for (Index size :
        {Index(1), Index(packetSize - 1), Index(packetSize), Index(packetSize + 1), Index(2 * packetSize + 1)}) {
@@ -169,9 +169,9 @@ void check_fuzzy_subnormals() {
   if (subnormalInputProbe<Scalar>() == Scalar(0) || underflowProbe<Scalar>() == Scalar(0)) return;
   const Scalar subnormal = (std::numeric_limits<Scalar>::min)() / Scalar(4);
   using Mat = Matrix<Scalar, Dynamic, Dynamic, Order>;
-  using Visitor = internal::fuzzy_constant_visitor<Scalar, false>;
+  using Predicate = internal::fuzzy_constant_predicate<Scalar, false>;
   STATIC_CHECK(
-      (!EIGEN_ARCH_ARM || !std::is_same<Scalar, float>::value || !internal::functor_traits<Visitor>::PacketAccess));
+      (!EIGEN_ARCH_ARM || !std::is_same<Scalar, float>::value || !internal::functor_traits<Predicate>::PacketAccess));
   for (Index size : {1, 2, 4, 8, 9, 17}) {
     Matrix<Scalar, Dynamic, 1> v = Matrix<Scalar, Dynamic, 1>::Zero(size);
     for (Index k = 0; k < size; ++k) {

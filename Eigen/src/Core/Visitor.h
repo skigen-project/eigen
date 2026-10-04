@@ -427,42 +427,65 @@ EIGEN_DEVICE_FUNC void DenseBase<Derived>::visit(Visitor& visitor) const {
 
 namespace internal {
 
-template <typename Scalar, bool Approximate>
-struct fuzzy_constant_visitor {
-  Scalar value;
-  typename NumTraits<Scalar>::Real precision;
-  bool result = true;
-
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void operator()(const Scalar& x, Index, Index = 0) {
-    result = result && (Approximate ? internal::isApprox(x, value, precision)
-                                    : internal::isMuchSmallerThan(x, Scalar(1), precision));
-  }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void init(const Scalar& x, Index r, Index c = 0) { (*this)(x, r, c); }
-  EIGEN_DEVICE_FUNC bool done() const { return !result; }
+// Predicate reductions all_of, any_of and count_if. A predicate tests a scalar with operator() and a packet with
+// packetOp, which returns a truth packet: each lane is zero where the predicate is false and, where it is true, the
+// lane mask pcmp_* produces (all ones, or one for bool packets). Truth packets combine with pand and por, so the
+// traversals below reduce and branch once per block of packets rather than once per packet. Results do not depend on
+// the grouping, but a short-circuit may read past the deciding coefficient, up to the end of its block.
+template <typename Scalar>
+struct nonzero_predicate {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const { return x != Scalar(0); }
   template <typename Packet>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void packet(const Packet& x, Index, Index = 0) {
-    const Packet p = pset1<Packet>(precision);
-    Packet mask;
-    EIGEN_IF_CONSTEXPR (Approximate) {
-      const Packet v = pset1<Packet>(value);
-      mask = pcmp_le(pabs(psub(x, v)), pmul(pmin(pabs(x), pabs(v)), p));
-    } else {
-      mask = pcmp_le(pabs(x), p);
-    }
-    // Reduce the comparison mask directly, without comparing its lanes to zero again.
-    result = result && !predux_any(pandnot(ptrue(mask), mask));
-  }
-  template <typename Packet>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void initpacket(const Packet& x, Index r, Index c = 0) {
-    packet(x, r, c);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& x) const {
+    return pandnot(ptrue(x), pcmp_eq(x, pzero(x)));
   }
 };
+template <typename Scalar>
+struct functor_traits<nonzero_predicate<Scalar>> {
+  static constexpr bool PacketAccess = packet_traits<Scalar>::HasCmp;
+};
 
+template <typename Scalar>
+struct isfinite_predicate {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const { return (numext::isfinite)(x); }
+  template <typename Packet>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& x) const {
+    return pisfinite(x);
+  }
+};
+template <typename Scalar>
+struct functor_traits<isfinite_predicate<Scalar>> {
+  static constexpr bool PacketAccess = packet_traits<Scalar>::HasCmp;
+};
+
+// Separate specializations keep custom scalars that support only one of isApprox and isMuchSmallerThan compiling.
 template <typename Scalar, bool Approximate>
-struct functor_traits<fuzzy_constant_visitor<Scalar, Approximate>> {
-  static constexpr bool AlreadyInitialized = true;
-  static constexpr bool LinearAccess = true;
-  static constexpr int Cost = 4 * NumTraits<Scalar>::AddCost + NumTraits<Scalar>::MulCost;
+struct fuzzy_constant_predicate {
+  Scalar value;
+  typename NumTraits<Scalar>::Real precision;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const {
+    return internal::isApprox(x, value, precision);
+  }
+  template <typename Packet>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& x) const {
+    const Packet v = pset1<Packet>(value);
+    return pcmp_le(pabs(psub(x, v)), pmul(pmin(pabs(x), pabs(v)), pset1<Packet>(precision)));
+  }
+};
+template <typename Scalar>
+struct fuzzy_constant_predicate<Scalar, false> {
+  Scalar value;
+  typename NumTraits<Scalar>::Real precision;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const {
+    return internal::isMuchSmallerThan(x, Scalar(1), precision);
+  }
+  template <typename Packet>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& x) const {
+    return pcmp_le(pabs(x), pset1<Packet>(precision));
+  }
+};
+template <typename Scalar, bool Approximate>
+struct functor_traits<fuzzy_constant_predicate<Scalar, Approximate>> {
   // ARMv7 NEON flushes subnormal float operands and results; scalar VFP does not.
   // Explicitly flushing would change exact-zero checks; normal operands can also have a subnormal difference.
   static constexpr bool PacketAccess =
@@ -473,149 +496,193 @@ struct functor_traits<fuzzy_constant_visitor<Scalar, Approximate>> {
        (packet_traits<Scalar>::HasSub && packet_traits<Scalar>::HasMin && packet_traits<Scalar>::HasMul));
 };
 
-template <typename Scalar>
-using use_fuzzy_constant_visitor =
-    bool_constant<std::is_same<Scalar, float>::value || std::is_same<Scalar, double>::value>;
-
-template <bool Approximate, typename Derived,
-          std::enable_if_t<use_fuzzy_constant_visitor<typename Derived::Scalar>::value, int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool fuzzy_constant_all(const Derived& matrix,
-                                                              const typename Derived::Scalar& value,
-                                                              const typename Derived::RealScalar& precision) {
-  fuzzy_constant_visitor<typename Derived::Scalar, Approximate> visitor{value, precision};
-  visit_impl<Derived, decltype(visitor), true>::run(matrix, visitor);
-  return visitor.result;
-}
-
-// Separate overloads keep custom scalars from instantiating unused comparisons in C++14.
-template <bool Approximate, typename Derived,
-          std::enable_if_t<!use_fuzzy_constant_visitor<typename Derived::Scalar>::value && Approximate, int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool fuzzy_constant_all(const Derived& matrix,
-                                                              const typename Derived::Scalar& value,
-                                                              const typename Derived::RealScalar& precision) {
-  for (Index j = 0; j < matrix.cols(); ++j)
-    for (Index i = 0; i < matrix.rows(); ++i)
-      if (!internal::isApprox(matrix.coeff(i, j), value, precision)) return false;
-  return true;
-}
-
-template <bool Approximate, typename Derived,
-          std::enable_if_t<!use_fuzzy_constant_visitor<typename Derived::Scalar>::value && !Approximate, int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool fuzzy_constant_all(const Derived& matrix, const typename Derived::Scalar&,
-                                                              const typename Derived::RealScalar& precision) {
-  using Scalar = typename Derived::Scalar;
-  for (Index j = 0; j < matrix.cols(); ++j)
-    for (Index i = 0; i < matrix.rows(); ++i)
-      if (!internal::isMuchSmallerThan(matrix.coeff(i, j), Scalar(1), precision)) return false;
-  return true;
-}
-
-template <typename Scalar>
-struct all_visitor {
-  using result_type = bool;
-  using Packet = typename packet_traits<Scalar>::type;
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index, Index) { res = (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index) { res = (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline bool all_predux(const Packet& p) const { return predux_all(p); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index, Index) { res = all_predux(p); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index) { res = all_predux(p); }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index, Index) { res = res && (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index) { res = res && (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index, Index) { res = res && all_predux(p); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index) { res = res && all_predux(p); }
-  EIGEN_DEVICE_FUNC inline bool done() const { return !res; }
-  bool res = true;
-};
-template <typename Scalar>
-struct functor_traits<all_visitor<Scalar>> {
-  enum { Cost = NumTraits<Scalar>::ReadCost, LinearAccess = true, PacketAccess = packet_traits<Scalar>::HasCmp };
-};
-
-template <typename Scalar>
-struct any_visitor {
-  using result_type = bool;
-  using Packet = typename packet_traits<Scalar>::type;
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index, Index) { res = (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index) { res = (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline bool any_predux(const Packet& p) const {
-    return predux_any(pandnot(ptrue(p), pcmp_eq(p, pzero(p))));
+// Searches for a coefficient on which the predicate is Target: any_of searches for true, all_of for false.
+template <bool Target>
+struct predicate_search;
+template <>
+struct predicate_search<true> {
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet combine(const Packet& a, const Packet& b) {
+    return por(a, b);
   }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index, Index) { res = any_predux(p); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index) { res = any_predux(p); }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index, Index) { res = res || (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index) { res = res || (value != Scalar(0)); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index, Index) { res = res || any_predux(p); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index) { res = res || any_predux(p); }
-  EIGEN_DEVICE_FUNC inline bool done() const { return res; }
-  bool res = false;
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(const Packet& m) {
+    return predux_any(m);
+  }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a | b; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return b; }
 };
 template <>
-EIGEN_DEVICE_FUNC inline bool any_visitor<bool>::any_predux(const Packet& p) const {
-  return predux(p);
+struct predicate_search<false> {
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet combine(const Packet& a, const Packet& b) {
+    return pand(a, b);
+  }
+  // pandnot rather than pnot, which some targets implement only bytewise.
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(const Packet& m) {
+    return predux_any(pandnot(ptrue(m), m));
+  }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a & b; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return !b; }
+};
+
+// Coefficient access along one inner vector, or along the whole expression with linear access.
+template <typename Evaluator, bool Linear = Evaluator::LinearAccess>
+struct predicate_segment {
+  const Evaluator& eval;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE predicate_segment(const Evaluator& evaluator, Index) : eval(evaluator) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return eval.size(); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename Evaluator::CoeffReturnType coeff(Index i) const {
+    return eval.coeff(i);
+  }
+  template <typename Packet>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packet(Index i) const {
+    return eval.template packet<Packet>(i);
+  }
+};
+template <typename Evaluator>
+struct predicate_segment<Evaluator, false> {
+  const Evaluator& eval;
+  Index outer;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE predicate_segment(const Evaluator& evaluator, Index j)
+      : eval(evaluator), outer(j) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return Evaluator::IsRowMajor ? eval.cols() : eval.rows(); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename Evaluator::CoeffReturnType coeff(Index i) const {
+    return Evaluator::IsRowMajor ? eval.coeff(outer, i) : eval.coeff(i, outer);
+  }
+  template <typename Packet>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packet(Index i) const {
+    return Evaluator::IsRowMajor ? eval.template packet<Packet>(outer, i) : eval.template packet<Packet>(i, outer);
+  }
+};
+
+template <typename Search, typename Segment, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment& seg, Index i, const Predicate& pred) {
+  const Index size = seg.size();
+  for (; i + 3 < size; i += 4) {
+    bool b = Search::combine(Search::combine(pred(seg.coeff(i)), pred(seg.coeff(i + 1))),
+                             Search::combine(pred(seg.coeff(i + 2)), pred(seg.coeff(i + 3))));
+    if EIGEN_PREDICT_FALSE (Search::found(b)) return true;
+  }
+  if (i == size) return false;
+  bool b = pred(seg.coeff(i));
+  for (++i; i < size; ++i) b = Search::combine(b, pred(seg.coeff(i)));
+  return Search::found(b);
 }
-template <typename Scalar>
-struct functor_traits<any_visitor<Scalar>> {
-  enum { Cost = NumTraits<Scalar>::ReadCost, LinearAccess = true, PacketAccess = packet_traits<Scalar>::HasCmp };
+
+template <typename Search, typename Packet, bool Vectorize>
+struct predicate_search_segment {
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run(const Segment& seg, const Predicate& pred) {
+    return predicate_search_scalar<Search>(seg, 0, pred);
+  }
+};
+template <typename Search, typename Packet>
+struct predicate_search_segment<Search, Packet, true> {
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run(const Segment& seg, const Predicate& pred) {
+    constexpr Index PacketSize = unpacket_traits<Packet>::size;
+    const Index size = seg.size();
+    Index i = 0;
+    for (; i + 4 * PacketSize <= size; i += 4 * PacketSize) {
+      Packet m0 = pred.packetOp(seg.template packet<Packet>(i));
+      Packet m1 = pred.packetOp(seg.template packet<Packet>(i + PacketSize));
+      Packet m2 = pred.packetOp(seg.template packet<Packet>(i + 2 * PacketSize));
+      Packet m3 = pred.packetOp(seg.template packet<Packet>(i + 3 * PacketSize));
+      if EIGEN_PREDICT_FALSE (Search::found(Search::combine(Search::combine(m0, m1), Search::combine(m2, m3))))
+        return true;
+    }
+    if (i + PacketSize <= size) {
+      Packet m = pred.packetOp(seg.template packet<Packet>(i));
+      for (i += PacketSize; i + PacketSize <= size; i += PacketSize)
+        m = Search::combine(m, pred.packetOp(seg.template packet<Packet>(i)));
+      if (Search::found(m)) return true;
+    }
+    return predicate_search_scalar<Search>(seg, i, pred);
+  }
 };
 
-template <typename Scalar>
-struct count_visitor {
-  using result_type = Index;
+template <typename Packet, bool Vectorize>
+struct predicate_count_segment {
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred) {
+    Index count = 0;
+    for (Index i = 0; i < seg.size(); ++i) count += pred(seg.coeff(i)) ? 1 : 0;
+    return count;
+  }
+};
+template <typename Packet>
+struct predicate_count_segment<Packet, true> {
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index run(const Segment& seg, const Predicate& pred) {
+    constexpr Index PacketSize = unpacket_traits<Packet>::size;
+    const Index size = seg.size();
+    Index count = 0;
+    Index i = 0;
+    for (; i + PacketSize <= size; i += PacketSize)
+      count += predux_count(pred.packetOp(seg.template packet<Packet>(i)));
+    for (; i < size; ++i) count += pred(seg.coeff(i)) ? 1 : 0;
+    return count;
+  }
+};
+
+template <typename Derived, typename Predicate>
+struct predicate_reduction {
+  using Evaluator = visitor_evaluator<Derived>;
+  using Scalar = typename Derived::Scalar;
   using Packet = typename packet_traits<Scalar>::type;
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index, Index) { res = value != Scalar(0) ? 1 : 0; }
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index) { res = value != Scalar(0) ? 1 : 0; }
-  EIGEN_DEVICE_FUNC inline Index count_redux(const Packet& p) const { return predux_count(p); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index, Index) { res = count_redux(p); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index) { res = count_redux(p); }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index, Index) {
-    if (value != Scalar(0)) res++;
+  static constexpr bool Vectorize = Evaluator::PacketAccess && packet_traits<Scalar>::Vectorizable &&
+                                    (unpacket_traits<Packet>::size > 1) &&
+                                    static_cast<bool>(functor_traits<Predicate>::PacketAccess);
+  static constexpr bool LinearAccess = Evaluator::LinearAccess;
+  using Segment = predicate_segment<Evaluator>;
+
+  template <bool Target>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool search(const Derived& xpr, const Predicate& pred) {
+    using impl = predicate_search_segment<predicate_search<Target>, Packet, Vectorize>;
+    Evaluator eval(xpr);
+    EIGEN_IF_CONSTEXPR (LinearAccess) {
+      return impl::run(Segment(eval, 0), pred);
+    } else {
+      const Index outerSize = Evaluator::IsRowMajor ? eval.rows() : eval.cols();
+      for (Index j = 0; j < outerSize; ++j)
+        if (impl::run(Segment(eval, j), pred)) return true;
+      return false;
+    }
   }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index) {
-    if (value != Scalar(0)) res++;
+
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index count(const Derived& xpr, const Predicate& pred) {
+    using impl = predicate_count_segment<Packet, Vectorize>;
+    Evaluator eval(xpr);
+    EIGEN_IF_CONSTEXPR (LinearAccess) {
+      return impl::run(Segment(eval, 0), pred);
+    } else {
+      const Index outerSize = Evaluator::IsRowMajor ? eval.rows() : eval.cols();
+      Index count = 0;
+      for (Index j = 0; j < outerSize; ++j) count += impl::run(Segment(eval, j), pred);
+      return count;
+    }
   }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index, Index) { res += count_redux(p); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index) { res += count_redux(p); }
-  Index res = 0;
 };
 
-template <typename Scalar>
-struct functor_traits<count_visitor<Scalar>> {
-  enum {
-    Cost = NumTraits<Scalar>::AddCost,
-    LinearAccess = true,
-    PacketAccess = packet_traits<Scalar>::HasCmp && packet_traits<Scalar>::HasAdd
-  };
-};
+/** \internal \returns true if \a pred holds for every coefficient of \a xpr. */
+template <typename Derived, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool all_of(const Derived& xpr, const Predicate& pred) {
+  return !predicate_reduction<Derived, Predicate>::template search<false>(xpr, pred);
+}
 
-// Reduces pisfinite masks directly: their lanes are all-ones or zero, so the coefficients are all finite exactly when
-// no lane of the complement is set. predux_all, which all() on isFiniteTyped() uses, compares each lane against zero
-// instead, which a compiler can only fold away when it can prove the operand is a mask.
-template <typename Scalar>
-struct all_finite_visitor {
-  using result_type = bool;
-  using Packet = typename packet_traits<Scalar>::type;
-  EIGEN_DEVICE_FUNC inline bool finite_predux(const Packet& p) const { return !predux_any(pnot(pisfinite(p))); }
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index, Index) { res = (numext::isfinite)(value); }
-  EIGEN_DEVICE_FUNC inline void init(const Scalar& value, Index) { res = (numext::isfinite)(value); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index, Index) { res = finite_predux(p); }
-  EIGEN_DEVICE_FUNC inline void initpacket(const Packet& p, Index) { res = finite_predux(p); }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index, Index) {
-    res = res && (numext::isfinite)(value);
-  }
-  EIGEN_DEVICE_FUNC inline void operator()(const Scalar& value, Index) { res = res && (numext::isfinite)(value); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index, Index) { res = res && finite_predux(p); }
-  EIGEN_DEVICE_FUNC inline void packet(const Packet& p, Index) { res = res && finite_predux(p); }
-  EIGEN_DEVICE_FUNC inline bool done() const { return !res; }
-  bool res = true;
-};
-template <typename Scalar>
-struct functor_traits<all_finite_visitor<Scalar>> {
-  enum {
-    Cost = NumTraits<Scalar>::ReadCost + NumTraits<Scalar>::MulCost,
-    LinearAccess = true,
-    PacketAccess = packet_traits<Scalar>::HasCmp
-  };
-};
+/** \internal \returns true if \a pred holds for some coefficient of \a xpr. */
+template <typename Derived, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool any_of(const Derived& xpr, const Predicate& pred) {
+  return predicate_reduction<Derived, Predicate>::template search<true>(xpr, pred);
+}
+
+/** \internal \returns the number of coefficients of \a xpr for which \a pred holds. */
+template <typename Derived, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index count_if(const Derived& xpr, const Predicate& pred) {
+  return predicate_reduction<Derived, Predicate>::count(xpr, pred);
+}
 
 template <typename Derived, bool AlwaysTrue = NumTraits<typename traits<Derived>::Scalar>::IsInteger>
 struct all_finite_impl {
@@ -625,10 +692,7 @@ struct all_finite_impl {
 template <typename Derived>
 struct all_finite_impl<Derived, false> {
   static EIGEN_DEVICE_FUNC inline bool run(const Derived& derived) {
-    using Visitor = all_finite_visitor<typename traits<Derived>::Scalar>;
-    Visitor visitor;
-    visit_impl<Derived, Visitor, /*ShortCircuitEvaluation*/ true>::run(derived, visitor);
-    return visitor.res;
+    return all_of(derived, isfinite_predicate<typename traits<Derived>::Scalar>());
   }
 };
 #endif
@@ -644,11 +708,7 @@ struct all_finite_impl<Derived, false> {
  */
 template <typename Derived>
 EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::all() const {
-  using Visitor = internal::all_visitor<Scalar>;
-  using impl = internal::visit_impl<Derived, Visitor, /*ShortCircuitEvaluation*/ true>;
-  Visitor visitor;
-  impl::run(derived(), visitor);
-  return visitor.res;
+  return internal::all_of(derived(), internal::nonzero_predicate<Scalar>());
 }
 
 /** \returns true if at least one coefficient is true
@@ -657,11 +717,7 @@ EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::all() const {
  */
 template <typename Derived>
 EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::any() const {
-  using Visitor = internal::any_visitor<Scalar>;
-  using impl = internal::visit_impl<Derived, Visitor, /*ShortCircuitEvaluation*/ true>;
-  Visitor visitor;
-  impl::run(derived(), visitor);
-  return visitor.res;
+  return internal::any_of(derived(), internal::nonzero_predicate<Scalar>());
 }
 
 /** \returns the number of coefficients which evaluate to true
@@ -670,11 +726,7 @@ EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::any() const {
  */
 template <typename Derived>
 EIGEN_DEVICE_FUNC Index DenseBase<Derived>::count() const {
-  using Visitor = internal::count_visitor<Scalar>;
-  using impl = internal::visit_impl<Derived, Visitor, /*ShortCircuitEvaluation*/ false>;
-  Visitor visitor;
-  impl::run(derived(), visitor);
-  return visitor.res;
+  return internal::count_if(derived(), internal::nonzero_predicate<Scalar>());
 }
 
 template <typename Derived>
@@ -696,7 +748,7 @@ template <typename Derived>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool DenseBase<Derived>::isApproxToConstant(const Scalar& val,
                                                                                   const RealScalar& prec) const {
   typename internal::nested_eval<Derived, 1>::type self(derived());
-  return internal::fuzzy_constant_all<true>(self, val, prec);
+  return internal::all_of(self, internal::fuzzy_constant_predicate<Scalar, true>{val, prec});
 }
 
 /** \returns true if *this is approximately equal to the zero matrix,
@@ -710,7 +762,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool DenseBase<Derived>::isApproxToConstan
 template <typename Derived>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool DenseBase<Derived>::isZero(const RealScalar& prec) const {
   typename internal::nested_eval<Derived, 1>::type self(derived());
-  return internal::fuzzy_constant_all<false>(self, Scalar(0), prec);
+  return internal::all_of(self, internal::fuzzy_constant_predicate<Scalar, false>{Scalar(0), prec});
 }
 
 }  // end namespace Eigen

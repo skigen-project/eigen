@@ -392,12 +392,14 @@ void checkBooleanVisitors(const DenseBase<Derived>& matrix) {
 
 template <typename Scalar, int Options>
 void checkBooleanVisitorTraversal() {
-  STATIC_CHECK((internal::visitor_has_linear_access<internal::all_visitor<Scalar>>::value));
-  STATIC_CHECK((internal::visitor_has_linear_access<internal::any_visitor<Scalar>>::value));
-  STATIC_CHECK((internal::visitor_has_linear_access<internal::count_visitor<Scalar>>::value));
   constexpr int PacketSize = internal::packet_traits<Scalar>::size;
   using MatrixType = Matrix<Scalar, Dynamic, Dynamic, Options>;
-  const Index sizes[] = {0, 1, PacketSize - 1, PacketSize, PacketSize + 1, 2 * PacketSize + 1};
+  using Reduction = internal::predicate_reduction<MatrixType, internal::nonzero_predicate<Scalar>>;
+  STATIC_CHECK((Reduction::LinearAccess));
+  STATIC_CHECK((!internal::predicate_reduction<Block<MatrixType>, internal::nonzero_predicate<Scalar>>::LinearAccess));
+  // 4 and 9 packets plus a tail reach the blocked loop, the merged remainder packets, and the scalar tail.
+  const Index sizes[] = {
+      0, 1, PacketSize - 1, PacketSize, PacketSize + 1, 2 * PacketSize + 1, 4 * PacketSize, 9 * PacketSize + 3};
   for (Index inner : sizes) {
     MatrixType matrix(Options == RowMajor ? 3 : inner, Options == RowMajor ? inner : 3);
     for (int value = 0; value <= 1; ++value) {
@@ -449,7 +451,11 @@ void checkVisitorShortCircuit() {
   const Index inner = Vectorize ? 1 : 7;
   const Index outer = 35;
   MatrixType matrix(Options == RowMajor ? outer : inner, Options == RowMajor ? inner : outer);
-  for (Index index : {Index(0), Index(1), matrix.size() - 1}) {
+  // A short-circuit stops within a block of four packets (or four scalars) after the deciding coefficient, or within
+  // the merged remainder packets and scalar tail.
+  const Index packetSize = Vectorize ? internal::packet_traits<float>::size : 1;
+  auto maxReads = [&](Index index) { return (std::min)(matrix.size(), index + 5 * packetSize); };
+  for (Index index : {Index(0), Index(1), matrix.size() / 2, matrix.size() - 1}) {
     Index reads = 0;
     auto counted = matrix.unaryExpr(CountVisitorReads<Vectorize>{&reads});
     for (int value = 0; value <= 1; ++value) {
@@ -457,11 +463,11 @@ void checkVisitorShortCircuit() {
       matrix(index) = float(!value);
       reads = 0;
       VERIFY_IS_EQUAL(value ? counted.all() : counted.any(), !value);
-      VERIFY_IS_EQUAL(reads, index + 1);
+      VERIFY(reads > index && reads <= maxReads(index));
       reads = 0;
       auto block = counted.block(0, 0, matrix.rows(), matrix.cols());
       VERIFY_IS_EQUAL(value ? block.all() : block.any(), !value);
-      VERIFY_IS_EQUAL(reads, index + 1);
+      VERIFY(reads > index && reads <= maxReads(index));
     }
   }
 }
