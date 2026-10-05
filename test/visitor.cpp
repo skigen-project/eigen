@@ -452,10 +452,10 @@ void checkVisitorShortCircuit() {
   const Index inner = Vectorize ? 1 : 7;
   const Index outer = 35;
   MatrixType matrix(Options == RowMajor ? outer : inner, Options == RowMajor ? inner : outer);
-  // A short-circuit stops within a block of four packets (or four scalars) after the deciding coefficient, or within
-  // the merged remainder packets and scalar tail.
+  // A short-circuit stops at the end of the block of up to eight packets (or four scalars) holding the deciding
+  // coefficient, or reads the whole scalar tail.
   const Index packetSize = Vectorize ? internal::packet_traits<float>::size : 1;
-  auto maxReads = [&](Index index) { return (std::min)(matrix.size(), index + 5 * packetSize); };
+  auto maxReads = [&](Index index) { return (std::min)(matrix.size(), index + 8 * packetSize); };
   for (Index index : {Index(0), Index(1), matrix.size() / 2, matrix.size() - 1}) {
     Index reads = 0;
     auto counted = matrix.unaryExpr(CountVisitorReads<Vectorize>{&reads});
