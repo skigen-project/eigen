@@ -208,9 +208,14 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment
 template <typename Search, typename Packet, bool Vectorize>
 struct predicate_search_segment {
   static constexpr Index ShortSize = 0;
+  // One coefficient at a time: a predicate that declines packets must not be regrouped into a shape the compiler
+  // vectorizes onto the same unit (ARMv7 NEON, which flushes subnormals, turns grouped float compares into vceq).
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run(const Segment& seg, Predicate pred) {
-    return predicate_search_scalar<Search>(seg, 0, pred);
+    const Index size = seg.size();
+    for (Index i = 0; i < size; ++i)
+      if (Search::found(pred(seg.coeff(i)))) return true;
+    return false;
   }
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run_short(const Segment& seg, Predicate pred) {
