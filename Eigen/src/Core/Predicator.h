@@ -84,24 +84,76 @@ struct functor_traits<fuzzy_constant_predicate<Scalar, Approximate>> {
 };
 
 // Searches for a coefficient on which the predicate is Target: any_of searches for true, all_of for false.
-// Both searches look for a set lane: all_of negates each predicate mask, which compilers fold into the predicate's
-// compare, so the traversal is one por reduction with a predux_any test and needs no pnot on the combined mask.
 template <bool Target>
-struct predicate_search {
+struct predicate_search;
+template <>
+struct predicate_search<true> {
+  template <typename Predicate, typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate& pred, const Packet& x) {
+    return pred.packetOp(x);
+  }
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Packet combine(const Packet& a, const Packet& b) {
+    return por(a, b);
+  }
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool found(const Packet& m) {
+    return predux_any(m);
+  }
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a | b; }
-  template <typename Predicate, typename Scalar>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool test(const Predicate& pred, const Scalar& x) {
-    return pred(x) == Target;
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return b; }
+};
+template <>
+struct predicate_search<false> {
+  template <typename Predicate, typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate& pred, const Packet& x) {
+    return pred.packetOp(x);
   }
-  template <typename Packet, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet test_packet(const Predicate& pred, const Packet& x) {
-    Packet m = pred.packetOp(x);
-    EIGEN_IF_CONSTEXPR (Target) {
-      return m;
-    } else {
-      return pandnot(ptrue(m), m);
-    }
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Packet combine(const Packet& a, const Packet& b) {
+    return pand(a, b);
   }
+  // pandnot rather than pnot, which some targets implement only bytewise.
+  template <typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool found(const Packet& m) {
+    return predux_any(pandnot(ptrue(m), m));
+  }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a & b; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return !b; }
+};
+
+// bool lanes already hold truth values: any_of reduces them directly, and all_of searches for zero lanes. Both treat
+// every nonzero byte as true, as the scalar reduction does.
+template <bool Target>
+struct bool_value_search : predicate_search<Target> {};
+template <>
+struct bool_value_search<true> : predicate_search<true> {
+  template <typename Predicate, typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate&, const Packet& x) {
+    return x;
+  }
+  using predicate_search<true>::combine;
+  using predicate_search<true>::found;
+};
+template <>
+struct bool_value_search<false> : predicate_search<true> {
+  template <typename Predicate, typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate&, const Packet& x) {
+    return pcmp_eq(x, pzero(x));
+  }
+  using predicate_search<true>::combine;
+  using predicate_search<true>::found;
+  // Scalars still test the predicate: a coefficient is found where it is false.
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a & b; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return !b; }
+};
+template <bool Target, typename Predicate>
+struct predicate_search_for {
+  using type = predicate_search<Target>;
+};
+template <bool Target>
+struct predicate_search_for<Target, nonzero_predicate<bool>> {
+  using type = bool_value_search<Target>;
 };
 
 // Coefficient access along one inner vector, or along the whole expression with linear access.
@@ -138,16 +190,16 @@ template <typename Search, typename Segment, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment& seg, Index i, Predicate pred) {
   const Index size = seg.size();
   for (; i + 3 < size; i += 4) {
-    bool b = Search::combine(Search::combine(Search::test(pred, seg.coeff(i)), Search::test(pred, seg.coeff(i + 1))),
-                             Search::combine(Search::test(pred, seg.coeff(i + 2)), Search::test(pred, seg.coeff(i + 3))));
-    if EIGEN_PREDICT_FALSE (b) return true;
+    bool b = Search::combine(Search::combine(pred(seg.coeff(i)), pred(seg.coeff(i + 1))),
+                             Search::combine(pred(seg.coeff(i + 2)), pred(seg.coeff(i + 3))));
+    if EIGEN_PREDICT_FALSE (Search::found(b)) return true;
   }
   // At most three coefficients remain.
   if (i == size) return false;
-  bool b = Search::test(pred, seg.coeff(i));
-  if (i + 1 < size) b = Search::combine(b, Search::test(pred, seg.coeff(i + 1)));
-  if (i + 2 < size) b = Search::combine(b, Search::test(pred, seg.coeff(i + 2)));
-  return b;
+  bool b = pred(seg.coeff(i));
+  if (i + 1 < size) b = Search::combine(b, pred(seg.coeff(i + 1)));
+  if (i + 2 < size) b = Search::combine(b, pred(seg.coeff(i + 2)));
+  return Search::found(b);
 }
 
 template <typename Search, typename Packet, bool Vectorize>
@@ -159,47 +211,62 @@ struct predicate_search_segment {
 };
 template <typename Search, typename Packet>
 struct predicate_search_segment<Search, Packet, true> {
+  // One helper per packet, taking its operands by reference and returning the mask by value: if the early inliner
+  // leaves it as a call, the caller needs no addressable packet temporaries.
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet test(const Segment& seg, Index i, const Predicate& pred) {
-    return Search::test_packet(pred, seg.template packet<Packet>(i));
+    return Search::apply(pred, seg.template packet<Packet>(i));
   }
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run(const Segment& seg, Predicate pred) {
     constexpr Index PacketSize = unpacket_traits<Packet>::size;
     const Index size = seg.size();
     Index i = 0;
-    if (PacketSize <= size) {
-      // Short segments are the common call; the block loop is laid out off the fall-through path.
-      if (EIGEN_PREDICT_FALSE(8 * PacketSize <= size)) {
-        do {
-          Packet m = por(por(por(test(seg, i + 0 * PacketSize, pred), test(seg, i + 1 * PacketSize, pred)),
-                             por(test(seg, i + 2 * PacketSize, pred), test(seg, i + 3 * PacketSize, pred))),
-                         por(por(test(seg, i + 4 * PacketSize, pred), test(seg, i + 5 * PacketSize, pred)),
-                             por(test(seg, i + 6 * PacketSize, pred), test(seg, i + 7 * PacketSize, pred))));
-          if EIGEN_PREDICT_FALSE (predux_any(m)) return true;
-          i += 8 * PacketSize;
-        } while (i + 8 * PacketSize <= size);
-      }
-      if (EIGEN_PREDICT_FALSE(i + 4 * PacketSize <= size)) {
-        Packet m = por(por(test(seg, i + 0 * PacketSize, pred), test(seg, i + 1 * PacketSize, pred)),
-                       por(test(seg, i + 2 * PacketSize, pred), test(seg, i + 3 * PacketSize, pred)));
-        if (predux_any(m)) return true;
-        i += 4 * PacketSize;
-      }
-      if (EIGEN_PREDICT_TRUE(i + PacketSize <= size)) {
-        if (predux_any(test(seg, i, pred))) return true;
-        i += PacketSize;
-        if (EIGEN_PREDICT_TRUE(i + PacketSize <= size)) {
-          if (predux_any(test(seg, i, pred))) return true;
-          i += PacketSize;
-          if (EIGEN_PREDICT_TRUE(i + PacketSize <= size)) {
-            if (predux_any(test(seg, i, pred))) return true;
-            i += PacketSize;
-          }
+    // Up to two packets (plus a ragged tail) is the common short call: test them directly.
+    if (size < 3 * PacketSize) {
+      if (PacketSize <= size) {
+        if (size < 2 * PacketSize) {
+          if (Search::found(test(seg, 0, pred))) return true;
+          i = PacketSize;
+        } else {
+          if (Search::found(Search::combine(test(seg, 0, pred), test(seg, PacketSize, pred)))) return true;
+          i = 2 * PacketSize;
         }
+        if (EIGEN_PREDICT_TRUE(i == size)) return false;
       }
-      if (EIGEN_PREDICT_TRUE(i == size)) return false;
+      return predicate_search_scalar<Search>(seg, i, pred);
     }
+    // Longer segments: the block loop is laid out off the fall-through path.
+    if (EIGEN_PREDICT_FALSE(8 * PacketSize <= size)) {
+      do {
+        Packet m = Search::combine(
+            Search::combine(Search::combine(test(seg, i + 0 * PacketSize, pred),
+                                            test(seg, i + 1 * PacketSize, pred)),
+                            Search::combine(test(seg, i + 2 * PacketSize, pred),
+                                            test(seg, i + 3 * PacketSize, pred))),
+            Search::combine(Search::combine(test(seg, i + 4 * PacketSize, pred),
+                                            test(seg, i + 5 * PacketSize, pred)),
+                            Search::combine(test(seg, i + 6 * PacketSize, pred),
+                                            test(seg, i + 7 * PacketSize, pred))));
+        if EIGEN_PREDICT_FALSE (Search::found(m)) return true;
+        i += 8 * PacketSize;
+      } while (i + 8 * PacketSize <= size);
+    }
+    if (i + 4 * PacketSize <= size) {
+      Packet m = Search::combine(Search::combine(test(seg, i + 0 * PacketSize, pred),
+                                                 test(seg, i + 1 * PacketSize, pred)),
+                                 Search::combine(test(seg, i + 2 * PacketSize, pred),
+                                                 test(seg, i + 3 * PacketSize, pred)));
+      if (Search::found(m)) return true;
+      i += 4 * PacketSize;
+    }
+    if (i + PacketSize <= size) {
+      Packet m = test(seg, i, pred);
+      for (i += PacketSize; i + PacketSize <= size; i += PacketSize)
+        m = Search::combine(m, test(seg, i, pred));
+      if (Search::found(m)) return true;
+    }
+    if (EIGEN_PREDICT_TRUE(i == size)) return false;
     return predicate_search_scalar<Search>(seg, i, pred);
   }
 };
@@ -217,7 +284,7 @@ struct predicate_reduction {
 
   template <bool Target>
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool search(const Derived& xpr, Predicate pred) {
-    using impl = predicate_search_segment<predicate_search<Target>, Packet, Vectorize>;
+    using impl = predicate_search_segment<typename predicate_search_for<Target, Predicate>::type, Packet, Vectorize>;
     Evaluator eval(xpr);
     EIGEN_IF_CONSTEXPR (LinearAccess) {
       return impl::run(Segment(eval, 0), pred);
@@ -296,8 +363,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::allFinite() const
 template <typename Derived>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::isApproxToConstant(const Scalar& val,
                                                                                   const RealScalar& prec) const {
-  typename internal::nested_eval<Derived, 1>::type self(derived());
-  return internal::all_of(self, internal::fuzzy_constant_predicate<Scalar, true>{val, prec});
+  return internal::all_of(derived(), internal::fuzzy_constant_predicate<Scalar, true>{val, prec});
 }
 
 /** \returns true if *this is approximately equal to the zero matrix,
@@ -310,8 +376,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::isApproxToConstan
  */
 template <typename Derived>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::isZero(const RealScalar& prec) const {
-  typename internal::nested_eval<Derived, 1>::type self(derived());
-  return internal::all_of(self, internal::fuzzy_constant_predicate<Scalar, false>{Scalar(0), prec});
+  return internal::all_of(derived(), internal::fuzzy_constant_predicate<Scalar, false>{Scalar(0), prec});
 }
 
 }  // end namespace Eigen
