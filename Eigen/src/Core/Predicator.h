@@ -160,8 +160,10 @@ struct predicate_search_for<Target, nonzero_predicate<bool>> {
 template <typename Evaluator, bool Linear = Evaluator::LinearAccess>
 struct predicate_segment {
   const Evaluator& eval;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE predicate_segment(const Evaluator& evaluator, Index) : eval(evaluator) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return eval.size(); }
+  Index length;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE predicate_segment(const Evaluator& evaluator, Index, Index size)
+      : eval(evaluator), length(size) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return length; }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename Evaluator::CoeffReturnType coeff(Index i) const {
     return eval.coeff(i);
   }
@@ -174,9 +176,10 @@ template <typename Evaluator>
 struct predicate_segment<Evaluator, false> {
   const Evaluator& eval;
   Index outer;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE predicate_segment(const Evaluator& evaluator, Index j)
-      : eval(evaluator), outer(j) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return Evaluator::IsRowMajor ? eval.cols() : eval.rows(); }
+  Index length;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE predicate_segment(const Evaluator& evaluator, Index j, Index size)
+      : eval(evaluator), outer(j), length(size) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return length; }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename Evaluator::CoeffReturnType coeff(Index i) const {
     return Evaluator::IsRowMajor ? eval.coeff(outer, i) : eval.coeff(i, outer);
   }
@@ -204,9 +207,14 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment
 
 template <typename Search, typename Packet, bool Vectorize>
 struct predicate_search_segment {
+  static constexpr Index ShortSize = 0;
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run(const Segment& seg, Predicate pred) {
     return predicate_search_scalar<Search>(seg, 0, pred);
+  }
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run_short(const Segment& seg, Predicate pred) {
+    return run(seg, pred);
   }
 };
 template <typename Search, typename Packet>
@@ -217,25 +225,33 @@ struct predicate_search_segment<Search, Packet, true> {
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet test(const Segment& seg, Index i, const Predicate& pred) {
     return Search::apply(pred, seg.template packet<Packet>(i));
   }
+  static constexpr Index PacketSize = unpacket_traits<Packet>::size;
+  // Segments shorter than ShortSize take run_short.
+  static constexpr Index ShortSize = 3 * PacketSize;
+
+  // Up to two packets (plus a ragged tail), the common short call: test them directly.
   template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run(const Segment& seg, Predicate pred) {
-    constexpr Index PacketSize = unpacket_traits<Packet>::size;
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run_short(const Segment& seg, Predicate pred) {
     const Index size = seg.size();
     Index i = 0;
-    // Up to two packets (plus a ragged tail) is the common short call: test them directly.
-    if (size < 3 * PacketSize) {
-      if (PacketSize <= size) {
-        if (size < 2 * PacketSize) {
-          if (Search::found(test(seg, 0, pred))) return true;
-          i = PacketSize;
-        } else {
-          if (Search::found(Search::combine(test(seg, 0, pred), test(seg, PacketSize, pred)))) return true;
-          i = 2 * PacketSize;
-        }
-        if (EIGEN_PREDICT_TRUE(i == size)) return false;
+    if (PacketSize <= size) {
+      if (size < 2 * PacketSize) {
+        if (Search::found(test(seg, 0, pred))) return true;
+        i = PacketSize;
+      } else {
+        if (Search::found(Search::combine(test(seg, 0, pred), test(seg, PacketSize, pred)))) return true;
+        i = 2 * PacketSize;
       }
-      return predicate_search_scalar<Search>(seg, i, pred);
+      if (EIGEN_PREDICT_TRUE(i == size)) return false;
     }
+    return predicate_search_scalar<Search>(seg, i, pred);
+  }
+
+  template <typename Segment, typename Predicate>
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run(const Segment& seg, Predicate pred) {
+    const Index size = seg.size();
+    if (size < ShortSize) return run_short(seg, pred);
+    Index i = 0;
     // Longer segments: the block loop is laid out off the fall-through path.
     if (EIGEN_PREDICT_FALSE(8 * PacketSize <= size)) {
       do {
@@ -287,11 +303,20 @@ struct predicate_reduction {
     using impl = predicate_search_segment<typename predicate_search_for<Target, Predicate>::type, Packet, Vectorize>;
     Evaluator eval(xpr);
     EIGEN_IF_CONSTEXPR (LinearAccess) {
-      return impl::run(Segment(eval, 0), pred);
+      return impl::run(Segment(eval, 0, eval.size()), pred);
     } else {
+      // The inner size is read once: through the evaluator's reference to the expression, compilers reload it for
+      // every inner vector.
+      const Index innerSize = Evaluator::IsRowMajor ? eval.cols() : eval.rows();
       const Index outerSize = Evaluator::IsRowMajor ? eval.rows() : eval.cols();
-      for (Index j = 0; j < outerSize; ++j)
-        if (impl::run(Segment(eval, j), pred)) return true;
+      // Choosing the segment path once keeps the length dispatch out of the loop over short inner vectors.
+      if (innerSize < impl::ShortSize) {
+        for (Index j = 0; j < outerSize; ++j)
+          if (impl::run_short(Segment(eval, j, innerSize), pred)) return true;
+      } else {
+        for (Index j = 0; j < outerSize; ++j)
+          if (impl::run(Segment(eval, j, innerSize), pred)) return true;
+      }
       return false;
     }
   }
