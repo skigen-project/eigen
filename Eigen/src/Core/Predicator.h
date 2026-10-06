@@ -30,6 +30,7 @@ struct nonzero_predicate {
 template <typename Scalar>
 struct functor_traits<nonzero_predicate<Scalar>> {
   static constexpr bool PacketAccess = packet_traits<Scalar>::HasCmp;
+  static constexpr bool GroupScalars = true;
 };
 
 template <typename Scalar>
@@ -43,6 +44,7 @@ struct isfinite_predicate {
 template <typename Scalar>
 struct functor_traits<isfinite_predicate<Scalar>> {
   static constexpr bool PacketAccess = packet_traits<Scalar>::HasCmp;
+  static constexpr bool GroupScalars = true;
 };
 
 // Separate specializations keep custom scalars that support only one of isApprox and isMuchSmallerThan compiling.
@@ -81,6 +83,8 @@ struct functor_traits<fuzzy_constant_predicate<Scalar, Approximate>> {
       packet_traits<Scalar>::HasCmp &&
       (!Approximate ||
        (packet_traits<Scalar>::HasSub && packet_traits<Scalar>::HasMin && packet_traits<Scalar>::HasMul));
+  // Grouped scalar compares may be vectorized onto the unit PacketAccess excludes.
+  static constexpr bool GroupScalars = PacketAccess;
 };
 
 // Searches for a coefficient on which the predicate is Target: any_of searches for true, all_of for false.
@@ -122,21 +126,9 @@ struct predicate_search<false> {
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return !b; }
 };
 
-// bool lanes already hold truth values: any_of reduces them directly, and all_of searches for zero lanes. Both treat
-// every nonzero byte as true, as the scalar reduction does.
-template <bool Target>
-struct bool_value_search : predicate_search<Target> {};
-template <>
-struct bool_value_search<true> : predicate_search<true> {
-  template <typename Predicate, typename Packet>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate&, const Packet& x) {
-    return x;
-  }
-  using predicate_search<true>::combine;
-  using predicate_search<true>::found;
-};
-template <>
-struct bool_value_search<false> : predicate_search<true> {
+// all_of(nonzero) searches for zero lanes, x == 0 being the exact complement of x != 0: a single compare per packet
+// and no complement of the combined mask, which some compilers otherwise lower through narrowing and widening.
+struct zero_lane_search : predicate_search<true> {
   template <typename Predicate, typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate&, const Packet& x) {
     return pcmp_eq(x, pzero(x));
@@ -147,13 +139,24 @@ struct bool_value_search<false> : predicate_search<true> {
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a & b; }
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return !b; }
 };
+// any_of on bool lanes reduces them directly, treating every nonzero byte as true as the scalar reduction does.
+struct bool_lane_search : predicate_search<true> {
+  template <typename Predicate, typename Packet>
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate&, const Packet& x) {
+    return x;
+  }
+};
 template <bool Target, typename Predicate>
 struct predicate_search_for {
   using type = predicate_search<Target>;
 };
-template <bool Target>
-struct predicate_search_for<Target, nonzero_predicate<bool>> {
-  using type = bool_value_search<Target>;
+template <typename Scalar>
+struct predicate_search_for<false, nonzero_predicate<Scalar>> {
+  using type = zero_lane_search;
+};
+template <>
+struct predicate_search_for<true, nonzero_predicate<bool>> {
+  using type = bool_lane_search;
 };
 
 // Coefficient access along one inner vector, or along the whole expression with linear access.
@@ -205,13 +208,21 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment
   return Search::found(b);
 }
 
+// Whether a predicate's scalar tests may be grouped; predicates that do not say are tested one at a time.
+template <typename Predicate, typename = void>
+struct predicate_groups_scalars : std::false_type {};
+template <typename Predicate>
+struct predicate_groups_scalars<Predicate, void_t<decltype(functor_traits<Predicate>::GroupScalars)>>
+    : bool_constant<static_cast<bool>(functor_traits<Predicate>::GroupScalars)> {};
+
 template <typename Search, typename Packet, bool Vectorize>
 struct predicate_search_segment {
   static constexpr Index ShortSize = 0;
-  // One coefficient at a time: a predicate that declines packets must not be regrouped into a shape the compiler
-  // vectorizes onto the same unit (ARMv7 NEON, which flushes subnormals, turns grouped float compares into vceq).
+  // Groups of four only where the predicate allows it: grouped scalar tests may be vectorized onto the unit a
+  // predicate excludes (ARMv7 NEON, which flushes subnormals, turns grouped float compares into vceq).
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run(const Segment& seg, Predicate pred) {
+    if (predicate_groups_scalars<Predicate>::value) return predicate_search_scalar<Search>(seg, 0, pred);
     const Index size = seg.size();
     for (Index i = 0; i < size; ++i)
       if (Search::found(pred(seg.coeff(i)))) return true;
