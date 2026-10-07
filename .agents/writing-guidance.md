@@ -2,8 +2,8 @@
 
 Use this guide when adding to or editing `AGENTS.md` or a guide under `.agents/`. Agents read these files literally
 and apply them to cases their authors did not foresee. The rules below adapt a few rules of ASD-STE100, Simplified
-Technical English, to that reader. Its controlled dictionary does not apply: a model already knows the vocabulary, and
-guidance fails through its structure, not its words.
+Technical English, to that reader. Its controlled dictionary does not apply: a model already knows the vocabulary. It
+misreads guidance when a sentence buries an instruction or a condition, not when it uses a rare word.
 
 ## Instructions
 
