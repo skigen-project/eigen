@@ -217,7 +217,7 @@ struct predicate_groups_scalars<Predicate, void_t<decltype(functor_traits<Predic
     : bool_constant<static_cast<bool>(functor_traits<Predicate>::GroupScalars)> {};
 
 template <typename Search, typename Segment, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment& seg, Index i, Predicate pred) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_scalar(const Segment& seg, Index i, Predicate pred) {
   const Index size = seg.size();
   for (; i + 3 < size; i += 4) {
     bool b = Search::combine(
@@ -244,7 +244,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_sequential(const Seg
 // Scalar tests from i on: grouped only where the predicate allows it, since grouped scalar tests may be vectorized
 // onto the unit a predicate excludes (ARMv7 NEON, which flushes subnormals, turns grouped float compares into vceq).
 template <typename Search, typename Segment, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_tail(const Segment& seg, Index i, Predicate pred) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_tail(const Segment& seg, Index i, Predicate pred) {
   if (predicate_groups_scalars<Predicate>::value) return predicate_search_scalar<Search>(seg, i, pred);
   return predicate_search_sequential<Search>(seg, i, pred);
 }
@@ -286,9 +286,9 @@ struct predicate_search_segment<Search, Packet, true> {
   }
   static constexpr Index PacketSize = unpacket_traits<Packet>::size;
   // Segments shorter than ShortSize take run_short.
-  static constexpr Index ShortSize = 3 * PacketSize;
+  static constexpr Index ShortSize = 4 * PacketSize;
 
-  // Up to two packets (plus a ragged tail), the common short call: test them directly.
+  // Up to three packets (plus a ragged tail), the common short call: test them directly.
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run_short(const Segment& seg, Predicate pred) {
     const Index size = seg.size();
@@ -297,9 +297,14 @@ struct predicate_search_segment<Search, Packet, true> {
       if (size < 2 * PacketSize) {
         if (Search::found(test(seg, 0, pred))) return true;
         i = PacketSize;
-      } else {
+      } else if (size < 3 * PacketSize) {
         if (Search::found(Search::combine(test(seg, 0, pred), test(seg, PacketSize, pred)))) return true;
         i = 2 * PacketSize;
+      } else {
+        if (Search::found(Search::combine(Search::combine(test(seg, 0, pred), test(seg, PacketSize, pred)),
+                                          test(seg, 2 * PacketSize, pred))))
+          return true;
+        i = 3 * PacketSize;
       }
       if (EIGEN_PREDICT_TRUE(i == size)) return false;
     }
@@ -344,11 +349,15 @@ template <typename Derived, typename Predicate>
 struct predicate_reduction {
   using Evaluator = visitor_evaluator<Derived>;
   using Scalar = typename Derived::Scalar;
-  using Packet = typename packet_traits<Scalar>::type;
+  static constexpr bool LinearAccess = Evaluator::LinearAccess;
+  // A segment's compile-time length, so a short fixed-size segment uses a packet that fits it, as assignment does.
+  static constexpr int SegmentSizeAtCompileTime =
+      LinearAccess ? int(Derived::SizeAtCompileTime)
+                   : int(Evaluator::IsRowMajor ? Derived::ColsAtCompileTime : Derived::RowsAtCompileTime);
+  using Packet = typename find_largest_packet<Scalar, SegmentSizeAtCompileTime>::type;
   static constexpr bool Vectorize = Evaluator::PacketAccess && packet_traits<Scalar>::Vectorizable &&
                                     (unpacket_traits<Packet>::size > 1) &&
                                     static_cast<bool>(functor_traits<Predicate>::PacketAccess);
-  static constexpr bool LinearAccess = Evaluator::LinearAccess;
   using Segment = predicate_segment<Evaluator>;
 
   template <bool Target>
