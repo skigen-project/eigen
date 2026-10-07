@@ -62,13 +62,13 @@ class TensorFixedSize : public TensorBase<TensorFixedSize<Scalar_, Dimensions_, 
 
  public:
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index rank() const { return NumIndices; }
-  template <std::size_t N>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index dimension() const {
-    EIGEN_STATIC_ASSERT(N < NumIndices, INVALID_DIMENSION);
-    return m_storage.dimensions()[N];
+  template <Index N>
+  static constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index dimension() {
+    EIGEN_STATIC_ASSERT(0 <= N && N < NumIndices, INVALID_DIMENSION);
+    return Dimensions{}[N];
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index dimension(std::size_t n) const {
-    eigen_assert(n < NumIndices);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index dimension(Index n) const {
+    eigen_assert(0 <= n && n < NumIndices);
     return m_storage.dimensions()[n];
   }
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions dimensions() const { return m_storage.dimensions(); }

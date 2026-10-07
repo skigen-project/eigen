@@ -98,13 +98,13 @@ class TensorMap : public TensorBase<TensorMap<PlainObjectType, Options_, MakePoi
       : m_data(tensor.data()), m_dimensions(tensor.dimensions()) {}
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index rank() const { return NumIndices; }
-  template <std::size_t N>
+  template <Index N>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index dimension() const {
-    EIGEN_STATIC_ASSERT(N < NumIndices, INVALID_DIMENSION);
+    EIGEN_STATIC_ASSERT(0 <= N && N < NumIndices, INVALID_DIMENSION);
     return m_dimensions[N];
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index dimension(Index n) const {
-    eigen_assert(n < NumIndices);
+    eigen_assert(0 <= n && n < NumIndices);
     return m_dimensions[n];
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
