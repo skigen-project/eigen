@@ -214,17 +214,20 @@ void check_complex_exp2_accuracy() {
   check_complex_exp2_accuracy<T, W>(T(10.25), T(-7));
   check_complex_exp2_accuracy<T, W>(T(0.5), T(100.3));
   check_complex_exp2_accuracy<T, W>(T(-20), T(-1000.7));
+  for (int i = 0; i < 200; ++i) {
+    check_complex_exp2_accuracy<T, W>(internal::random<T>(T(-30), T(30)), internal::random<T>(T(-1000), T(1000)));
+  }
+  // The cases below need W's exponent range, which IBM double-double long double shares with double.
+  if (std::numeric_limits<W>::max_exponent <= std::numeric_limits<T>::max_exponent ||
+      std::numeric_limits<W>::min_exponent >= std::numeric_limits<T>::min_exponent) {
+    return;
+  }
   // 2^a overflows, 2^a cos(b ln 2) does not.
   check_complex_exp2_accuracy<T, W>(emax + T(0.5), T(1.5));
   check_complex_exp2_accuracy<T, W>(emax - T(0.25), T(-2));
 #if !EIGEN_ARCH_ARM  // 32-bit ARM flushes subnormals.
   const T emin = T(std::numeric_limits<T>::min_exponent);
   check_complex_exp2_accuracy<T, W>(emin - T(std::numeric_limits<T>::digits) / T(2) + T(0.3), T(1));
-#endif
-  for (int i = 0; i < 200; ++i) {
-    check_complex_exp2_accuracy<T, W>(internal::random<T>(T(-30), T(30)), internal::random<T>(T(-1000), T(1000)));
-  }
-#if !EIGEN_ARCH_ARM
   // A denormal phase that 2^a scales back into range, also past 2^(2 emax): the imaginary part to a few of its own
   // ulps, where the normwise check above is blind.
   const T b = (std::numeric_limits<T>::min)() / T(64);
