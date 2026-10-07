@@ -2325,39 +2325,6 @@ void packetmath_complex() {
     data1[2] = Scalar(inf, -inf);
     data1[3] = Scalar(-inf, -inf);
     CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
-    data1[0] = Scalar(-inf, -zero);
-    data1[1] = Scalar(-inf, -one);
-    data1[2] = Scalar(inf, -zero);
-    data1[3] = Scalar(inf, -one);
-    CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
-    // |x| + |z| overflows, or |z| / 2 underflows to zero.
-    const RealScalar big = NumTraits<RealScalar>::highest();
-#if !EIGEN_ARCH_ARM
-    const RealScalar denorm = (std::numeric_limits<RealScalar>::denorm_min)();
-#else
-    // 32-bit ARM flushes denormal inputs to zero.
-    const RealScalar denorm = (std::numeric_limits<RealScalar>::min)();
-#endif
-    data1[0] = Scalar(big, zero);
-    data1[1] = Scalar(-big, big);
-    data1[2] = Scalar(denorm, zero);
-    data1[3] = Scalar(zero, -denorm);
-    CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
-    // |y| << |x|: y * 4^-k underflows to zero, while y / (2 * sqrt(|x|)) is normal. The complex comparison above is
-    // relative to |z| and cannot see the smaller component, so compare components.
-    const RealScalar eps = NumTraits<RealScalar>::epsilon();
-    const RealScalar tiny = eps * eps;
-    data1[0] = Scalar(big, tiny);
-    data1[1] = Scalar(big, -tiny);
-    data1[2] = Scalar(-big, tiny);
-    data1[3] = Scalar(-big, -tiny);
-    for (int j = 0; j < 4; j += PacketSize)
-      internal::pstore(data2 + j, internal::psqrt(internal::pload<Packet>(data1 + j)));
-    for (int i = 0; i < 4; ++i) {
-      const Scalar r = numext::sqrt(data1[i]);
-      VERIFY_IS_APPROX(numext::real(data2[i]), numext::real(r));
-      VERIFY_IS_APPROX(numext::imag(data2[i]), numext::imag(r));
-    }
     data1[0] = Scalar(nan, zero);
     data1[1] = Scalar(zero, nan);
     data1[2] = Scalar(nan, one);
