@@ -1179,7 +1179,7 @@ struct type_casting_traits<numext::int64_t, float> {
   enum { VectorizedCast = 1, SrcCoeffRatio = 2, TgtCoeffRatio = 1 };
 };
 
-// No vector path through double: int64 -> double -> float rounds twice, which can differ from one rounding.
+// We do not convert through double because int64 -> double -> float rounds twice, which can differ from rounding once.
 template <>
 EIGEN_STRONG_INLINE Packet4f pcast<Packet2l, Packet4f>(const Packet2l& a, const Packet2l& b) {
   EIGEN_ALIGN_TO_BOUNDARY(unpacket_traits<Packet2l>::alignment) int64_t lvals[4];

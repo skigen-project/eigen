@@ -2656,7 +2656,8 @@ EIGEN_STRONG_INLINE Packet16f Bf16ToF32(const Packet16bf& a) {
 EIGEN_STRONG_INLINE Packet16bf F32ToBf16(const Packet16f& a) {
   Packet16bf r;
 
-  // Not _mm512_cvtneps_pbh: VCVTNEPS2BF16 flushes subnormal inputs to zero regardless of MXCSR.
+  // We do not use _mm512_cvtneps_pbh because VCVTNEPS2BF16 flushes subnormal inputs to zero regardless of MXCSR,
+  // while the integer rounding below keeps them, as the scalar float_to_bfloat16_rtne does.
   __m512i t;
   __m512i input = _mm512_castps_si512(a);
   __m512i nan = _mm512_set1_epi32(0x7fc0);
