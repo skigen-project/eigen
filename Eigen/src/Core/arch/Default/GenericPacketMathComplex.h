@@ -137,9 +137,9 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   using RealScalar = typename Scalar::value_type;
   using RealPacket = typename unpacket_traits<Packet>::as_real;
 
-  // Let z = x + i*y and l = |z|. sqrt(z) = 2^k * sqrt(a) for a = z * 4^-k, exact, where max(|x|, |y|) = m * 2^e and
-  // k = floor(e / 2): the steps below would overflow in |x| + l for |x| near the largest value and lose a subnormal
-  // to zero in 0.5 * l.
+  // Let z = x + i*y and l = |z|. Steps 1 and 2 work on a = z * 4^-k, where max(|x|, |y|) = m * 2^e and
+  // k = floor(e / 2), so that |x| + l cannot overflow and 0.5 * l keeps subnormals; then rho(z) = 2^k * rho(a)
+  // exactly. Step 3 divides the unscaled y, which a may have flushed to zero.
   RealPacket e;
   pfrexp(pmax(pabs(z.v), pcplxflip(Packet(pabs(z.v))).v), e);
   const RealPacket k = pfloor(pmul(pset1<RealPacket>(RealScalar(0.5)), e));
@@ -198,12 +198,13 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   // We don't care about the imaginary parts computed here. They will be overwritten later.
   const RealPacket cst_half = pset1<RealPacket>(RealScalar(0.5));
   Packet rho;
-  rho.v = psqrt(pmul(cst_half, padd(a_abs, l)));
+  rho.v = pldexp(psqrt(pmul(cst_half, padd(a_abs, l))), k);
 
   // Step 3. Compute [rho0, eta0, rho1, eta1], where
-  // eta0 = (y0 / rho0) / 2, and eta1 = (y1 / rho1) / 2.
+  // eta0 = y0 / (2 * rho0), and eta1 = y1 / (2 * rho1).
   // set eta = 0 if input is 0 + i0.
-  RealPacket eta = pandnot(pmul(cst_half, pdiv(a.v, pcplxflip(rho).v)), a_max_zero_mask);
+  const RealPacket rho_flip = pcplxflip(rho).v;
+  RealPacket eta = pandnot(pdiv(z.v, padd(rho_flip, rho_flip)), a_max_zero_mask);
   RealPacket real_mask = peven_mask(a.v);
   Packet positive_real_result;
   // Compute result for inputs with positive real part.
@@ -223,7 +224,6 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   negative_real_mask.v = pcmp_lt(pand(real_mask, a.v), pzero(a.v));
   negative_real_mask.v = por(negative_real_mask.v, pcplxflip(negative_real_mask).v);
   Packet result = pselect(negative_real_mask, negative_real_result, positive_real_result);
-  result.v = pldexp(result.v, k);
 
   // Step 6. Handle special cases for infinities:
   // * If z is (x,+∞), the result is (+∞,+∞) even if x is NaN

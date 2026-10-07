@@ -2343,6 +2343,21 @@ void packetmath_complex() {
     data1[2] = Scalar(denorm, zero);
     data1[3] = Scalar(zero, -denorm);
     CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
+    // |y| << |x|: y * 4^-k underflows to zero, while y / (2 * sqrt(|x|)) is normal. The complex comparison above is
+    // relative to |z| and cannot see the smaller component, so compare components.
+    const RealScalar eps = NumTraits<RealScalar>::epsilon();
+    const RealScalar tiny = eps * eps;
+    data1[0] = Scalar(big, tiny);
+    data1[1] = Scalar(big, -tiny);
+    data1[2] = Scalar(-big, tiny);
+    data1[3] = Scalar(-big, -tiny);
+    for (int j = 0; j < 4; j += PacketSize)
+      internal::pstore(data2 + j, internal::psqrt(internal::pload<Packet>(data1 + j)));
+    for (int i = 0; i < 4; ++i) {
+      const Scalar r = numext::sqrt(data1[i]);
+      VERIFY_IS_APPROX(numext::real(data2[i]), numext::real(r));
+      VERIFY_IS_APPROX(numext::imag(data2[i]), numext::imag(r));
+    }
     data1[0] = Scalar(nan, zero);
     data1[1] = Scalar(zero, nan);
     data1[2] = Scalar(nan, one);
