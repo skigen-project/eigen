@@ -137,8 +137,9 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   using RealScalar = typename Scalar::value_type;
   using RealPacket = typename unpacket_traits<Packet>::as_real;
 
-  // sqrt(z) = 2^k * sqrt(a) for a = z * 4^-k, exact, where max(|x|, |y|) = m * 2^e and k = floor(e / 2): the steps
-  // below would overflow in |x| + l for |x| near the largest value and lose a subnormal to zero in 0.5 * l.
+  // Let z = x + i*y and l = |z|. sqrt(z) = 2^k * sqrt(a) for a = z * 4^-k, exact, where max(|x|, |y|) = m * 2^e and
+  // k = floor(e / 2): the steps below would overflow in |x| + l for |x| near the largest value and lose a subnormal
+  // to zero in 0.5 * l.
   RealPacket e;
   pfrexp(pmax(pabs(z.v), pcplxflip(Packet(pabs(z.v))).v), e);
   const RealPacket k = pfloor(pmul(pset1<RealPacket>(RealScalar(0.5)), e));
