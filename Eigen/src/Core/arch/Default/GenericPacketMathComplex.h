@@ -217,9 +217,9 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
 
   // Step 3. Compute [rho0, eta0, rho1, eta1], where
   // eta0 = y0 / (2 * rho0), and eta1 = y1 / (2 * rho1).
-  // set eta = 0 if input is 0 + i0.
+  // For z = 0, eta is y itself, so that sqrt(+-0, -0) = (+0, -0).
   const RealPacket rho_flip = pcplxflip(rho).v;
-  RealPacket eta = pandnot(pdiv(z.v, padd(rho_flip, rho_flip)), a_max_zero_mask);
+  RealPacket eta = pselect(a_max_zero_mask, a.v, pdiv(z.v, padd(rho_flip, rho_flip)));
   RealPacket real_mask = peven_mask(a.v);
   Packet positive_real_result;
   // Compute result for inputs with positive real part.

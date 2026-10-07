@@ -2389,11 +2389,23 @@ void packetmath_complex() {
     data1[2] = Scalar(inf, -inf);
     data1[3] = Scalar(-inf, -inf);
     CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
+    // The sign of a zero is part of these results, and CHECK_CWISE1_N compares +0 equal to -0.
+    const auto check_sqrt_bits = [&]() {
+      for (int i = 0; i < 4; ++i) ref[i] = numext::sqrt(data1[i]);
+      for (int j = 0; j < 4; j += PacketSize)
+        internal::pstore(data2 + j, internal::psqrt(internal::pload<Packet>(data1 + j)));
+      VERIFY(test::areEqualBits(ref, data2, 4) && "internal::psqrt");
+    };
     data1[0] = Scalar(-inf, -zero);
     data1[1] = Scalar(-inf, -one);
     data1[2] = Scalar(inf, -zero);
     data1[3] = Scalar(inf, -one);
-    CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
+    check_sqrt_bits();
+    data1[0] = Scalar(zero, -zero);
+    data1[1] = Scalar(-zero, -zero);
+    data1[2] = Scalar(RealScalar(4), -zero);
+    data1[3] = Scalar(RealScalar(-4), -zero);
+    check_sqrt_bits();
     // |x| + |z| overflows, or |z| / 2 underflows to zero.
     const RealScalar big = NumTraits<RealScalar>::highest();
 #if !EIGEN_ARCH_ARM
