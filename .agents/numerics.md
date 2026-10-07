@@ -1,6 +1,6 @@
 # Numerical Code
 
-Use this guidance when changing scalar math, packet math, decompositions, eigensolvers, linear solvers, matrix
+Use this guide when changing scalar math, packet math, decompositions, eigensolvers, linear solvers, matrix
 functions, or numerical tests. The nearby implementation, tests, and public documentation in the checked-out tree
 are the source of truth; this file defines the review standard rather than an algorithm.
 
@@ -31,7 +31,7 @@ that matches the contract:
   [`ULP accuracy tool`](../test/ulp_accuracy/README.md) supports MPFR and standard-library references. The
   [`coefficient-wise math table`](../doc/CoeffwiseMathFunctionsTable.dox) records existing accuracy expectations.
 - Sollya is appropriate for polynomial or rational approximation design. Record the function, domain, precision,
-  error objective, tool version, and generation command or script so coefficients are reproducible; verify the
+  error objective, tool version, and generation command or script so coefficients are reproducible. Verify the
   emitted implementation independently with MPFR.
 
 Test special values explicitly: `+0`, `-0`, positive and negative infinity, quiet NaN, normal/subnormal boundaries,
@@ -47,7 +47,7 @@ Under `-ffast-math`, and `-ffinite-math-only` in particular, the compiler folds 
 these flags, clang also marks every floating-point argument and return value `nofpclass(nan inf)`. A NaN or infinity
 constant then provably violates that attribute, so clang folds it to poison and deletes the code that uses it. Wrap such
 constants in `EIGEN_FAST_MATH_CONSTANT_BARRIER`, as the existing packet code does. Keep finiteness checks on values the
-compiler cannot see through, and verify the changed path in a build with the flag. CI includes focused fast-math tests,
+compiler cannot see through. Verify the changed path in a build with the flag. CI includes focused fast-math tests,
 including regression tests for packet masks and constants, but they do not cover every numerical path (see
 [`testing.md`](testing.md)).
 
@@ -58,10 +58,10 @@ operation, test normalized reconstruction error, solve residual, eigenpair resid
 symmetry, or structure preservation. Express tolerances as named bounds derived from
 `NumTraits<RealScalar>::epsilon()`, dimension, and the expected operation count; avoid unexplained decimal literals.
 
-Forward error is condition-dependent. A well-conditioned problem may support a tight result comparison, while a
-near-singular problem can have a small residual and a large forward error. Estimate or bound conditioning when a
-forward comparison is necessary, and do not reject a stable answer merely because a different stable algorithm
-selects different vectors, signs, phases, pivots, or bases for a clustered invariant subspace.
+Forward error is condition-dependent. A well-conditioned problem can support a tight result comparison, while a
+near-singular problem can have a small residual and a large forward error. When a forward comparison is necessary,
+estimate or bound the conditioning. Do not reject a stable answer merely because a different stable algorithm selects
+different vectors, signs, phases, pivots, or bases for a clustered invariant subspace.
 
 Exercise structures relevant to the algorithm: well-conditioned, ill-conditioned, near-singular, singular,
 rank-deficient, clustered/repeated spectra, extreme scaling, and the matrix properties promised by the API. Useful
@@ -97,7 +97,7 @@ Computations* are standard references for choosing error measures and adversaria
 A scaling threshold or overflow budget stated in a comment is part of the code. When the operation it bounds widens,
 for example when a multiply path gains a divide or a growth factor becomes a parameter, re-derive the bound rather
 than carrying the old expression forward. Early exits and length-one shortcuts must satisfy the same invariant as the
-general path. A guard added later often misses them, so give them regression tests at the boundary they handle.
+general path. Give them regression tests at the boundary they handle, because a guard added later often misses them.
 
 ## Subnormals and Flush-to-Zero
 

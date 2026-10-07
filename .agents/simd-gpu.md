@@ -23,8 +23,8 @@ interface used by evaluators.
   operation.
 - Preserve scalar-remainder behavior and unaligned paths. Packet-sized inputs alone do not cover an evaluator.
 - Standard mathematical functions should match the scalar contract for special values. Measure ordinary-input error
-  in ULPs against an appropriate scalar or higher-precision reference; test NaN, infinities, signed zero, subnormals,
-  and domain boundaries explicitly where the platform exposes those IEEE-754 behaviors.
+  in ULPs against an appropriate scalar or higher-precision reference. Where the platform exposes the IEEE 754
+  behaviors, test NaN, infinities, signed zero, subnormals, and domain boundaries explicitly.
 
 A missing specialization is not always a compile error. Some generic fallbacks in `Eigen/src/Core/GenericPacketMath.h`
 are the identity or a single-lane version of the real operation; the generic `preverse`, for example, returns its
@@ -45,8 +45,8 @@ functors, small helpers, constructors, and operators reached from device code.
 - Keep device code allocation-free unless the specific backend and API deliberately provide an allocator.
 - Avoid host-only standard-library calls, exceptions, RTTI assumptions, and function-local static state on device
   paths.
-- Define configuration macros before the first Eigen public header and keep index configuration consistent across
-  translation units that exchange Eigen objects.
+- Define configuration macros before the first Eigen public header.
+- Keep the index configuration consistent across translation units that exchange Eigen objects.
 - Include public module headers in tests and examples. Implementation headers under `Eigen/src/` and
   `contrib/Eigen/src/` are not user include points.
 
@@ -69,12 +69,12 @@ objects cross the host/device boundary.
 `contrib/Eigen/Tensor` evaluates expressions through an explicit device. `GpuDevice` handles CUDA/HIP and
 `SyclDevice` handles SYCL; Tensor GPU kernels remain part of the Tensor implementation. Device-resident storage is
 normally supplied through `TensorMap`, and the destination selects execution with `out.device(device) = expression`.
+
 Host-side runtime calls in the device go through `EIGEN_GPU_RUNTIME_CHECK` in `Eigen/src/Core/util/GpuRuntime.h`.
 Kernel launches use `LAUNCH_GPU_KERNEL` in `contrib/Eigen/src/Tensor/TensorDeviceGpu.h`, which forwards to
 `internal::gpu_launch` in `GpuRuntime.h`. A result stored into a variable that only a `gpu_assert` inspects is
-unchecked in every release build.
-Consult `contrib/Eigen/src/Tensor/README.md` and the nearby device implementation before changing memory,
-synchronization, or callback semantics.
+unchecked in every release build. Before changing memory, synchronization, or callback semantics, consult
+`contrib/Eigen/src/Tensor/README.md` and the nearby device implementation.
 
 ### `contrib/Eigen/GPU`
 
@@ -84,14 +84,16 @@ operation, not to Core coefficient evaluation or packet fusion. Define `EIGEN_US
 `<contrib/Eigen/GPU>`, and consult `contrib/Eigen/src/GPU/README.md`. Its tests under `contrib/test/GPU/` are
 intentionally host-compiled `.cpp` files.
 
-GPU work in this module runs asynchronously, so refactors that would be harmless elsewhere can break it. Freeing,
-reusing, or destroying memory, streams, events, and handles must respect stream order: synchronize or fence with an
-event first. A cleanup that removes a wait is correct only if the wait was redundant in every ownership mode. For
-example, a borrowed handle's deleter is a no-op and supplies none of the synchronization that an owned handle's
-teardown does. Do not signal a mode with a value the user can legitimately pass. A null stream, for example, is a valid
-stream whose meaning depends on the build configuration, not a "none" sentinel. A cache keyed on host identity
-(pointer, extent, nnz) can be fooled, because reassignment reuses allocations; key it on content or a generation
-counter.
+GPU work in this module runs asynchronously, so refactors that would be harmless elsewhere can break it.
+
+- Freeing, reusing, or destroying memory, streams, events, and handles must respect stream order: synchronize or fence
+  with an event first. A cleanup that removes a wait is correct only if the wait was redundant in every ownership mode.
+  For example, a borrowed handle's deleter is a no-op and supplies none of the synchronization that an owned handle's
+  teardown does.
+- Do not signal a mode with a value the user can legitimately pass. A null stream, for example, is a valid stream whose
+  meaning depends on the build configuration, not a "none" sentinel.
+- Key a cache on content or a generation counter, not on host identity (pointer, extent, nnz). Reassignment reuses
+  allocations, so a cache keyed on host identity can be fooled.
 
 ## Validation
 

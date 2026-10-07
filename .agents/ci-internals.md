@@ -21,9 +21,9 @@ Build jobs publish the configured build directory as an artifact. Their paired t
 run CTest without rebuilding. When changing either side, keep the test job's `needs`, CTest label or filter, and the
 corresponding build target consistent; otherwise CTest can discover tests whose executables are absent.
 
-Publishing is opt-in per job rather than inherited. The bases `.common:linux:cross` and `.common:windows` have no
-`artifacts:` key, so a job that publishes adds `.artifacts:linux:builddir`, `.artifacts:windows:builddir` or
-`.artifacts:test:results` as a second `extends:` parent. A test job takes the results template. It links nothing, so
+Publishing is opt-in per job rather than inherited: the bases `.common:linux:cross` and `.common:windows` have no
+`artifacts:` key. To make a job publish, add `.artifacts:linux:builddir`, `.artifacts:windows:builddir` or
+`.artifacts:test:results` as a second `extends:` parent. Give a test job the results template. It links nothing, so
 re-publishing the build directory it just downloaded would only duplicate the build job's artifact. The results template
 also registers `JUnitTestResults_*.xml` through `artifacts:reports:junit:`, which is what shows failures in the job's
 Tests tab and in the merge request widget rather than only in the log. A job that needs neither, such as
@@ -38,24 +38,30 @@ without a comparison.
 ## The Pass Cache
 
 In merge-request pipelines the Linux test jobs keep a content-addressed pass cache: a per-job-name GitLab cache holding
-`.testcache/`. [`test.linux.script.sh`](../ci/scripts/test.linux.script.sh) skips a test when an earlier MR pipeline
-recorded a first-attempt pass for the same executable, emulator, CTest definition, and environment fingerprint. The
-fingerprint covers the image, the `lib*` package state, `ci/scripts/` and `ci/docker/`, and variables that change
-behavior, such as `EIGEN_REPEAT` and `QEMU_CPU`. Through [`test_cache.py`](../ci/scripts/test_cache.py), the script then
-records this run's first-attempt passes, taken from the statuses in the dashboard run's `Test.xml`. Scheduled and web
-pipelines always run every test their job selects, because fresh clock-derived RNG seeds are part of their coverage.
-Sharded jobs never skip, and `EIGEN_CI_TEST_CACHE: "off"` opts a job out. Skipped tests are absent from that run's JUnit
-report.
+`.testcache/`. [`test.linux.script.sh`](../ci/scripts/test.linux.script.sh) skips a test when an earlier merge-request
+pipeline recorded a first-attempt pass for the same executable, emulator, CTest definition, and environment
+fingerprint. The fingerprint covers the image, the `lib*` package state, `ci/scripts/` and `ci/docker/`, and variables
+that change behavior, such as `EIGEN_REPEAT` and `QEMU_CPU`. Through [`test_cache.py`](../ci/scripts/test_cache.py),
+the script then records this run's first-attempt passes, taken from the statuses in the dashboard run's `Test.xml`.
+Scheduled and web pipelines always run every test their job selects, because fresh clock-derived RNG seeds are part of
+their coverage. Sharded jobs never skip, and `EIGEN_CI_TEST_CACHE: "off"` opts a job out. Skipped tests are absent from
+that run's JUnit report.
 
 The fingerprint hashes `ci/scripts/` and `ci/docker/` but not the `ci/*.gitlab-ci.yml` files. Every YAML setting that
-can change a test's outcome already enters the key by value: job variables through `KEYED_ENV_PREFIXES`, the image
-through `CI_JOB_IMAGE`, compiler flags and the cross emulator through the digests of the files in the test's command,
-and CTest timeouts through the properties hash. Hashing the YAML as well only meant that every merge request that
-touched the CI YAML discarded every job's recorded passes. Not hashing the YAML has two consequences. **A new job
-variable that can change a test's outcome must be added to `KEYED_ENV_PREFIXES`**; setting it in the YAML alone no
-longer puts it in the key. And the fingerprint does not see a job's `tags:`, so moving a job to a runner pool whose CPU
-differs should be paired with a cache clear. Even before this change, though, nothing distinguished two hosts within one
-tag pool.
+can change a test's outcome already enters the key by value:
+
+- job variables through `KEYED_ENV_PREFIXES`;
+- the image through `CI_JOB_IMAGE`;
+- compiler flags and the cross emulator through the digests of the files in the test's command;
+- CTest timeouts through the properties hash.
+
+Hashing the YAML as well only meant that every merge request that touched the CI YAML discarded every job's recorded
+passes. Not hashing the YAML has two consequences:
+
+- **When you add a job variable that can change a test's outcome, add it to `KEYED_ENV_PREFIXES`.** Setting it in the
+  YAML alone no longer puts it in the key.
+- When you move a job to a runner pool whose CPU differs, you should also clear the cache, because the fingerprint does
+  not see a job's `tags:`. Even before this change, though, nothing distinguished two hosts within one tag pool.
 
 ## Tier Rules
 
@@ -71,11 +77,12 @@ change under its backend directory, through `rules:changes:`, or a label, throug
 ANDs `if:` with `changes:` within one rule entry, so each rule set has two entries, one per trigger. Each rule set tests
 the whole label string on its own, so several labels select the union of their platforms. That is why the `*-tests`
 labels are **unscoped**: GitLab makes scoped labels (`backend::NEON`) mutually exclusive, so scoped labels could never
-select a union, which is the point of the `*-tests` labels. The rule sets for `arch/SVE` and `arch/SME` also list
-`Eigen/src/Core/util/ConfigureVectorization.h` in `changes:`, because that header decides whether either backend is
-compiled at all. SVE runs one build per vector length, because `EIGEN_ARM64_SVE_VL` comes from `__ARM_FEATURE_SVE_BITS`,
-which only `-msve-vector-bits` sets. `test/sve_vector_length` reads `RDVL`, so a binary run at another width fails
-instead of computing wrong answers.
+select a union, which is the point of the `*-tests` labels.
+
+The rule sets for `arch/SVE` and `arch/SME` also list `Eigen/src/Core/util/ConfigureVectorization.h` in `changes:`,
+because that header decides whether either backend is compiled at all. SVE runs one build per vector length, because
+`EIGEN_ARM64_SVE_VL` comes from `__ARM_FEATURE_SVE_BITS`, which only `-msve-vector-bits` sets. `test/sve_vector_length`
+reads `RDVL`, so a binary run at another width fails instead of computing wrong answers.
 
 `all-platforms` leaves out three rows of the platform table in `ci.md` because their jobs ignore the selection (the list
 of affected tests that `select:tests` computes). The AVX512-FP16 pair and the SME build are compile-only, with no paired
@@ -135,8 +142,8 @@ fixture to any run that selects one of them, even if `-E` excludes it. The fixtu
 in one binary directory collide whenever a CMake regeneration is pending, and on the hosted runners that serial suite
 took 80-95% of an affected test job's wall time. The tests themselves only check which executables exist: `_ok` passes
 when its own exists, and `_ko` when its own is missing and its `_ok` twin's exists, so a missing compiler fails both
-halves instead of making `_ko` pass. An "ALL" selection applies no `-R`, so a job that excludes the failtests by name
-for it must exclude `^buildfailtests$` as well.
+halves instead of making `_ko` pass. When a job excludes the failtests by name from an "ALL" selection, it must exclude
+`^buildfailtests$` as well, because an "ALL" selection applies no `-R`.
 
 The RISC-V affected tier runs the `failtest` label on an amd64 job with the original cross compiler. Its native
 runtime job excludes those compile tests and the nested `buildsystem` scenarios: the runtime image has neither Ninja

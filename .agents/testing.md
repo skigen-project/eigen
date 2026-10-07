@@ -17,7 +17,7 @@ Use this guide when adding or changing tests. The checked-out source is authorit
 ## Configure And Build
 
 Configure a dedicated build directory. Unit tests are excluded from CMake's default `all` target, although a bare
-build may still build enabled auxiliary libraries.
+build can still build enabled auxiliary libraries.
 
 ```bash
 cmake -G Ninja -S . -B build
@@ -42,8 +42,8 @@ cd build
 ./check.sh <regex>
 ```
 
-They filter registered parent names such as `bdcsvd`, not generated part names such as `bdcsvd_3`; use the explicit
-target recipe for one part.
+They filter registered parent names such as `bdcsvd`, not generated part names such as `bdcsvd_3`. For one part, use
+the explicit target recipe above.
 
 Use a separate build directory for each materially different configuration. Do not rewrite one cache and describe
 the result as a second test run.
@@ -62,20 +62,20 @@ Eigen currently uses its own framework, not GoogleTest:
 
 1. Add `test/<name>.cpp` or `contrib/test/<name>.cpp`.
 2. Include `main.h`, then the public umbrella header for tests of public behavior. A focused test of a private utility
-   may include its implementation header only when that matches an established nearby pattern; never present such a
+   may include its implementation header only when that matches an established nearby pattern. Never present such a
    path as a user include.
 3. Use `VERIFY`, `VERIFY_IS_EQUAL`, `VERIFY_IS_APPROX`, and the other helpers exposed through `test/main.h`.
 4. End with `EIGEN_DECLARE_TEST(<name>) { ... }`.
 5. Register the source with `ei_add_test(<name>)` in the matching `CMakeLists.txt`, then reconfigure.
 
 Keep `test/main.h` limited to framework configuration, registration, shared-helper aggregation, and the test driver.
-Put reusable utilities in a narrowly named helper header; include it from `main.h` only when most tests need it.
+Put reusable utilities in a narrowly named helper header. Include it from `main.h` only when most tests need it.
 
 For compile-failure coverage, use the established `failtest/` pattern. Its `_ok` target must compile and its `_ko`
 target must fail with `EIGEN_SHOULD_FAIL_TO_BUILD` defined. Register it with `ei_add_failtest` above the closing
 `ei_add_failtest_fixture()` call. The `buildfailtests` fixture builds the whole suite at once, and `_ko` passes when its
-target did not build while `_ok` did. That rules out a broken toolchain, but not a different compile error than the one
-intended, so keep the construct narrow.
+target did not build while `_ok` did. Keep the failing construct narrow: the pair rules out a broken toolchain, but not
+a different compile error than the one intended.
 
 ## Split Tests
 
@@ -91,9 +91,9 @@ intended, so keep the construct narrow.
   all suffixes discovered in that source are emitted.
 - [`cmake/EigenTestPartGroups.cmake`](../cmake/EigenTestPartGroups.cmake) lists ranges of parts that compile together as
   one executable, named after the range's first part, e.g. `array_cwise_1` for `1-4`; `ctest -R '<name>'` still selects
-  them. A range may only hold parts that differ in nothing but their `CALL_SUBTEST_N` calls and that are not listed
-  individually in the smoke list. Its compile must stay under the 4 GiB peak RSS recorded in the file header. Adding or
-  renumbering subtests inside a listed range makes that compile bigger, so re-measure it.
+  them. A range must hold only parts that differ in nothing but their `CALL_SUBTEST_N` calls and that are not listed
+  individually in the smoke list. Its compile must stay under the 4 GiB peak RSS recorded in the file header. After
+  adding or renumbering subtests inside a listed range, re-measure that compile, because the change makes it bigger.
 
 `ctest -R '^<name>$'` does not match split parts. Use `ctest -R '<name>'` for every part or anchor one generated name.
 
@@ -110,9 +110,11 @@ that is impractical, that by construction it runs the new code.
 - Test a new fast path through the public entry point that selects it, with inputs that actually take it, not only
   through a direct call to the new method. Where a flag or trait selects the fast path, pin the selection with a
   `STATIC_CHECK` on it in both directions: for a type that must opt in and for one that must stay out.
-- Cover the branches the change adds, not just one convenient shape: sizes that are not a multiple of the packet or
-  block dimension, complex scalars where conjugation is otherwise a no-op, both storage orders, and the uncompressed
-  or strided variants of an input type.
+- Cover the branches the change adds, not just one convenient shape:
+  - sizes that are not a multiple of the packet or block dimension;
+  - complex scalars where conjugation is otherwise a no-op;
+  - both storage orders;
+  - the uncompressed or strided variants of an input type.
 - Verify the complete result against an independent reference; skipping coefficients the test setup did not write
   hides corruption in exactly those places.
 - Exercise the customization points users are documented to have (custom scalars, functors without declared traits),
@@ -136,14 +138,14 @@ cmake -G Ninja -S . -B build -DEIGEN_BUILD_TESTING=ON
 cmake -E chdir build ctest -L buildsystem --output-on-failure --no-tests=error
 ```
 
-`--no-tests=error` belongs on every `ctest` invocation in this guide, because CTest otherwise exits 0 when nothing
+Pass `--no-tests=error` to every `ctest` invocation, as this guide does, because CTest otherwise exits 0 when nothing
 matched. Nothing matches with an anchored `-R '^name$'` against a split test, with a mistyped name, or with `--test-dir`
 under CMake 3.17 to 3.19: those versions predate `--test-dir`, ignore it, and inspect the source directory instead.
 `cmake -E chdir` is the spelling that also works there.
 
 No target needs building first: each scenario runs its own nested configure, build, and install into the CTest
-binary directory. Add a claim by dropping a scenario in `scenarios/` and naming it in the list in
-`test/buildsystem/CMakeLists.txt`; the driver `run_scenario.cmake` supplies the assertion helpers.
+binary directory. To add a claim, drop a scenario in `scenarios/` and name it in the list in
+`test/buildsystem/CMakeLists.txt`. The driver `run_scenario.cmake` supplies the assertion helpers.
 
 Two hazards are specific to these tests. First, Eigen calls `export(PACKAGE Eigen3)`, so CMake's user package registry
 names every Eigen build tree on the machine. A `find_package` scenario must therefore disable both the user and the
@@ -155,24 +157,23 @@ rather than reporting a failure. That is why the CI job runs `ctest` with `--no-
 
 - In the default host-test configuration, no test compiles an `EIGEN_NO_DEBUG` code path: `test/main.h` undefines
   `NDEBUG`, and `Macros.h` derives `EIGEN_NO_DEBUG` from it. (HIP/SYCL device compilation and an explicit
-  `-DEIGEN_NO_DEBUG` define it independently.) Behavior that depends on the macro needs a dedicated `-DEIGEN_NO_DEBUG`
-  test target or a standalone `-DNDEBUG` check. Conversely, an `eigen_assert` body is only type-checked where
-  assertions are enabled, so it can call members its argument type does not have and still compile in every release
-  build.
-- Run an `EIGEN_DEFAULT_TO_ROW_MAJOR` build when layout is in play, and pin the layout explicitly where a test aliases
-  one object's storage through a view whose default layout is fixed.
-- Cover `EIGEN_TEST_NO_EXPLICIT_VECTORIZATION`, `EIGEN_UNALIGNED_VECTORIZE=0`, or a narrower
-  `EIGEN_DEFAULT_DENSE_INDEX_TYPE` when the change reasons about packets, alignment, or index width.
+  `-DEIGEN_NO_DEBUG` define it independently.) For behavior that depends on the macro, add a dedicated
+  `-DEIGEN_NO_DEBUG` test target or a standalone `-DNDEBUG` check. Conversely, an `eigen_assert` body is only
+  type-checked where assertions are enabled, so it can call members its argument type does not have and still compile
+  in every release build.
+- When layout is in play, run an `EIGEN_DEFAULT_TO_ROW_MAJOR` build. Where a test aliases one object's storage through
+  a view whose default layout is fixed, pin the layout explicitly.
+- When the change reasons about packets, alignment, or index width, cover `EIGEN_TEST_NO_EXPLICIT_VECTORIZATION`,
+  `EIGEN_UNALIGNED_VECTORIZE=0`, or a narrower `EIGEN_DEFAULT_DENSE_INDEX_TYPE`.
 - Tests build optimized (`CMAKE_BUILD_TYPE` defaults to Release) and no CI job builds Debug, so a `static constexpr`
   class-template member that is odr-used without its C++14 namespace-scope definition links in every CI build and fails
-  only at -O0; see [`conventions.md`](conventions.md). Build one Debug tree when adding such constants.
+  only at -O0; see [`conventions.md`](conventions.md). When adding such constants, build one Debug tree.
 - Compiler fast-math coverage is limited to targets registered with those flags in `test/CMakeLists.txt`.
   The smoke list includes `packetmath_fastmath`, `packetmath_fastmath_generic_16` where vector extensions are
   available, `bfloat16_classification_fastmath`, and parts of `fastmath`, `bdcsvd_fastmath`, and
   `stable_norm_fastmath`; these compile with `-ffast-math` where supported. Ordinary `packetmath` uses Eigen's
-  `EIGEN_FAST_MATH=1` approximation switch, which does not enable the compiler flag. Add focused coverage when a
-  changed path falls outside the existing fast-math tests; [`numerics.md`](numerics.md) records the special-value
-  hazards.
+  `EIGEN_FAST_MATH=1` approximation switch, which does not enable the compiler flag. When a changed path falls outside
+  the existing fast-math tests, add focused coverage. [`numerics.md`](numerics.md) records the special-value hazards.
 
 ## Numerical Assertions
 
@@ -181,7 +182,7 @@ rather than reporting a failure. That is why the CI job runs `ctest` with `--no-
 `1e-6`. Do not use it alone to claim ULP accuracy, backward stability, or IEEE special-value conformance.
 
 For numerical kernels, add explicit named bounds based on epsilon, dimension, conditioning, or a backward-error
-model as appropriate. Check NaN, infinity, and signed zero explicitly when their distinction matters. Follow
+model as appropriate. When their distinction matters, check NaN, infinity, and signed zero explicitly. Follow
 [`numerics.md`](numerics.md) for solver, packet, and scalar-math coverage.
 
 Write such a bound as `factor * NumTraits<RealScalar>::epsilon()` at the site, and explain `factor` by its error model.
@@ -193,7 +194,7 @@ Two kinds of comparison silently accept everything, and both have shipped here. 
 operation under test: a bound formed as `(A.cwiseAbs() * B.cwiseAbs())` goes through the product code being tested, so
 accumulate it independently instead. The second is a comparison that admits non-finite values: `error <= tolerance`
 holds for two infinities, and `if (error > bound)` never fires for a NaN error. Test for failure as the negation of the
-passing condition, `!(error <= bound)`, and reject a non-finite tolerance.
+passing condition, `!(error <= bound)`. Reject a non-finite tolerance.
 
 When a numerical check fails for some seeds, find out whether the computation or the check is at fault before changing
 the tolerance. Compare the results with a reference computed in higher precision (quad or MPFR). Measure the backward

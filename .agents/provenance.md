@@ -20,8 +20,8 @@ employer, has agreed.
 
 ## Proprietary Software Is A Black Box
 
-Proprietary libraries, such as Intel oneMKL, NVIDIA's cuBLAS, Arm Performance Libraries, and Apple Accelerate, are
-used through their documented interface and measured as shipped. Eigen holds to this black-box rule regardless of
+Use proprietary libraries, such as Intel oneMKL, NVIDIA's cuBLAS, Arm Performance Libraries, and Apple Accelerate,
+only through their documented interface, and measure them as shipped. Eigen holds to this black-box rule regardless of
 what a particular license or jurisdiction permits. The rule also does not change when someone else has already published
 what is inside: the vendor's documentation defines the supported interface, not a forum post. If a comparison cannot be
 configured through documented means, report the limitation.
