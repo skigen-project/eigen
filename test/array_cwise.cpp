@@ -1484,6 +1484,35 @@ void int64_to_float_cast_test() {
   }
 }
 
+// Float midpoints 2^e + (k + 1/2) ulp, offset in the low 12 bits, on both sides of 2^53. The reference converts behind
+// a barrier, which keeps the compiler from vectorizing it: Clang before 21 does that through double on AArch64.
+template <typename T>
+void int64_to_float_midpoint_cast_test() {
+  using U = std::make_unsigned_t<T>;
+  std::vector<T> values = {T((U(1) << 53) - 1), T(U(1) << 53), T((U(1) << 53) + 1), NumTraits<T>::highest()};
+  for (int e = 24; e < (std::is_signed<T>::value ? 63 : 64); ++e) {
+    for (U k = 0; k < 2; ++k) {
+      const U mid = (U(1) << e) + (k << (e - 23)) + (U(1) << (e - 24));
+      for (U s : {U(0), U(1), U(0x7ff), U(0x800), U(0x801)}) {
+        values.push_back(T(mid + s));
+        values.push_back(T(mid - s));
+      }
+    }
+  }
+  const size_t count = values.size();
+  if (std::is_signed<T>::value) {
+    for (size_t i = 0; i < count; ++i) values.push_back(T(-values[i]));
+    values.push_back(NumTraits<T>::lowest());
+  }
+  const ArrayX<T> a = Map<const ArrayX<T>>(values.data(), Index(values.size()));
+  const ArrayXf f = a.template cast<float>();
+  for (Index i = 0; i < a.size(); ++i) {
+    T x = a(i);
+    EIGEN_OPTIMIZATION_BARRIER(x);
+    VERIFY_IS_EQUAL(f(i), static_cast<float>(x));
+  }
+}
+
 template <typename = void>
 void bool_logical_ops() {
   const Index size = 67;
@@ -1660,6 +1689,8 @@ EIGEN_DECLARE_TEST(array_cwise) {
     CALL_SUBTEST_28((cast_truncation_test<double, 16>()));
     CALL_SUBTEST_28((cast_truncation_test<float, 16>()));
     CALL_SUBTEST_28(int64_to_float_cast_test<>());
+    CALL_SUBTEST_28(int64_to_float_midpoint_cast_test<int64_t>());
+    CALL_SUBTEST_28(int64_to_float_midpoint_cast_test<uint64_t>());
     CALL_SUBTEST_29((cast_test<3, 1>()));
     CALL_SUBTEST_30((cast_test<5, 1>()));
     CALL_SUBTEST_31((cast_test<9, 1>()));

@@ -1179,7 +1179,25 @@ struct type_casting_traits<numext::int64_t, float> {
   enum { VectorizedCast = 1, SrcCoeffRatio = 2, TgtCoeffRatio = 1 };
 };
 
-// We do not convert through double because int64 -> double -> float rounds twice, which can differ from rounding once.
+#if EIGEN_ARCH_ARM64
+// int64 -> double -> float rounds twice, which can differ from rounding once; Clang before 21 compiles scalar
+// int64 -> float conversions of adjacent lanes that way too. Rounding x to odd on the multiples of 2^11 where
+// |x| >= 2^53 makes the conversion to double exact and leaves the rounding to float unchanged.
+EIGEN_STRONG_INLINE Packet2d int64_to_double_round_to_odd(const Packet2l& a) {
+  const int64x2_t low = vdupq_n_s64(0x7ff);
+  const int64x2_t odd =
+      vorrq_s64(vbicq_s64(a, low), vreinterpretq_s64_u64(vandq_u64(vtstq_s64(a, low), vdupq_n_u64(0x800))));
+  return vcvtq_f64_s64(vbslq_s64(vcgeq_s64(vabsq_s64(a), vdupq_n_s64(int64_t(1) << 53)), odd, a));
+}
+template <>
+EIGEN_STRONG_INLINE Packet4f pcast<Packet2l, Packet4f>(const Packet2l& a, const Packet2l& b) {
+  return vcombine_f32(vcvt_f32_f64(int64_to_double_round_to_odd(a)), vcvt_f32_f64(int64_to_double_round_to_odd(b)));
+}
+template <>
+EIGEN_STRONG_INLINE Packet2f pcast<Packet2l, Packet2f>(const Packet2l& a) {
+  return vcvt_f32_f64(int64_to_double_round_to_odd(a));
+}
+#else
 template <>
 EIGEN_STRONG_INLINE Packet4f pcast<Packet2l, Packet4f>(const Packet2l& a, const Packet2l& b) {
   EIGEN_ALIGN_TO_BOUNDARY(unpacket_traits<Packet2l>::alignment) int64_t lvals[4];
@@ -1199,6 +1217,7 @@ EIGEN_STRONG_INLINE Packet2f pcast<Packet2l, Packet2f>(const Packet2l& a) {
   float fvals[2] = {static_cast<float>(lvals[0]), static_cast<float>(lvals[1])};
   return pload<Packet2f>(fvals);
 }
+#endif
 
 template <>
 struct type_casting_traits<numext::int64_t, numext::int32_t> {
@@ -1312,6 +1331,21 @@ template <>
 struct type_casting_traits<numext::uint64_t, float> {
   enum { VectorizedCast = 1, SrcCoeffRatio = 2, TgtCoeffRatio = 1 };
 };
+#if EIGEN_ARCH_ARM64
+EIGEN_STRONG_INLINE Packet2d uint64_to_double_round_to_odd(const Packet2ul& a) {
+  const uint64x2_t low = vdupq_n_u64(0x7ff);
+  const uint64x2_t odd = vorrq_u64(vbicq_u64(a, low), vandq_u64(vtstq_u64(a, low), vdupq_n_u64(0x800)));
+  return vcvtq_f64_u64(vbslq_u64(vcgeq_u64(a, vdupq_n_u64(uint64_t(1) << 53)), odd, a));
+}
+template <>
+EIGEN_STRONG_INLINE Packet4f pcast<Packet2ul, Packet4f>(const Packet2ul& a, const Packet2ul& b) {
+  return vcombine_f32(vcvt_f32_f64(uint64_to_double_round_to_odd(a)), vcvt_f32_f64(uint64_to_double_round_to_odd(b)));
+}
+template <>
+EIGEN_STRONG_INLINE Packet2f pcast<Packet2ul, Packet2f>(const Packet2ul& a) {
+  return vcvt_f32_f64(uint64_to_double_round_to_odd(a));
+}
+#else
 template <>
 EIGEN_STRONG_INLINE Packet4f pcast<Packet2ul, Packet4f>(const Packet2ul& a, const Packet2ul& b) {
   EIGEN_ALIGN_TO_BOUNDARY(unpacket_traits<Packet2ul>::alignment) uint64_t uvals[4];
@@ -1330,6 +1364,7 @@ EIGEN_STRONG_INLINE Packet2f pcast<Packet2ul, Packet2f>(const Packet2ul& a) {
   float fvals[2] = {static_cast<float>(uvals[0]), static_cast<float>(uvals[1])};
   return pload<Packet2f>(fvals);
 }
+#endif
 
 template <>
 struct type_casting_traits<numext::uint64_t, numext::uint32_t> {
