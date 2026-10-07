@@ -2345,8 +2345,9 @@ struct complex_exp2_impl {
       return a > RealScalar(0) ? Complex(a, b * RealScalar(0)) : Complex(RealScalar(0), RealScalar(0));
     }
     // ln2_lo = (double(ln(2)) - ln2_hi) + (ln(2) - double(ln(2))), the first difference exact in Wide.
-    using Wide =
-        std::conditional_t<(NumTraits<RealScalar>::digits() > NumTraits<double>::digits()), RealScalar, double>;
+    // nvcc 11.8 drops parentheses around a `>` in a template argument when it regenerates host code.
+    constexpr bool kWiderThanDouble = NumTraits<RealScalar>::digits() > NumTraits<double>::digits();
+    using Wide = std::conditional_t<kWiderThanDouble, RealScalar, double>;
     const RealScalar ln2_hi = RealScalar(EIGEN_LN2);
     const RealScalar ln2_lo = RealScalar((Wide(static_cast<double>(EIGEN_LN2)) - Wide(ln2_hi)) +
                                          Wide(2.3190468138462996154948554638754786504e-17L));
