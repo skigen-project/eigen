@@ -602,29 +602,36 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
     }
     m_isInitialized = true;
     if (m_info != Success) return *this;
-    if (m_path == Path::Diagonal) {
-      m_spectrum = RealVector::Zero(1);
-      SelfAdjointEigenSolver<DenseMatrix> es;
-      for (std::size_t k = 0; k < d; ++k) {
-        es.compute(leaves[k]);
-        if (es.info() != Success) m_info = NoConvergence;
-        m_basis.push_back(es.eigenvectors());
-        // Kronecker order: the new factor's index runs fastest.
-        const RealVector& lambda = es.eigenvalues();
-        const RealVector previous = m_spectrum;
-        m_spectrum = (lambda.replicate(fix<1>, previous.size()) + previous.transpose().replicate(lambda.size(), fix<1>))
-                         .reshaped();
+    switch (m_path) {
+      case Path::Diagonal: {
+        m_spectrum = RealVector::Zero(1);
+        SelfAdjointEigenSolver<DenseMatrix> es;
+        for (std::size_t k = 0; k < d; ++k) {
+          es.compute(leaves[k]);
+          if (es.info() != Success) m_info = NoConvergence;
+          m_basis.push_back(es.eigenvectors());
+          // Kronecker order: the new factor's index runs fastest.
+          const RealVector& lambda = es.eigenvalues();
+          const RealVector previous = m_spectrum;
+          m_spectrum =
+              (lambda.replicate(fix<1>, previous.size()) + previous.transpose().replicate(lambda.size(), fix<1>))
+                  .reshaped();
+        }
+        break;
       }
-    } else if (m_path == Path::RealSchur) {
-      computeRealSchur(leaves, internal::bool_constant<!NumTraits<Scalar>::IsComplex>());
-    } else {
-      ComplexSchur<ComplexMatrix> schur;
-      for (std::size_t k = 0; k < d; ++k) {
-        schur.compute(leaves[k].template cast<ComplexScalar>());
-        if (schur.info() != Success) m_info = NoConvergence;
-        m_unitary.push_back(schur.matrixU());
-        m_triangular.push_back(schur.matrixT());
-        m_triangularAdjoint.emplace_back(m_triangular.back().adjoint());
+      case Path::RealSchur:
+        computeRealSchur(leaves, internal::bool_constant<!NumTraits<Scalar>::IsComplex>());
+        break;
+      case Path::ComplexSchur: {
+        ComplexSchur<ComplexMatrix> schur;
+        for (std::size_t k = 0; k < d; ++k) {
+          schur.compute(leaves[k].template cast<ComplexScalar>());
+          if (schur.info() != Success) m_info = NoConvergence;
+          m_unitary.push_back(schur.matrixU());
+          m_triangular.push_back(schur.matrixT());
+          m_triangularAdjoint.emplace_back(m_triangular.back().adjoint());
+        }
+        break;
       }
     }
     return *this;
@@ -680,27 +687,34 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
       dst.setConstant(Scalar(NumTraits<RealScalar>::quiet_NaN()));
       return;
     }
-    if (m_path == Path::Diagonal) {
-      DenseMatrix W = rhs;
-      applyBasis(W, m_basis, /*adjoint=*/true);
-      W.array().colwise() /= m_spectrum.array();
-      applyBasis(W, m_basis, /*adjoint=*/false);
-      dst = W;
-    } else if (m_path == Path::RealSchur) {
-      DenseMatrix W = rhs;
-      solveRealSchur(W, adjoint, internal::bool_constant<!NumTraits<Scalar>::IsComplex>());
-      dst = W;
-    } else {
-      ComplexMatrix W = rhs.template cast<ComplexScalar>();
-      applyBasis(W, m_unitary, /*adjoint=*/true);
-      for (Index j = 0; j < W.cols(); ++j) {
-        if (adjoint)
-          adjointTriangularSolve(0, ComplexScalar(0), W.col(j).data());
-        else
-          triangularSolve(0, ComplexScalar(0), W.col(j).data());
+    switch (m_path) {
+      case Path::Diagonal: {
+        DenseMatrix W = rhs;
+        applyBasis(W, m_basis, /*adjoint=*/true);
+        W.array().colwise() /= m_spectrum.array();
+        applyBasis(W, m_basis, /*adjoint=*/false);
+        dst = W;
+        break;
       }
-      applyBasis(W, m_unitary, /*adjoint=*/false);
-      dst = internal::structured_scalar_part_impl<Scalar>::run(W);
+      case Path::RealSchur: {
+        DenseMatrix W = rhs;
+        solveRealSchur(W, adjoint, internal::bool_constant<!NumTraits<Scalar>::IsComplex>());
+        dst = W;
+        break;
+      }
+      case Path::ComplexSchur: {
+        ComplexMatrix W = rhs.template cast<ComplexScalar>();
+        applyBasis(W, m_unitary, /*adjoint=*/true);
+        for (Index j = 0; j < W.cols(); ++j) {
+          if (adjoint)
+            adjointTriangularSolve(0, ComplexScalar(0), W.col(j).data());
+          else
+            triangularSolve(0, ComplexScalar(0), W.col(j).data());
+        }
+        applyBasis(W, m_unitary, /*adjoint=*/false);
+        dst = internal::structured_scalar_part_impl<Scalar>::run(W);
+        break;
+      }
     }
   }
 
@@ -843,24 +857,28 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
         i = end - p;
       }
       const Index tail = n - i - p;
-      const CouplingMatrix coupled =
-          adjoint ? kroneckerSum(Sigma, T.block(i, i, p, p).transpose()) : kroneckerSum(Sigma, T.block(i, i, p, p));
+      // T(I,I), T(J,I) for J < I, and T(I,J) for J > I.
+      const auto TII = T.block(i, i, p, p);
+      const auto colHead = T.block(0, i, i, p);
+      const auto rowTail = T.block(i, i + p, p, tail);
+      const CouplingMatrix coupled = adjoint ? kroneckerSum(Sigma, TII.transpose()) : kroneckerSum(Sigma, TII);
       if (last) {
         // s = 1: row i of X belongs to index i of the last factor.
         auto XI = X.middleRows(i, p);
         if (adjoint) {
-          if (i > 0) XI.noalias() -= T.block(0, i, i, p).transpose().lazyProduct(X.topRows(i));
+          if (i > 0) XI.noalias() -= colHead.transpose().lazyProduct(X.topRows(i));
         } else if (tail > 0) {
-          XI.noalias() -= T.block(i, i + p, p, tail).lazyProduct(X.bottomRows(tail));
+          XI.noalias() -= rowTail.lazyProduct(X.bottomRows(tail));
         }
         solveCoupled(coupled, XI);
       } else {
         for (Index t = 0; t < m; ++t) {
           auto Xt = X.col(t).reshaped(s, n);
+          auto XtI = Xt.middleCols(i, p);
           if (adjoint) {
-            if (i > 0) Xt.middleCols(i, p).noalias() -= Xt.leftCols(i) * T.block(0, i, i, p);
+            if (i > 0) XtI.noalias() -= Xt.leftCols(i) * colHead;
           } else if (tail > 0) {
-            Xt.middleCols(i, p).noalias() -= Xt.rightCols(tail) * T.block(i, i + p, p, tail).transpose();
+            XtI.noalias() -= Xt.rightCols(tail) * rowTail.transpose();
           }
         }
         if (m == 1) {
@@ -869,11 +887,9 @@ class BartelsStewart : public SolverBase<BartelsStewart<KroneckerSumType>> {
           // Columns (t, a) of Z, a fastest: column a of block I for coupling index t.
           RealMatrix& Z = work[k];
           Z.resize(s, m * p);
-          for (Index t = 0; t < m; ++t)
-            for (Index a = 0; a < p; ++a) Z.col(t * p + a) = X.col(t).segment((i + a) * s, s);
+          Z.reshaped(p * s, m) = X.middleRows(i * s, p * s);
           quasiTriangularSolve(k + 1, coupled, Map<RealMatrix>(Z.data(), s, m * p), work, adjoint);
-          for (Index t = 0; t < m; ++t)
-            for (Index a = 0; a < p; ++a) X.col(t).segment((i + a) * s, s) = Z.col(t * p + a);
+          X.middleRows(i * s, p * s) = Z.reshaped(p * s, m);
         }
       }
       done += p;
