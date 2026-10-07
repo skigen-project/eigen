@@ -137,10 +137,28 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_complex(const Pa
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const Packet& a) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const Packet& z) {
   using Scalar = typename unpacket_traits<Packet>::type;
   using RealScalar = typename Scalar::value_type;
   using RealPacket = typename unpacket_traits<Packet>::as_real;
+
+  // Let z = x + i*y, l = |z| and M = max(|x|, |y|). Steps 1 and 2 work on a = s * z, where s = 1/4 for
+  // M > highest / 4, s = 4^m with m = ceil(digits / 2) for M < 2 * min, and s = 1 otherwise, so that |x| + l cannot
+  // overflow and 0.5 * l is normal; then rho(z) = rho(a) / sqrt(s) exactly. Step 3 divides the unscaled y, so that a
+  // subnormal eta is rounded once.
+  const RealPacket z_abs = pabs(z.v);
+  const RealPacket z_max = pmax(z_abs, pcplxflip(Packet(z_abs)).v);
+  const RealPacket is_large = pcmp_lt(pset1<RealPacket>(NumTraits<RealScalar>::highest() / RealScalar(4)), z_max);
+  const RealPacket is_small =
+      pcmp_lt(z_max, pset1<RealPacket>(RealScalar(2) * (numext::numeric_limits<RealScalar>::min)()));
+  const int m = (NumTraits<RealScalar>::digits() + 1) / 2;
+  const RealScalar two_m = RealScalar(numext::uint64_t(1) << m);
+  const RealPacket cst_one_rp = pset1<RealPacket>(RealScalar(1));
+  const RealPacket scale = pselect(is_large, pset1<RealPacket>(RealScalar(0.25)),
+                                   pselect(is_small, pset1<RealPacket>(two_m * two_m), cst_one_rp));
+  const RealPacket unscale = pselect(is_large, pset1<RealPacket>(RealScalar(2)),
+                                     pselect(is_small, pset1<RealPacket>(RealScalar(1) / two_m), cst_one_rp));
+  const Packet a(pmul(z.v, scale));
 
   // Computes the principal sqrt of the complex numbers in the input.
   //
@@ -195,12 +213,13 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   // We don't care about the imaginary parts computed here. They will be overwritten later.
   const RealPacket cst_half = pset1<RealPacket>(RealScalar(0.5));
   Packet rho;
-  rho.v = psqrt(pmul(cst_half, padd(a_abs, l)));
+  rho.v = pmul(psqrt(pmul(cst_half, padd(a_abs, l))), unscale);
 
   // Step 3. Compute [rho0, eta0, rho1, eta1], where
-  // eta0 = (y0 / rho0) / 2, and eta1 = (y1 / rho1) / 2.
+  // eta0 = y0 / (2 * rho0), and eta1 = y1 / (2 * rho1).
   // set eta = 0 if input is 0 + i0.
-  RealPacket eta = pandnot(pmul(cst_half, pdiv(a.v, pcplxflip(rho).v)), a_max_zero_mask);
+  const RealPacket rho_flip = pcplxflip(rho).v;
+  RealPacket eta = pandnot(pdiv(z.v, padd(rho_flip, rho_flip)), a_max_zero_mask);
   RealPacket real_mask = peven_mask(a.v);
   Packet positive_real_result;
   // Compute result for inputs with positive real part.
