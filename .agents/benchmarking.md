@@ -48,7 +48,8 @@ benchmark locally. Report the measurement conditions this guide requires.
 
 `benchmarks/GPU/` times the kernels Eigen generates for `GpuDevice` (elementwise expressions, launch overhead,
 reductions, contractions and allocation) against hand-written kernels and vendor baselines. It is part of the supported
-benchmark project, but only builds when the `EIGEN_BENCH_CUDA` option is on, so the CPU benchmarks build as before:
+benchmark project but builds only when the `EIGEN_BENCH_CUDA` option is on, so a default configuration builds only the
+CPU benchmarks:
 
 ```bash
 cmake -G Ninja -S benchmarks -B build-bench-gpu -DCMAKE_BUILD_TYPE=Release -DEIGEN_BENCH_CUDA=ON \
@@ -126,11 +127,11 @@ sources must not reference. A grid that seems to need `Apply()` can be written b
 5. Re-run suspicious or noisy cases. Treat changes smaller than the observed run-to-run variation as inconclusive,
    not as wins or regressions.
 
-When you cannot make the machine quiet enough to resolve the effect, use deterministic counters, which are then the
-honest measurement: Callgrind instruction counts, allocation counts (e.g. `-Wl,--wrap=malloc`), with identical result
-checksums for both variants. Report them as counter measurements that name the tool, not as timings. Such a counter
-measurement, plus a statement that wall-clock timing was inconclusive, makes a complete performance claim. An
-unqualified ratio from a loaded host does not.
+When you cannot make the machine quiet enough to resolve the effect, use deterministic counters, which stay honest on a
+noisy machine: Callgrind instruction counts or allocation counts (e.g. `-Wl,--wrap=malloc`). Confirm that both
+variants produce identical result checksums. Report the counts as counter measurements that name the tool, not as
+timings. A counter measurement together with a statement that wall-clock timing was inconclusive is a complete
+performance claim; an unqualified ratio from a loaded host is not.
 
 Never infer a general speedup from one convenient size or one warm run. State the tested domain. Include regressions
 as well as improvements. Keep numerical accuracy results separate from performance measurements.
@@ -146,7 +147,7 @@ assembly analysis is mandatory for every contribution.
 - **Callgrind:** Compare before/after instruction counts (`Ir`) for the affected operation using identical inputs,
   compiler flags, ISA, and a fixed number of iterations. Isolate the operation from startup, unrelated allocation, input
   generation, and benchmark calibration. Pausing the benchmark timer does not pause Callgrind collection. Report
-  counts per operation and the measured region, instead of comparing whole-process totals from runs that did
+  counts per operation, and name the region you measured. Do not compare whole-process totals from runs that did
   different amounts of work. Use optimized builds with debug information, so counts can be attributed to source.
   Retain the commands, tool version, and relevant `callgrind_annotate` output. See the
   [Callgrind manual](https://valgrind.org/docs/manual/cl-manual.html) for collection controls. Label optional cache

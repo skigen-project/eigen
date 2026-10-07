@@ -29,6 +29,10 @@ misreads guidance when a sentence buries an instruction or a condition, not when
 
 ## Words And Length
 
+- Write each sentence so that a reader takes it in on one pass: a subject, a concrete verb, and at most one clause hung
+  on either. "Hashing the YAML as well only meant that every merge request that touched the CI YAML discarded every
+  job's recorded passes" needs a second reading. "If the key included the YAML files, any edit to them would discard
+  all recorded passes" does not.
 - Use one term for one concept across all the guides. A second term reads as a second concept.
 - Reserve *may* for permission. Write *can* or *might* for possibility.
 - Use the active voice when the actor matters: "CI runs the job" names the actor, and "the job is run" does not.

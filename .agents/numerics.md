@@ -88,22 +88,24 @@ Computations* are standard references for choosing error measures and adversaria
   MPFR rather than assuming the scalar standard-library result is accurate enough.
 - Cover every lane, mixed regular/special lanes, alignment and tail cases where applicable, and values around
   approximation-region boundaries. A packet implementation must not let one lane's special value affect another.
-- Treat giving up a few ULPs for performance as a decision about finite inputs, and measure and document it. It does
-  not waive NaN, infinity, signed-zero, or domain semantics unless the API and build mode explicitly document
-  different behavior.
+- A trade of a few ULPs for performance applies to finite inputs only. Measure it and document it. It does not waive
+  NaN, infinity, signed-zero, or domain semantics unless the API and build mode explicitly document different
+  behavior.
 
 ## Documented Bounds And Shortcut Paths
 
 A scaling threshold or overflow budget stated in a comment is part of the code. When the operation it bounds widens,
-for example when a multiply path gains a divide or a growth factor becomes a parameter, re-derive the bound rather
-than carrying the old expression forward. Early exits and length-one shortcuts must satisfy the same invariant as the
-general path. Give them regression tests at the boundary they handle, because a guard added later often misses them.
+re-derive the bound rather than carrying the old expression forward. A multiply path that gains a divide widens the
+operation, and so does a growth factor that becomes a parameter. Early exits and length-one shortcuts must satisfy the
+same invariant as the general path. Give them regression tests at the boundary they handle, because a guard added
+later often misses them.
 
 ## Subnormals and Flush-to-Zero
 
 Require gradual-underflow behavior when the target and active floating-point mode support it. Some targets or build
-modes flush subnormals to zero (FTZ), either unconditionally or because FTZ is enabled. A test must detect when an
-expectation involving subnormals is therefore impossible and make it conditional, rather than leave the test flaky. Use
+modes flush subnormals to zero (FTZ), either unconditionally or because FTZ is enabled. In those modes some
+expectations about subnormals cannot hold. A test must detect that case and make the expectation conditional rather
+than leave the test flaky. Use
 the facilities and platform notes in [`test/fp_control.h`](../test/fp_control.h) and nearby packet tests.
 
 Keep an FTZ exception narrow: document the affected target and operation, preserve and restore controllable FP
@@ -113,7 +115,7 @@ use FTZ as a blanket reason to skip underflow tests or to hide accidental compil
 ## Provenance
 
 Learn algorithms from published papers, standards, and textbooks, then write an original Eigen implementation. Cite
-the specific reference inline: author and year, plus the algorithm, routine, paper, or working-note identifier. If
-adapting source code rather than an idea, first confirm that its license and provenance are compatible with Eigen. A
-citation does not make copied expression from an incompatible or unknown source permissible. Never invent an
-attribution. Include the numerical rationale for non-obvious scaling, pivoting, stopping, and tolerance choices.
+the specific reference inline: author and year, plus the algorithm, routine, paper, or working-note identifier.
+Before adapting source code rather than an idea, confirm that its license and provenance are compatible with Eigen. A
+citation does not make copying from an incompatible or unknown source permissible. Never invent an attribution.
+Include the numerical rationale for non-obvious scaling, pivoting, stopping, and tolerance choices.

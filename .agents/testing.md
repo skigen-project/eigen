@@ -73,9 +73,9 @@ Put reusable utilities in a narrowly named helper header. Include it from `main.
 
 For compile-failure coverage, use the established `failtest/` pattern. Its `_ok` target must compile and its `_ko`
 target must fail with `EIGEN_SHOULD_FAIL_TO_BUILD` defined. Register it with `ei_add_failtest` above the closing
-`ei_add_failtest_fixture()` call. The `buildfailtests` fixture builds the whole suite at once, and `_ko` passes when its
-target did not build while `_ok` did. Keep the failing construct narrow: the pair rules out a broken toolchain, but not
-a different compile error than the one intended.
+`ei_add_failtest_fixture()` call. The `buildfailtests` fixture builds the whole suite at once. `_ko` passes when its own
+target failed to build and `_ok` built. Because `_ok` built, the toolchain works, but the `_ko` failure can still be a
+different compile error from the intended one. Keep the failing construct narrow.
 
 ## Split Tests
 
@@ -90,12 +90,14 @@ a different compile error than the one intended.
 - An explicit `EIGEN_TEST_PART_N` marker forces splitting even when the option is off. If any such marker is present,
   all suffixes discovered in that source are emitted.
 - [`cmake/EigenTestPartGroups.cmake`](../cmake/EigenTestPartGroups.cmake) lists ranges of parts that compile together as
-  one executable, named after the range's first part, e.g. `array_cwise_1` for `1-4`; `ctest -R '<name>'` still selects
-  them. A range must hold only parts that differ in nothing but their `CALL_SUBTEST_N` calls and that are not listed
-  individually in the smoke list. Its compile must stay under the 4 GiB peak RSS recorded in the file header. After
-  adding or renumbering subtests inside a listed range, re-measure that compile, because the change makes it bigger.
+  one executable. The executable takes the name of the range's first part, e.g. `array_cwise_1` for `1-4`, and
+  `ctest -R '<name>'` still selects it. Every part in a range must differ from the others only in its `CALL_SUBTEST_N`
+  calls, and the smoke list must not name it individually. The range's compile must stay under the 4 GiB peak RSS
+  recorded in the file header. After adding or renumbering subtests inside a listed range, re-measure that compile,
+  because the change makes it bigger.
 
-`ctest -R '^<name>$'` does not match split parts. Use `ctest -R '<name>'` for every part or anchor one generated name.
+`ctest -R '^<name>$'` does not match split parts. Use `ctest -R '<name>'` to run every part, or anchor a single
+generated name such as `'^<name>_3$'`.
 
 After changing subtest registration, reconfigure and read back the generated target list. Two failure modes are silent.
 A subtest function whose `CALL_SUBTEST` call was dropped still compiles and looks like coverage. And under
@@ -104,8 +106,8 @@ marker lists it.
 
 ## Coverage That Can Fail
 
-A test that passes when the change is reverted is not coverage. Establish that it fails at the parent commit, or, when
-that is impractical, that by construction it runs the new code.
+A test that passes when the change is reverted is not coverage. Establish that the test fails at the parent commit.
+When that is impractical, show that the test runs the new code by construction.
 
 - Test a new fast path through the public entry point that selects it, with inputs that actually take it, not only
   through a direct call to the new method. Where a flag or trait selects the fast path, pin the selection with a
@@ -115,23 +117,22 @@ that is impractical, that by construction it runs the new code.
   - complex scalars where conjugation is otherwise a no-op;
   - both storage orders;
   - the uncompressed or strided variants of an input type.
-- Verify the complete result against an independent reference; skipping coefficients the test setup did not write
-  hides corruption in exactly those places.
-- Exercise the customization points users are documented to have (custom scalars, functors without declared traits),
-  not only the built-in specializations that happen to satisfy a new precondition.
+- Verify the complete result against an independent reference, including coefficients the test setup did not write.
+  Corruption in those coefficients goes unnoticed when the check skips them.
+- Exercise the documented customization points, such as custom scalars and functors without declared traits, not only
+  the built-in specializations that happen to satisfy a new precondition.
 
 ## Build-System Tests
 
 [`test/buildsystem`](../test/buildsystem) holds the coverage for Eigen's own CMake surface: what an install tree
 contains, what `find_package(Eigen3)` and the version ranges in
 [`cmake/Eigen3ConfigVersion.cmake.in`](../cmake/Eigen3ConfigVersion.cmake.in) accept, and how an embedding project
-opts out of Eigen's install rules. They exist because those are claims
-[`doc/TopicCMakeGuide.dox`](../doc/TopicCMakeGuide.dox) makes to users and nothing else checks; the blocking
-documentation job only builds the docs, it does not run what they describe.
+opts out of Eigen's install rules. [`doc/TopicCMakeGuide.dox`](../doc/TopicCMakeGuide.dox) makes these claims to
+users, and nothing else checks them: the blocking documentation job builds the docs but does not run what they describe.
 
-Not every scenario checks a documented claim. Some cover CMake behavior that nothing else exercises either: a find
-module that has to survive a second configure of the same build tree, or the wiring that routes a compiler launcher into
-a test's compile command.
+Not every scenario checks a documented claim. Others cover CMake behavior that no other test exercises: a find module
+that has to survive a second configure of the same build tree, or the wiring that routes a compiler launcher into a
+test's compile command.
 
 ```bash
 cmake -G Ninja -S . -B build -DEIGEN_BUILD_TESTING=ON
@@ -139,9 +140,9 @@ cmake -E chdir build ctest -L buildsystem --output-on-failure --no-tests=error
 ```
 
 Pass `--no-tests=error` to every `ctest` invocation, as this guide does, because CTest otherwise exits 0 when nothing
-matched. Nothing matches with an anchored `-R '^name$'` against a split test, with a mistyped name, or with `--test-dir`
-under CMake 3.17 to 3.19: those versions predate `--test-dir`, ignore it, and inspect the source directory instead.
-`cmake -E chdir` is the spelling that also works there.
+matched. Nothing matches in three common cases: an anchored `-R '^name$'` against a split test, a mistyped name, and
+`--test-dir` under CMake 3.17 to 3.19. Those versions predate `--test-dir`; they ignore it and inspect the source
+directory instead. The `cmake -E chdir` form above works on them too.
 
 No target needs building first: each scenario runs its own nested configure, build, and install into the CTest
 binary directory. To add a claim, drop a scenario in `scenarios/` and name it in the list in
@@ -150,25 +151,25 @@ binary directory. To add a claim, drop a scenario in `scenarios/` and name it in
 Two hazards are specific to these tests. First, Eigen calls `export(PACKAGE Eigen3)`, so CMake's user package registry
 names every Eigen build tree on the machine. A `find_package` scenario must therefore disable both the user and the
 system package registries and assert that the package came from the prefix it installed; otherwise it passes without
-reading that prefix at all. Second, CMake code registers these tests, so if a guard stops matching, CTest finds no tests
-rather than reporting a failure. That is why the CI job runs `ctest` with `--no-tests=error`.
+reading that prefix at all. Second, CMake code registers these tests. If a guard around that code stops matching, CTest
+finds no tests instead of reporting a failure, so the CI job runs `ctest` with `--no-tests=error`.
 
 ## Configurations The Test Suite Cannot See
 
 - In the default host-test configuration, no test compiles an `EIGEN_NO_DEBUG` code path: `test/main.h` undefines
   `NDEBUG`, and `Macros.h` derives `EIGEN_NO_DEBUG` from it. (HIP/SYCL device compilation and an explicit
   `-DEIGEN_NO_DEBUG` define it independently.) For behavior that depends on the macro, add a dedicated
-  `-DEIGEN_NO_DEBUG` test target or a standalone `-DNDEBUG` check. Conversely, an `eigen_assert` body is only
-  type-checked where assertions are enabled, so it can call members its argument type does not have and still compile
-  in every release build.
+  `-DEIGEN_NO_DEBUG` test target or a standalone `-DNDEBUG` check. Conversely, the compiler type-checks the condition
+  inside an `eigen_assert` only where assertions are enabled. A condition that calls a member its argument type lacks
+  still compiles in every release build.
 - When layout is in play, run an `EIGEN_DEFAULT_TO_ROW_MAJOR` build. Where a test aliases one object's storage through
   a view whose default layout is fixed, pin the layout explicitly.
 - When the change reasons about packets, alignment, or index width, cover `EIGEN_TEST_NO_EXPLICIT_VECTORIZATION`,
   `EIGEN_UNALIGNED_VECTORIZE=0`, or a narrower `EIGEN_DEFAULT_DENSE_INDEX_TYPE`.
-- Tests build optimized (`CMAKE_BUILD_TYPE` defaults to Release) and no CI job builds Debug, so a `static constexpr`
-  class-template member that is odr-used without its C++14 namespace-scope definition links in every CI build and fails
-  only at -O0; see [`conventions.md`](conventions.md). When adding such constants, build one Debug tree.
-- Compiler fast-math coverage is limited to targets registered with those flags in `test/CMakeLists.txt`.
+- Tests build optimized (`CMAKE_BUILD_TYPE` defaults to Release), and no CI job builds Debug. In C++14 an odr-used
+  `static constexpr` member of a class template needs a namespace-scope definition. Without one, every CI build links
+  and only an -O0 build fails; see [`conventions.md`](conventions.md). When adding such constants, build one Debug tree.
+- Compiler fast-math coverage comes only from the targets that `test/CMakeLists.txt` registers with fast-math flags.
   The smoke list includes `packetmath_fastmath`, `packetmath_fastmath_generic_16` where vector extensions are
   available, `bfloat16_classification_fastmath`, and parts of `fastmath`, `bdcsvd_fastmath`, and
   `stable_norm_fastmath`; these compile with `-ffast-math` where supported. Ordinary `packetmath` uses Eigen's
@@ -202,15 +203,15 @@ error, and the forward error relative to the first-order condition bound, across
 
 - A result worse than its conditioning allows is an accuracy defect. Fix the algorithm; a wider tolerance would hide
   it.
-- A result within that accuracy that still fails means the check asks for more than the working precision can
-  deliver. Derive the tolerance from the conditioning rather than a flat factor.
+- If a result is within that accuracy and the check still fails, the check asks for more than the working precision
+  can deliver. Derive the tolerance from the conditioning rather than a flat factor.
 - Solving the same inputs in the next wider type proves neither. The wider type resolves what the working precision
   cannot, such as a tight cluster of roots that the narrower type can only locate to within a wider set.
 
 An accuracy defect and an over-strict check can both be present. In the `polynomialsolver` flake, the companion
-eigenvalues had backward errors of 1.8e4 eps, yet once every root was below one eps, the flat 3.16% check kept failing
-at the same rate. Land such a computation fix and test fix as independent merge requests. In the first, state whether it
-removes the failure, backed by seed sweeps against the parent commit.
+eigenvalues had backward errors of 1.8e4 eps. Once every root's backward error was below one eps, the flat 3.16% check
+still failed at the same rate. Land such a computation fix and test fix as independent merge requests. In the
+computation fix, state whether it removes the failure, with seed sweeps against the parent commit as evidence.
 
 Run reproducible failures directly with a fixed seed and repeat count:
 
@@ -224,7 +225,7 @@ build/test/foo_3 r10 s1
 `EIGEN_TEST_EXTERNAL_BLAS=ON` finds a system BLAS, defines `EIGEN_USE_BLAS`, and links that BLAS into applicable
 official tests. With it off, ordinary tests exercise Eigen's normal implementation; they do not transparently use
 the in-tree `eigen_blas` library. `EIGEN_BUILD_BLAS` and `EIGEN_BUILD_LAPACK` separately build Eigen's ABI shim
-libraries, which are also used to satisfy some optional sparse-backend links. There is currently no
+libraries. Some optional sparse backends also link against those shims. There is currently no
 `EIGEN_TEST_EXTERNAL_LAPACK` option.
 
 Report the exact targets, CTest regexes, configurations, compiler, and seeds run. Also report relevant hardware or

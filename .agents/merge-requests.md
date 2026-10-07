@@ -7,18 +7,18 @@ change, not relive it.
 Lead with two to four plain sentences before any heading: what the change does and the headline outcome or number.
 The first sentence continues the title rather than restarting it. Opening with a heading is the most common defect.
 
-Structure divides; it does not decorate. `###` headings, numbered lists with one clause per distinct change, tables, and
-code blocks belong where they mark a real division. The template headings (`### Reference issue`, `### What does this
+Use `###` headings, numbered lists with one clause per distinct change, tables, and code blocks where they mark a real
+division, not as decoration. The template headings (`### Reference issue`, `### What does this
 implement/fix?`, `### Additional information`) fit when there is an issue to reference. Avoid a heading per paragraph
 and sections that re-explain the diff line by line.
 
 State costs as flatly as wins. Say without hedging what is left undone. When validation is incomplete, open the request
 as a Draft and name what was not run and why.
 
-Long accounts of approaches tried and dropped are discouraged but not banned. Reporting a rejected alternative that a
-reviewer would otherwise propose, or a measurement that rules out an obvious design, saves a review round. State the
-conclusion and the evidence for it, not the chronology. Make headline comparisons against the target branch. Give
-numbers for a superseded variant only where they support such a conclusion.
+Long accounts of approaches tried and dropped are discouraged but not banned. Two kinds are worth reporting, because
+each saves a review round: a rejected alternative that a reviewer would otherwise propose, and a measurement that rules
+out an obvious design. State the conclusion and the evidence for it, not the chronology. Make headline comparisons
+against the target branch. Give numbers for a superseded variant only where they support such a conclusion.
 
 Prefer notation to prose: a bound, a recurrence, an identity, or two lines of pseudo-code stated exactly beats the
 paragraph that spells it out. When you name a theorem, give its statement. Do not invent a symbol for a single sentence.
@@ -34,8 +34,8 @@ measured cases, units, and speedup or change; report regressions as clearly as i
 Put bulk evidence, and only bulk evidence, in a collapsible appendix: benchmark tables, validation matrices, ULP
 sweeps, exhaustive case enumerations. Keep the reasoning the reviewer needs in order to judge the change on the page.
 Use tables for benchmark measurements in appendices too, never raw benchmark dumps. Generate tables from the recorded
-data and retain available variability and statistical information. Raw artifacts may supplement, but do not replace,
-the tables.
+data and retain available variability and statistical information. Raw artifacts may accompany the tables but not
+replace them.
 
 ```markdown
 <details>
@@ -52,8 +52,8 @@ The blank line after `</summary>` is required for GitLab to render the inner mar
 the change is too large to review, split the change rather than collapsing text into an appendix.
 
 Give each number its provenance: the exact expression, operand types and sizes, compiler and flags, and the CPU as the
-OS reports it. On Linux, use `lscpu`'s `Model name:`, which decodes the Arm implementer/part codes that `/proc/cpuinfo`
-leaves raw; fall back to those codes when an old util-linux prints none. On macOS, use
+OS reports it. On Linux, use the `Model name:` line of `lscpu`, which decodes the Arm implementer and part codes that
+`/proc/cpuinfo` shows raw. If an old util-linux prints no model name, give those codes instead. On macOS, use
 `sysctl -n machdep.cpu.brand_string`. Disclose a virtualized host such as WSL2, where those commands report whatever the
 hypervisor exposes.
 

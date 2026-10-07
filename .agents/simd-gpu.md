@@ -29,8 +29,9 @@ interface used by evaluators.
 A missing specialization is not always a compile error. Some generic fallbacks in `Eigen/src/Core/GenericPacketMath.h`
 are the identity or a single-lane version of the real operation; the generic `preverse`, for example, returns its
 argument unchanged. A backend without the specialization then silently computes wrong results instead of failing to
-build. Before calling a `p*` operation from code that every backend instantiates, confirm that the backends reaching it
-implement it (SYCL's packet operations are the usual gap), and keep a scalar fallback for those that do not.
+build. Before calling a `p*` operation from code that every backend instantiates, confirm that each backend reaching
+the call implements the operation. SYCL's packet operations are the usual gap. Keep a scalar fallback for backends that
+lack it.
 
 The current source tree and `test/CMakeLists.txt` are authoritative for supported backends and configuration options;
 do not copy an architecture inventory into documentation.
@@ -56,8 +57,8 @@ functors, small helpers, constructors, and operators reached from device code.
 
 CUDA and HIP kernels can use fixed-size owning matrices, vectors, and arrays through public Eigen headers; see
 `doc/UsingNVCC.dox`. Dynamic owning `Matrix` and `Array` objects require allocation and are generally unsuitable
-inside kernels. Runtime dimensions are not inherently unsupported: `Map` over caller-managed device memory can use
-dynamic dimensions when every operation reached by the expression is device-callable.
+inside kernels. Runtime dimensions still work: a `Map` over caller-managed device memory can use dynamic dimensions
+when every operation the expression reaches is device-callable.
 
 CUDA/HIP compilation disables host SIMD. Move substantial host-side Eigen work to a normal `.cpp` translation unit.
 Use `EIGEN_NO_CUDA` or `EIGEN_NO_HIP` only when the corresponding compiler processes Eigen exclusively for host use.
@@ -72,8 +73,8 @@ normally supplied through `TensorMap`, and the destination selects execution wit
 
 Host-side runtime calls in the device go through `EIGEN_GPU_RUNTIME_CHECK` in `Eigen/src/Core/util/GpuRuntime.h`.
 Kernel launches use `LAUNCH_GPU_KERNEL` in `contrib/Eigen/src/Tensor/TensorDeviceGpu.h`, which forwards to
-`internal::gpu_launch` in `GpuRuntime.h`. A result stored into a variable that only a `gpu_assert` inspects is
-unchecked in every release build. Before changing memory, synchronization, or callback semantics, consult
+`internal::gpu_launch` in `GpuRuntime.h`. If only a `gpu_assert` inspects a stored result, release builds never check
+it. Before changing memory, synchronization, or callback semantics, consult
 `contrib/Eigen/src/Tensor/README.md` and the nearby device implementation.
 
 ### `contrib/Eigen/GPU`

@@ -22,19 +22,19 @@ that silently assumes one of the two. The matrix is compressed when `m_innerNonZ
 inner vector `j` occupies `[outerIndexPtr()[j], outerIndexPtr()[j] + innerNonZeroPtr()[j])` rather than running to
 `outerIndexPtr()[j + 1]`.
 
-- `insert()` and `coeffRef()` turn a compressed matrix into uncompressed mode when they add an entry. A function that
-  takes a `SparseMatrix&` and inserts is therefore free to change the caller's storage mode; `makeCompressed()`
-  restores it.
+- `insert()` and `coeffRef()` turn a compressed matrix into uncompressed mode when they add an entry. So a function
+  that takes a `SparseMatrix&` and inserts can leave the caller's matrix uncompressed; `makeCompressed()` restores
+  compressed mode.
 - Do not derive an entry count or an iteration bound from consecutive `outerIndexPtr()` differences. Use `nonZeros()`,
-  `innerNonZeroPtr()`, or the uniform loop that `SparsityPatternRef.h` documents, which is correct in both modes.
+  `innerNonZeroPtr()`, or the uniform loop that `SparsityPatternRef.h` documents. That loop is correct in both modes.
 - `resize()` zeroes the matrix, drops to compressed mode, and keeps the allocation; `conservativeResize()` preserves
   contents. Neither is a way to change storage mode deliberately.
 - `Ref<SparseMatrix>` accepts an uncompressed argument unless it is declared with `StandardCompressedFormat`. With that
   option a writable `Ref` asserts `isCompressed()`, while a `Ref<const SparseMatrix, StandardCompressedFormat>`
   silently makes a compressed copy instead of failing. So a `Ref` parameter does not prove that no copy was made. For a
   new API, state which form it takes and why.
-- `InnerIterator` and every raw pointer obtained from the matrix are invalidated by an insertion. Finish iterating, or
-  collect the coordinates first and mutate afterwards.
+- An insertion invalidates `InnerIterator` and every raw pointer obtained from the matrix. Finish iterating, or collect
+  the coordinates first and mutate afterwards.
 - Before passing an assembled matrix to a direct solver, call `makeCompressed()` rather than relying on an assertion.
   Some consumers require compressed input instead of handling both modes. `SparseQR::analyzePattern` starts with
   `eigen_assert(mat.isCompressed())`, while `SparseLU` branches on `isCompressed()` and falls back to copying the outer
@@ -59,7 +59,7 @@ To sort such a matrix, assign it to a matrix of the other storage order and back
 works because an assignment between storage orders is a counting transpose: it walks the source in outer order, so
 each destination inner vector receives its entries in ascending order however the source was ordered. Eigen relies on
 this internally. `SparseQR::_sort_matrix_Q()` sorts the stored reflectors this way before `matrixQ()` is materialized
-into a sparse destination, which is why `Q` is not a hazard in the way `R` is.
+into a sparse destination. So `Q`, unlike `R`, comes out sorted.
 
 - `setFromTriplets()` accepts unsorted input with duplicates and produces a sorted, compressed matrix with duplicates
   summed. It destroys the previous contents and does not resize. Construct or `resize()` the matrix first, since

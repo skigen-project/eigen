@@ -36,8 +36,8 @@ exclusive with OpenMP. Define it before including Eigen, create an `Eigen::Threa
 
 Eigen stores the registered pointer in a process-wide global, and the caller still owns the pool. The pool must outlive
 every GEMM that uses it. Do not replace it while a product is running. `Eigen::setNbThreads` controls the active thread
-limit, but registering a pool resets that limit to the pool's thread count. Passing `nullptr` currently returns the
-registered pool; it does not clear the registration. Treat `doc/TopicMultithreading.dox` and
+limit, but registering a pool resets that limit to the pool's thread count. `Eigen::setGemmThreadPool(nullptr)`
+currently returns the registered pool; it does not clear the registration. Treat `doc/TopicMultithreading.dox` and
 `Eigen/src/Core/products/Parallelizer.h` as the current API and implementation references.
 
 ### `CoreThreadPoolDevice`
