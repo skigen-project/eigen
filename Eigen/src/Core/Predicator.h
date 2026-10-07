@@ -216,6 +216,17 @@ template <typename Predicate>
 struct predicate_groups_scalars<Predicate, void_t<decltype(functor_traits<Predicate>::GroupScalars)>>
     : bool_constant<static_cast<bool>(functor_traits<Predicate>::GroupScalars)> {};
 
+// At most three coefficients from i on, as straight-line tests.
+template <typename Search, typename Segment, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_upto3(const Segment& seg, Index i, Predicate pred) {
+  const Index size = seg.size();
+  if (i == size) return false;
+  bool b = Search::test_scalar(pred, seg.coeff(i));
+  if (i + 1 < size) b = Search::combine(b, Search::test_scalar(pred, seg.coeff(i + 1)));
+  if (i + 2 < size) b = Search::combine(b, Search::test_scalar(pred, seg.coeff(i + 2)));
+  return Search::found(b);
+}
+
 template <typename Search, typename Segment, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_scalar(const Segment& seg, Index i, Predicate pred) {
   const Index size = seg.size();
@@ -225,12 +236,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_scalar(const Segment
         Search::combine(Search::test_scalar(pred, seg.coeff(i + 2)), Search::test_scalar(pred, seg.coeff(i + 3))));
     if EIGEN_PREDICT_FALSE (Search::found(b)) return true;
   }
-  // At most three coefficients remain.
-  if (i == size) return false;
-  bool b = Search::test_scalar(pred, seg.coeff(i));
-  if (i + 1 < size) b = Search::combine(b, Search::test_scalar(pred, seg.coeff(i + 1)));
-  if (i + 2 < size) b = Search::combine(b, Search::test_scalar(pred, seg.coeff(i + 2)));
-  return Search::found(b);
+  return predicate_search_upto3<Search>(seg, i, pred);
 }
 
 // One coefficient at a time with an exit after each, a shape compilers do not vectorize.
@@ -259,6 +265,8 @@ struct predicate_search_segment {
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run(const Segment& seg, Predicate pred) {
     if (!predicate_groups_scalars<Predicate>::value) return predicate_search_sequential<Search>(seg, 0, pred);
     const Index size = seg.size();
+    // The shortest segments first, so they skip the block and group guards.
+    if (EIGEN_PREDICT_FALSE(size < 4)) return predicate_search_upto3<Search>(seg, 0, pred);
     Index i = 0;
     for (; i + 64 <= size; i += 64) {
       bool b = Search::Identity;
@@ -307,6 +315,9 @@ struct predicate_search_segment<Search, Packet, true> {
         i = 3 * PacketSize;
       }
       if (EIGEN_PREDICT_TRUE(i == size)) return false;
+    } else if (size < 4 && predicate_groups_scalars<Predicate>::value) {
+      // Shorter than one packet and than a group of four: only these sizes reach this check.
+      return predicate_search_upto3<Search>(seg, 0, pred);
     }
     return predicate_search_tail<Search>(seg, i, pred);
   }
