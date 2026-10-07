@@ -92,6 +92,7 @@ template <bool Target>
 struct predicate_search;
 template <>
 struct predicate_search<true> {
+  static constexpr bool Identity = false;
   template <typename Predicate, typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate& pred, const Packet& x) {
     return pred.packetOp(x);
@@ -109,6 +110,7 @@ struct predicate_search<true> {
 };
 template <>
 struct predicate_search<false> {
+  static constexpr bool Identity = true;
   template <typename Predicate, typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate& pred, const Packet& x) {
     return pred.packetOp(x);
@@ -136,6 +138,7 @@ struct zero_lane_search : predicate_search<true> {
   using predicate_search<true>::combine;
   using predicate_search<true>::found;
   // Scalars still test the predicate: a coefficient is found where it is false.
+  static constexpr bool Identity = true;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a & b; }
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return !b; }
 };
@@ -192,6 +195,13 @@ struct predicate_segment<Evaluator, false> {
   }
 };
 
+// Whether a predicate's scalar tests may be grouped; predicates that do not say are tested one at a time.
+template <typename Predicate, typename = void>
+struct predicate_groups_scalars : std::false_type {};
+template <typename Predicate>
+struct predicate_groups_scalars<Predicate, void_t<decltype(functor_traits<Predicate>::GroupScalars)>>
+    : bool_constant<static_cast<bool>(functor_traits<Predicate>::GroupScalars)> {};
+
 template <typename Search, typename Segment, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment& seg, Index i, Predicate pred) {
   const Index size = seg.size();
@@ -208,25 +218,39 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_scalar(const Segment
   return Search::found(b);
 }
 
-// Whether a predicate's scalar tests may be grouped; predicates that do not say are tested one at a time.
-template <typename Predicate, typename = void>
-struct predicate_groups_scalars : std::false_type {};
-template <typename Predicate>
-struct predicate_groups_scalars<Predicate, void_t<decltype(functor_traits<Predicate>::GroupScalars)>>
-    : bool_constant<static_cast<bool>(functor_traits<Predicate>::GroupScalars)> {};
+// One coefficient at a time with an exit after each, a shape compilers do not vectorize.
+template <typename Search, typename Segment, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_sequential(const Segment& seg, Index i, Predicate pred) {
+  for (const Index size = seg.size(); i < size; ++i)
+    if (Search::found(pred(seg.coeff(i)))) return true;
+  return false;
+}
+
+// Scalar tests from i on: grouped only where the predicate allows it, since grouped scalar tests may be vectorized
+// onto the unit a predicate excludes (ARMv7 NEON, which flushes subnormals, turns grouped float compares into vceq).
+template <typename Search, typename Segment, typename Predicate>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_tail(const Segment& seg, Index i, Predicate pred) {
+  if (predicate_groups_scalars<Predicate>::value) return predicate_search_scalar<Search>(seg, i, pred);
+  return predicate_search_sequential<Search>(seg, i, pred);
+}
 
 template <typename Search, typename Packet, bool Vectorize>
 struct predicate_search_segment {
   static constexpr Index ShortSize = 0;
-  // Groups of four only where the predicate allows it: grouped scalar tests may be vectorized onto the unit a
-  // predicate excludes (ARMv7 NEON, which flushes subnormals, turns grouped float compares into vceq).
+  // Without packets, blocks of 64 tests without an exit, which compilers vectorize, and one exit check per block;
+  // starting each block from the identity keeps its trip count regular once inlined. Only where the predicate allows
+  // grouped tests, as for predicate_search_tail.
   template <typename Segment, typename Predicate>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run(const Segment& seg, Predicate pred) {
-    if (predicate_groups_scalars<Predicate>::value) return predicate_search_scalar<Search>(seg, 0, pred);
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run(const Segment& seg, Predicate pred) {
+    if (!predicate_groups_scalars<Predicate>::value) return predicate_search_sequential<Search>(seg, 0, pred);
     const Index size = seg.size();
-    for (Index i = 0; i < size; ++i)
-      if (Search::found(pred(seg.coeff(i)))) return true;
-    return false;
+    Index i = 0;
+    for (; i + 64 <= size; i += 64) {
+      bool b = Search::Identity;
+      for (Index k = 0; k < 64; ++k) b = Search::combine(b, pred(seg.coeff(i + k)));
+      if EIGEN_PREDICT_FALSE (Search::found(b)) return true;
+    }
+    return predicate_search_scalar<Search>(seg, i, pred);
   }
   template <typename Segment, typename Predicate>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool run_short(const Segment& seg, Predicate pred) {
@@ -260,7 +284,7 @@ struct predicate_search_segment<Search, Packet, true> {
       }
       if (EIGEN_PREDICT_TRUE(i == size)) return false;
     }
-    return predicate_search_scalar<Search>(seg, i, pred);
+    return predicate_search_tail<Search>(seg, i, pred);
   }
 
   template <typename Segment, typename Predicate>
@@ -272,34 +296,28 @@ struct predicate_search_segment<Search, Packet, true> {
     if (EIGEN_PREDICT_FALSE(8 * PacketSize <= size)) {
       do {
         Packet m = Search::combine(
-            Search::combine(Search::combine(test(seg, i + 0 * PacketSize, pred),
-                                            test(seg, i + 1 * PacketSize, pred)),
-                            Search::combine(test(seg, i + 2 * PacketSize, pred),
-                                            test(seg, i + 3 * PacketSize, pred))),
-            Search::combine(Search::combine(test(seg, i + 4 * PacketSize, pred),
-                                            test(seg, i + 5 * PacketSize, pred)),
-                            Search::combine(test(seg, i + 6 * PacketSize, pred),
-                                            test(seg, i + 7 * PacketSize, pred))));
+            Search::combine(Search::combine(test(seg, i + 0 * PacketSize, pred), test(seg, i + 1 * PacketSize, pred)),
+                            Search::combine(test(seg, i + 2 * PacketSize, pred), test(seg, i + 3 * PacketSize, pred))),
+            Search::combine(Search::combine(test(seg, i + 4 * PacketSize, pred), test(seg, i + 5 * PacketSize, pred)),
+                            Search::combine(test(seg, i + 6 * PacketSize, pred), test(seg, i + 7 * PacketSize, pred))));
         if EIGEN_PREDICT_FALSE (Search::found(m)) return true;
         i += 8 * PacketSize;
       } while (i + 8 * PacketSize <= size);
     }
     if (i + 4 * PacketSize <= size) {
-      Packet m = Search::combine(Search::combine(test(seg, i + 0 * PacketSize, pred),
-                                                 test(seg, i + 1 * PacketSize, pred)),
-                                 Search::combine(test(seg, i + 2 * PacketSize, pred),
-                                                 test(seg, i + 3 * PacketSize, pred)));
+      Packet m =
+          Search::combine(Search::combine(test(seg, i + 0 * PacketSize, pred), test(seg, i + 1 * PacketSize, pred)),
+                          Search::combine(test(seg, i + 2 * PacketSize, pred), test(seg, i + 3 * PacketSize, pred)));
       if (Search::found(m)) return true;
       i += 4 * PacketSize;
     }
     if (i + PacketSize <= size) {
       Packet m = test(seg, i, pred);
-      for (i += PacketSize; i + PacketSize <= size; i += PacketSize)
-        m = Search::combine(m, test(seg, i, pred));
+      for (i += PacketSize; i + PacketSize <= size; i += PacketSize) m = Search::combine(m, test(seg, i, pred));
       if (Search::found(m)) return true;
     }
     if (EIGEN_PREDICT_TRUE(i == size)) return false;
-    return predicate_search_scalar<Search>(seg, i, pred);
+    return predicate_search_tail<Search>(seg, i, pred);
   }
 };
 
