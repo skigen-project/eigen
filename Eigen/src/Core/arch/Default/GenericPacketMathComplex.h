@@ -165,9 +165,10 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex_impl(co
     unscale = pselect(is_large, pset1<RealPacket>(RealScalar(2)),
                       pselect(is_small, pset1<RealPacket>(RealScalar(1) / two_m), cst_one));
     a.v = pmul(z.v, scale);
-    a_abs = pmul(a_abs, scale);
-    a_abs_flip = pmul(a_abs_flip, scale);
-    a_max = pmul(a_max, scale);
+    // Recomputed from a rather than scaled: on x86 every product with a subnormal operand takes a microcode assist.
+    a_abs = pabs(a.v);
+    a_abs_flip = pcplxflip(Packet(a_abs)).v;
+    a_max = pmax(a_abs, a_abs_flip);
   }
 
   // Computes the principal sqrt of the complex numbers in the input.
