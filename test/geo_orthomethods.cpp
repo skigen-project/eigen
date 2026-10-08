@@ -120,6 +120,15 @@ void orthomethods(int size = Size) {
   for (const RealScalar s : {numext::sqrt((std::numeric_limits<RealScalar>::min)()) * RealScalar(1e-4),
                              numext::sqrt((std::numeric_limits<RealScalar>::max)()) * RealScalar(1e2)})
     VERIFY_IS_APPROX((v0 * s).unitOrthogonal().norm(), RealScalar(1));
+  // and where the norm of the two coefficients it rotates is below 1 / highest or above highest
+  for (const RealScalar s :
+       {(std::numeric_limits<RealScalar>::min)() / RealScalar(16), NumTraits<RealScalar>::highest()}) {
+    VectorType v = VectorType::Zero(size);
+    v(0) = v(1) = Scalar(s);
+    const VectorType u = v.unitOrthogonal();
+    VERIFY_IS_APPROX(u.norm(), RealScalar(1));
+    VERIFY_IS_MUCH_SMALLER_THAN(u.dot(v / s), Scalar(1));
+  }
 
   if (size >= 3) {
     v0.template head<2>().setZero();

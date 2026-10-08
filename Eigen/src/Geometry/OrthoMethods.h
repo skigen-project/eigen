@@ -177,16 +177,16 @@ template <typename Derived, int Size = Derived::SizeAtCompileTime>
 struct unitOrthogonal_selector {
   using VectorType = typename plain_matrix_type<Derived>::type;
   using Scalar = typename traits<Derived>::Scalar;
-  using RealScalar = typename NumTraits<Scalar>::Real;
+  using Vector2 = Matrix<Scalar, 2, 1>;
   EIGEN_DEVICE_FUNC static inline VectorType run(const Derived& src) {
     VectorType perp = VectorType::Zero(src.size());
     Index maxi = 0;
     Index sndi = 0;
     src.cwiseAbs().maxCoeff(&maxi);
     if (maxi == 0) sndi = 1;
-    RealScalar invnm = RealScalar(1) / numext::hypot(src.coeff(sndi), src.coeff(maxi));
-    perp.coeffRef(maxi) = -numext::conj(src.coeff(sndi)) * invnm;
-    perp.coeffRef(sndi) = numext::conj(src.coeff(maxi)) * invnm;
+    const Vector2 unit = Vector2(-numext::conj(src.coeff(sndi)), numext::conj(src.coeff(maxi))).stableNormalized();
+    perp.coeffRef(maxi) = unit.coeff(0);
+    perp.coeffRef(sndi) = unit.coeff(1);
 
     return perp;
   }
@@ -196,7 +196,7 @@ template <typename Derived>
 struct unitOrthogonal_selector<Derived, 3> {
   using VectorType = typename plain_matrix_type<Derived>::type;
   using Scalar = typename traits<Derived>::Scalar;
-  using RealScalar = typename NumTraits<Scalar>::Real;
+  using Vector2 = Matrix<Scalar, 2, 1>;
   EIGEN_DEVICE_FUNC static inline VectorType run(const Derived& src) {
     VectorType perp;
     /* Let us compute the crossed product of *this with a vector
@@ -207,9 +207,9 @@ struct unitOrthogonal_selector<Derived, 3> {
      * simply take ( -y, x, 0 ) and normalize it.
      */
     if ((!isMuchSmallerThan(src.x(), src.z())) || (!isMuchSmallerThan(src.y(), src.z()))) {
-      RealScalar invnm = RealScalar(1) / numext::hypot(src.x(), src.y());
-      perp.coeffRef(0) = -numext::conj(src.y()) * invnm;
-      perp.coeffRef(1) = numext::conj(src.x()) * invnm;
+      const Vector2 unit = Vector2(-numext::conj(src.y()), numext::conj(src.x())).stableNormalized();
+      perp.coeffRef(0) = unit.coeff(0);
+      perp.coeffRef(1) = unit.coeff(1);
       perp.coeffRef(2) = 0;
     }
     /* if both x and y are close to zero, then the vector is close
@@ -217,10 +217,10 @@ struct unitOrthogonal_selector<Derived, 3> {
      * So we take the crossed product with (1,0,0) and normalize it.
      */
     else {
-      RealScalar invnm = RealScalar(1) / numext::hypot(src.y(), src.z());
+      const Vector2 unit = Vector2(-numext::conj(src.z()), numext::conj(src.y())).stableNormalized();
       perp.coeffRef(0) = 0;
-      perp.coeffRef(1) = -numext::conj(src.z()) * invnm;
-      perp.coeffRef(2) = numext::conj(src.y()) * invnm;
+      perp.coeffRef(1) = unit.coeff(0);
+      perp.coeffRef(2) = unit.coeff(1);
     }
 
     return perp;
