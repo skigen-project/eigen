@@ -159,9 +159,21 @@ void orthomethods(int size = Size) {
   VERIFY_IS_APPROX(MatrixX(matXN3.rowwise().cross(vec3)), MatrixX(mcrossN3));
 }
 
+// unitOrthogonal for a scalar type that does not convert implicitly from int, on each path
+void orthomethods_half() {
+  using Vector3h = Matrix<half, 3, 1>;
+  using Vector4h = Matrix<half, 4, 1>;
+  const Vector3h near_xy(half(1), half(2), half(0)), near_z(half(0), half(0), half(1));
+  const Vector4h v4(half(1), half(2), half(0), half(0));
+  VERIFY_IS_APPROX(near_xy.unitOrthogonal().cast<float>(), Vector3f(-2, 1, 0) / std::sqrt(5.0f));
+  VERIFY_IS_APPROX(near_z.unitOrthogonal().cast<float>(), Vector3f(0, -1, 0));
+  VERIFY_IS_APPROX(v4.unitOrthogonal().cast<float>(), Vector4f(2, -1, 0, 0) / std::sqrt(5.0f));
+}
+
 EIGEN_DECLARE_TEST(geo_orthomethods) {
   for (int i = 0; i < g_repeat; i++) {
     CALL_SUBTEST_1(orthomethods_2<float>());
+    CALL_SUBTEST_1(orthomethods_half());
     CALL_SUBTEST_2(orthomethods_2<double>());
     CALL_SUBTEST_4(orthomethods_2<std::complex<double> >());
     CALL_SUBTEST_1(orthomethods_3<float>());

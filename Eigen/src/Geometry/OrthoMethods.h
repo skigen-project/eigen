@@ -210,7 +210,7 @@ struct unitOrthogonal_selector<Derived, 3> {
       const Vector2 unit = Vector2(-numext::conj(src.y()), numext::conj(src.x())).stableNormalized();
       perp.coeffRef(0) = unit.coeff(0);
       perp.coeffRef(1) = unit.coeff(1);
-      perp.coeffRef(2) = 0;
+      perp.coeffRef(2) = Scalar(0);
     }
     /* if both x and y are close to zero, then the vector is close
      * to the z-axis, so it's far from collinear to the x-axis for instance.
@@ -218,7 +218,7 @@ struct unitOrthogonal_selector<Derived, 3> {
      */
     else {
       const Vector2 unit = Vector2(-numext::conj(src.z()), numext::conj(src.y())).stableNormalized();
-      perp.coeffRef(0) = 0;
+      perp.coeffRef(0) = Scalar(0);
       perp.coeffRef(1) = unit.coeff(0);
       perp.coeffRef(2) = unit.coeff(1);
     }
