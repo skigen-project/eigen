@@ -136,7 +136,8 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_complex(const Pa
   return result;
 }
 
-// \internal psqrt_complex, with scaling of the elements outside [2 * min, highest / 4] when `scaled`.
+// \internal psqrt_complex. Only when `scaled` does it scale the elements outside [2 * min, highest / 4] and handle
+// infinities (step 6), which psqrt_complex guarantees are absent otherwise.
 template <typename Packet>
 EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex_impl(const Packet& z, bool scaled) {
   using Scalar = typename unpacket_traits<Packet>::type;
@@ -245,6 +246,10 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex_impl(co
   negative_real_mask.v = pcmp_lt(pand(real_mask, a.v), pzero(a.v));
   negative_real_mask.v = por(negative_real_mask.v, pcplxflip(negative_real_mask).v);
   Packet result = pselect(negative_real_mask, negative_real_result, positive_real_result);
+  // unless otherwise specified, if either the real or imaginary component is nan, the entire result is nan
+  Packet result_is_nan = pisnan(result);
+  result = por(result_is_nan, result);
+  if (!scaled) return result;
 
   // Step 6. Handle special cases for infinities:
   // * If z is (x,+∞), the result is (+∞,+∞) even if x is NaN
@@ -269,10 +274,6 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex_impl(co
   is_imag_inf = por(is_imag_inf, pcplxflip(is_imag_inf));
   Packet imag_inf_result;
   imag_inf_result.v = por(pand(cst_pos_inf, real_mask), pandnot(a.v, real_mask));
-  // unless otherwise specified, if either the real or imaginary component is nan, the entire result is nan
-  Packet result_is_nan = pisnan(result);
-  result = por(result_is_nan, result);
-
   return pselect(is_imag_inf, imag_inf_result, pselect(is_real_inf, real_inf_result, result));
 }
 
@@ -284,7 +285,8 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   const RealPacket z_max = pmax(z_abs, pcplxflip(Packet(z_abs)).v);
   const RealPacket hi = pset1<RealPacket>(NumTraits<RealScalar>::highest() / RealScalar(4));
   const RealPacket lo = pset1<RealPacket>(RealScalar(2) * (numext::numeric_limits<RealScalar>::min)());
-  if (predux_any(por(pcmp_lt(hi, z_max), pcmp_lt(z_max, lo)))) {
+  // Infinite components exceed hi. |x| and |y| are compared separately, because pmax may drop the inf of (NaN, inf).
+  if (predux_any(por(pcmp_lt(hi, z_abs), pcmp_lt(z_max, lo)))) {
     Packet z_scaled = z;
     // Keeps compilers from executing this branch speculatively on the common path.
     EIGEN_OPTIMIZATION_BARRIER(z_scaled.v)

@@ -2461,6 +2461,15 @@ void packetmath_complex() {
     data1[2] = Scalar(nan, inf);
     data1[3] = Scalar(-inf, nan);
     CHECK_CWISE1_N(numext::sqrt, internal::psqrt, 4);
+    // One infinite lane among ordinary ones still selects the handling of extreme inputs, also when pmax drops the
+    // inf of (NaN, inf).
+    for (const Scalar& special : {Scalar(nan, inf), Scalar(nan, -inf), Scalar(-inf, -one), Scalar(one, -inf)}) {
+      for (int k = 0; k < 4; ++k) {
+        for (int i = 0; i < 4; ++i) data1[i] = Scalar(i % 2 ? RealScalar(-4) : RealScalar(4), zero);
+        data1[k] = special;
+        check_sqrt_bits();
+      }
+    }
   }
   if (PacketTraits::HasLog) {
     for (int i = 0; i < size; ++i) {
