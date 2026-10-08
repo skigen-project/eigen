@@ -784,6 +784,32 @@ void nmsub_test(Scalar* data1, Scalar* data2, Scalar* ref, int size) {
   negate_test_impl<Scalar, Packet>::run_nmsub(data1, data2, ref, size);
 }
 
+// Compared bitwise, since pnot of a float lane can be a NaN whose payload must survive. A packet ptrue is all-ones
+// bits, or true for boolean packets; the runner also instantiates Packet = Scalar, where ptrue is Scalar(1).
+template <typename Scalar, typename Packet>
+void packetmath_pnot_ptrue() {
+  const int PacketSize = internal::unpacket_traits<Packet>::size;
+  EIGEN_ALIGN_TO_BOUNDARY(unpacket_traits<Packet>::alignment) Scalar data[PacketSize];
+  EIGEN_ALIGN_TO_BOUNDARY(unpacket_traits<Packet>::alignment) Scalar ref[PacketSize];
+  EIGEN_ALIGN_TO_BOUNDARY(unpacket_traits<Packet>::alignment) Scalar res[PacketSize];
+  for (int i = 0; i < PacketSize; ++i) data[i] = internal::random<Scalar>();
+  data[0] = Scalar(0);
+
+  for (int i = 0; i < PacketSize; ++i) ref[i] = internal::pnot(data[i]);
+  internal::pstore(res, internal::pnot(internal::pload<Packet>(data)));
+  VERIFY(test::areEqualBits(ref, res, PacketSize, false) && "pnot");
+
+  for (int i = 0; i < PacketSize; ++i) {
+    if (internal::is_scalar<Packet>::value || std::is_same<Scalar, bool>::value) {
+      ref[i] = internal::ptrue(Scalar(0));
+    } else {
+      memset(static_cast<void*>(ref + i), 0xff, sizeof(Scalar));
+    }
+  }
+  internal::pstore(res, internal::ptrue(internal::pload<Packet>(data)));
+  VERIFY(test::areEqualBits(ref, res, PacketSize, false) && "ptrue");
+}
+
 template <typename Scalar, typename Packet>
 void packetmath() {
   typedef internal::packet_traits<Scalar> PacketTraits;
@@ -1008,6 +1034,7 @@ void packetmath() {
   CHECK_CWISE2_IF(true, internal::pand, internal::pand);
 
   packetmath_boolean_mask_ops<Scalar, Packet>();
+  packetmath_pnot_ptrue<Scalar, Packet>();
   packetmath_pcast_ops_runner<Scalar, Packet>::run();
   packetmath_minus_zero_add_test<Scalar, Packet>::run();
   packetmath_integer_predicates_test<Scalar, Packet>::run();
