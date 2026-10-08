@@ -775,6 +775,18 @@ static void test_tensor_randacc() {
   }
 }
 
+// A transform that maps an index tuple onto itself constrains that coefficient's value:
+// conj(x) = x (real), -x = x (zero), -conj(x) = x (imaginary).
+static void test_symmetry_diagonal_flags() {
+  using Flags = Eigen::internal::tensor_symmetry_calculate_flags<Tensor<std::complex<double>, 2>>;
+  const std::array<Eigen::Index, 2> diag{{1, 1}}, offdiag{{1, 0}};
+  VERIFY_IS_EQUAL(Flags::run(diag, ConjugationFlag, 0, diag), int(GlobalRealFlag));
+  VERIFY_IS_EQUAL(Flags::run(diag, NegationFlag, 0, diag), int(GlobalZeroFlag));
+  VERIFY_IS_EQUAL(Flags::run(diag, ConjugationFlag | NegationFlag, 0, diag), int(GlobalImagFlag));
+  VERIFY_IS_EQUAL(Flags::run(diag, 0, 0, diag), 0);
+  VERIFY_IS_EQUAL(Flags::run(offdiag, ConjugationFlag, 0, diag), 0);
+}
+
 EIGEN_DECLARE_TEST(tensor_symmetry) {
   CALL_SUBTEST(test_symgroups_dynamic());
   CALL_SUBTEST(test_symgroups_selection());
@@ -783,6 +795,7 @@ EIGEN_DECLARE_TEST(tensor_symmetry) {
   CALL_SUBTEST(test_tensor_asym());
   CALL_SUBTEST(test_tensor_dynsym());
   CALL_SUBTEST(test_tensor_randacc());
+  CALL_SUBTEST(test_symmetry_diagonal_flags());
 }
 
 /*
