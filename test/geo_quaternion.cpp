@@ -151,6 +151,8 @@ void quaternion(void) {
   VERIFY_IS_APPROX(v2.normalized(), (q2.setFromTwoVectors(v1, v2) * v1).normalized());
   VERIFY_IS_APPROX(v1.normalized(), (q2.setFromTwoVectors(v1, v1) * v1).normalized());
   VERIFY_IS_APPROX(-v1.normalized(), (q2.setFromTwoVectors(v1, -v1) * v1).normalized());
+  // exactly opposite vectors rotate by pi about v1.unitOrthogonal()
+  VERIFY_IS_APPROX(q2.coeffs(), (Matrix<Scalar, 4, 1>() << v1.normalized().unitOrthogonal(), Scalar(0)).finished());
   // nearly opposite vectors, within dummy_precision of the antipodal branch: the axis must be orthogonal to both
   v3 = -v1 + v1.unitOrthogonal() * (v1.norm() * Scalar(std::is_same<Scalar, float>::value ? 3e-3 : 1e-6));
   VERIFY_IS_APPROX(v3.normalized(), (q2.setFromTwoVectors(v1, v3) * v1).normalized());

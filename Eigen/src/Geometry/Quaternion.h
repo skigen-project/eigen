@@ -701,8 +701,9 @@ EIGEN_DEVICE_FUNC inline Derived& QuaternionBase<Derived>::setFromTwoVectors(con
 
   // if dot == -1, vectors are nearly opposites: an axis orthogonal to v0 alone does not send v0 to v1.
   // => rotate through a direction m orthogonal to v0, so that both v0 -> m and m -> v1 are ~90 degree rotations.
+  // With u = v0.unitOrthogonal() and m = u x v0, both legs turn about v0 x m = u, so v1 = -v0 still gives (0, u).
   if (c < Scalar(-1) + NumTraits<Scalar>::dummy_precision()) {
-    const Vector3 m = v0.unitOrthogonal();
+    const Vector3 m = v0.unitOrthogonal().cross(v0);
     coeffs() = (Quaternion<Scalar>::FromTwoVectors(m, v1) * Quaternion<Scalar>::FromTwoVectors(v0, m)).coeffs();
     return derived();
   }
