@@ -287,7 +287,9 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   const RealPacket hi = pset1<RealPacket>(NumTraits<RealScalar>::highest() / RealScalar(4));
   const RealPacket lo = pset1<RealPacket>(RealScalar(2) * (numext::numeric_limits<RealScalar>::min)());
   // Infinite components exceed hi. |x| and |y| are compared separately, because pmax may drop the inf of (NaN, inf).
-  if (predux_any(por(pcmp_lt(hi, z_abs), pcmp_lt(z_max, lo)))) {
+  // Zero, which is common, needs no scaling: step 3 handles it.
+  const RealPacket is_small = pand(pcmp_lt(pzero(z_max), z_max), pcmp_lt(z_max, lo));
+  if (predux_any(por(pcmp_lt(hi, z_abs), is_small))) {
     Packet z_scaled = z;
     // Keeps compilers from executing this branch speculatively on the common path.
     EIGEN_OPTIMIZATION_BARRIER(z_scaled.v)
