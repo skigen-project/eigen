@@ -151,7 +151,7 @@ when there are no longer runs.
 | Member | Meaning |
 |---|---|
 | `setMaxBlockSize(p)` | $`p_{\max}`$, default 4; call before `compute()` |
-| `info()` | `Success`, or `NumericalIssue` when a run of ill-conditioned leading submatrices exceeded the look-ahead |
+| `info()` | `Success`, or `NumericalIssue` when `conditionEstimate()` reaches $`1/\varepsilon`$; a run of ill-conditioned leading submatrices longer than the look-ahead is reported only through that estimate |
 | `conditionEstimate()` | estimate of $`\kappa_2(T)`$, the "algorithm condition number" of [1] |
 | `transpose().solve(b)`, `adjoint().solve(b)` | reuse the factorization through the persymmetry $`T^T = E T E`$ ($`E`$ the exchange matrix) |
 
@@ -159,7 +159,7 @@ when there are no longer runs.
 Toeplitz<double> T(col, row);           // square
 LookAheadLevinson<double> levinson(T);
 VectorXd x = levinson.solve(b);         // O(n^2)
-if (levinson.info() != Success) { /* exceeded the look-ahead */ }
+if (levinson.info() != Success) { /* condition estimate reached 1/eps */ }
 ```
 
 ## Hankel
@@ -175,8 +175,8 @@ operators skip the FFT. `transpose()` keeps $`h`$ and swaps the dimensions; its 
 the phases $`e^{2\pi i f (m-n)/p}`$, with no new FFT.
 
 `solve(b)` solves a square system in $`O(n^2)`$ as $`T (Ex) = b`$ with `LookAheadLevinson`. It factorizes on every
-call; to reuse the factorization or check `info()`, run `LookAheadLevinson` on `toToeplitz()` and reverse the rows
-of its solution.
+call and `eigen_assert`s that the recursion did not break down; to reuse the factorization or check `info()` instead,
+run `LookAheadLevinson` on `toToeplitz()` and reverse the rows of its solution.
 
 ## Bccb
 
@@ -232,9 +232,9 @@ Each factor can be any of:
 | Factor passed | Stored as | Its side of a product | Its solve |
 |---|---|---|---|
 | dense expression | `Matrix` | GEMM | `PartialPivLU` |
-| `DiagonalMatrix` | its diagonal, $`O(n)`$ | scaling | entrywise division |
+| `DiagonalMatrix` or `.asDiagonal()` expression | its diagonal, $`O(n)`$ | scaling | entrywise division |
 | `SparseMatrix` | compressed `SparseMatrix` | sparse-dense product, $`O(\operatorname{nnz})`$ per column | `SparseLU`, factorized once |
-| `MatrixXd::Identity(p, p)` | dimensions only | skipped | identity |
+| `MatrixXd::Identity(m, n)` | dimensions only | skipped when square; a rectangular one keeps the leading $`\min(m, n)`$ rows or columns | identity |
 | `KroneckerOperator` | as is (nested) | its own vec identity | its own factor solves |
 | `KroneckerSum` | as is (nested) | $`B X + X A^T`$ | `BartelsStewart` |
 
@@ -262,7 +262,8 @@ A \oplus B = A \otimes I_{n_2} + I_{n_1} \otimes B, \qquad
 ```
 
 the operator of separable discretizations on tensor-product grids: with $`D_x, D_y`$ the 1-D second-difference
-matrices, the 2-D Laplacian is $`D_y \oplus D_x`$ and the 3-D one $`D_z \oplus D_y \oplus D_x`$. The factors may be
+matrices and $`x`$ the fast index of the unknown vector, the 2-D Laplacian is $`D_y \oplus D_x`$ and the 3-D one
+$`D_z \oplus D_y \oplus D_x`$. The factors may be
 of any kind `KroneckerOperator` accepts, including a `KroneckerSum` (`makeKroneckerSum(a, b, c, ...)` nests to the
 right). The product costs one product with each factor, $`O(N (n_1 + n_2))`$ for dense factors and
 $`O(n_1 \operatorname{nnz}(B) + n_2 \operatorname{nnz}(A))`$ for sparse ones, with no identity ever formed.
@@ -396,9 +397,9 @@ the secular equation
 f(\lambda) = 1 + \rho \sum_i \frac{z_i^2}{d_i - \lambda} = 0,
 ```
 
-one between each pair of consecutive poles. Each root is bracketed and bisected in coordinates shifted to its nearest
-pole, so every $`\lambda - d_i`$ is an exact data difference plus a small offset. The eigenvectors are built from the
-Gu-Eisenstat vector [17]
+one between each pair of consecutive poles and, for $`\rho > 0`$, one beyond the largest pole. Each root is bracketed
+and bisected in coordinates shifted to its nearest pole, so every $`\lambda - d_i`$ is an exact data difference plus a
+small offset. The eigenvectors are built from the Gu-Eisenstat vector [17]
 
 ```math
 \hat z_i^2 = \frac{\prod_j (\lambda_j - d_i)}{\rho \prod_{j \ne i} (d_j - d_i)}, \qquad
@@ -456,7 +457,7 @@ cmake --build build-contrib-bench --target bench_structured_circulant
    University, 1950.
 9. W. W. Hager, "Updating the inverse of a matrix," *SIAM Review* 31(2):221–239, 1989.
 10. E. L. Yip, "A note on the stability of solving a rank-p modification of a linear system by the
-    Sherman-Morrison-Woodbury formula," *SIAM J. Sci. Stat. Comput.* 7(3):507–513, 1986.
+    Sherman-Morrison-Woodbury formula," *SIAM J. Sci. Stat. Comput.* 7(2):507–513, 1986.
 11. G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th ed., Johns Hopkins University Press, 2013.
 12. P. H. Sterbenz, *Floating-Point Computation*, Prentice-Hall, 1974.
 13. L. Reichel, "Newton interpolation at Leja points," *BIT* 30:332–346, 1990.
