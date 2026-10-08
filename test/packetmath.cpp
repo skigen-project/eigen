@@ -1652,7 +1652,8 @@ template <typename Scalar, typename Packet>
 struct packetmath_minmax_propagation_test<Scalar, Packet, std::enable_if_t<!NumTraits<Scalar>::IsInteger>> {
   using PacketTraits = internal::packet_traits<Scalar>;
 
-  // NaN payloads are not pinned down across backends, so a NaN result only has to stay a NaN.
+  // NaN payloads are not pinned down across backends, so a NaN result only has to stay a NaN. AArch32 Advanced SIMD
+  // always flushes subnormals to zero, so vminnm/vmaxnm return a subnormal number as a zero of the same sign.
   static void verify_semantics(const Scalar& a, const Scalar& b, const Scalar& plain, const Scalar& fast,
                                const Scalar& nan, const Scalar& numbers) {
     const bool a_is_nan = (numext::isnan)(a), b_is_nan = (numext::isnan)(b);
@@ -1661,7 +1662,10 @@ struct packetmath_minmax_propagation_test<Scalar, Packet, std::enable_if_t<!NumT
       if (a_is_nan && b_is_nan) {
         VERIFY((numext::isnan)(numbers));
       } else {
-        VERIFY(test::biteq(numbers, a_is_nan ? b : a));
+        const Scalar& number = a_is_nan ? b : a;
+        const bool flushed = EIGEN_ARCH_ARM && numext::abs(number) < (std::numeric_limits<Scalar>::min)() &&
+                             test::biteq(numbers, number < Scalar(0) ? Scalar(-0.0) : Scalar(0));
+        VERIFY(flushed || test::biteq(numbers, number));
       }
     } else {
       VERIFY(test::biteq(nan, plain));
