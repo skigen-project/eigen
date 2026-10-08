@@ -58,20 +58,22 @@ class NumericalDiff : public Functor_ {
 
  private:
   // Fallback/Forward mode helper
-  template<NumericalDiffMode M = mode, typename std::enable_if_t<M == Forward, int> = 0>
-      static Scalar defaultRelTol() {
-          return std::sqrt(NumTraits<Scalar>::epsilon());
-      }
+  template <NumericalDiffMode M = mode, typename std::enable_if_t<M == Forward, int> = 0>
+  static Scalar defaultRelTol() {
+    return std::sqrt(NumTraits<Scalar>::epsilon());
+  }
 
   // Central mode helper
-  template<NumericalDiffMode M = mode, typename std::enable_if_t<M == Central, int> = 0>
-      static Scalar defaultRelTol() {
-          return std::cbrt(NumTraits<Scalar>::epsilon());
-      }
+  template <NumericalDiffMode M = mode, typename std::enable_if_t<M == Central, int> = 0>
+  static Scalar defaultRelTol() {
+    return std::cbrt(NumTraits<Scalar>::epsilon());
+  }
 
  public:
-  NumericalDiff(Scalar _rel_tol = defaultRelTol(), Scalar _abs_tol = NumTraits<Scalar>::quiet_NaN()) : Functor(), rel_tol(_rel_tol), abs_tol((std::isnan)(_abs_tol) ? _rel_tol : _abs_tol) {}
-  NumericalDiff(const Functor& f, Scalar _rel_tol = defaultRelTol(), Scalar _abs_tol = NumTraits<Scalar>::quiet_NaN()) : Functor(f), rel_tol(_rel_tol), abs_tol((std::isnan)(_abs_tol) ? _rel_tol : _abs_tol) {}
+  NumericalDiff(Scalar _rel_tol = defaultRelTol(), Scalar _abs_tol = NumTraits<Scalar>::quiet_NaN())
+      : Functor(), rel_tol(_rel_tol), abs_tol((std::isnan)(_abs_tol) ? _rel_tol : _abs_tol) {}
+  NumericalDiff(const Functor& f, Scalar _rel_tol = defaultRelTol(), Scalar _abs_tol = NumTraits<Scalar>::quiet_NaN())
+      : Functor(f), rel_tol(_rel_tol), abs_tol((std::isnan)(_abs_tol) ? _rel_tol : _abs_tol) {}
 
   // forward constructors
   template <typename T0>
@@ -79,15 +81,16 @@ class NumericalDiff : public Functor_ {
   template <typename T0, typename T1>
   NumericalDiff(const T0& a0, const T1& a1) : Functor(a0, a1), rel_tol(defaultRelTol()), abs_tol(defaultRelTol()) {}
   template <typename T0, typename T1, typename T2>
-  NumericalDiff(const T0& a0, const T1& a1, const T2& a2) : Functor(a0, a1, a2), rel_tol(defaultRelTol()), abs_tol(defaultRelTol()) {}
+  NumericalDiff(const T0& a0, const T1& a1, const T2& a2)
+      : Functor(a0, a1, a2), rel_tol(defaultRelTol()), abs_tol(defaultRelTol()) {}
 
   enum { InputsAtCompileTime = Functor::InputsAtCompileTime, ValuesAtCompileTime = Functor::ValuesAtCompileTime };
 
   /**
    * Computes the Jacobian of the functor at \a _x into \a jac and returns the number of functor evaluations.
    *
-   * The step along coordinate \c j is <tt>h = max(|x[j]| * rel_tol, abs_tol)</tt> with rel_tol and abs_tol selected by the user 
-   * and \c epsilon the machine precision NumTraits<Scalar>::epsilon(); the difference quotient divides by the
+   * The step along coordinate \c j is <tt>h = max(|x[j]| * rel_tol, abs_tol)</tt> with rel_tol and abs_tol selected by
+   * the user and \c epsilon the machine precision NumTraits<Scalar>::epsilon(); the difference quotient divides by the
    * representable step <tt>fl(x[j] + h) - x[j]</tt> actually applied.
    */
   int df(const InputType& _x, JacobianType& jac) const {
