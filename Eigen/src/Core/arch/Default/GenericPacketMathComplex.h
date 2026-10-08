@@ -60,11 +60,15 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pmul_complex(const Pa
 template <typename Packet>
 EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_complex(const Packet& x) {
   using RealPacket = typename unpacket_traits<Packet>::as_real;
+  using RealScalar = typename unpacket_traits<RealPacket>::type;
 
-  // Real part
+  // Real part. Adding e * log(2) after the logarithm keeps log|z| finite where |z| itself overflows or rounds to a
+  // subnormal.
   RealPacket x_flip = pcplxflip(x).v;  // b, a
-  Packet x_norm = phypot_complex(x);   // sqrt(a^2 + b^2), sqrt(a^2 + b^2)
-  RealPacket xlogr = plog(x_norm.v);   // log(sqrt(a^2 + b^2)), log(sqrt(a^2 + b^2))
+  RealPacket exponent;
+  Packet x_norm = phypot_complex(x, exponent);  // sqrt(a^2 + b^2) * 2^-e, sqrt(a^2 + b^2) * 2^-e
+  RealPacket xlogr = pmadd(exponent, pset1<RealPacket>(static_cast<RealScalar>(EIGEN_LN2)),
+                           plog(x_norm.v));  // log(sqrt(a^2 + b^2)), log(sqrt(a^2 + b^2))
 
   // Imag part
   RealPacket ximg = patan2(x.v, x_flip);  // atan2(a, b), atan2(b, a)
@@ -244,10 +248,11 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
   return pselect(is_imag_inf, imag_inf_result, pselect(is_real_inf, real_inf_result, result));
 }
 
-// \internal \returns the norm of a complex number z = x + i*y, defined as sqrt(x^2 + y^2).
+// \internal \returns h with |z| = h * 2^e for z = x + i*y, where |z| = sqrt(x^2 + y^2) and e is stored in exponent.
 // Implemented using the hypot(a,b) algorithm from https://doi.org/10.48550/arXiv.1904.09481
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet phypot_complex(const Packet& a) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet
+phypot_complex(const Packet& a, typename unpacket_traits<Packet>::as_real& exponent) {
   using Scalar = typename unpacket_traits<Packet>::type;
   using RealScalar = typename Scalar::value_type;
   using RealPacket = typename unpacket_traits<Packet>::as_real;
@@ -257,10 +262,13 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet phypot_complex(const 
   const RealPacket cst_two_rp = pset1<RealPacket>(static_cast<RealScalar>(2.0));
   const RealPacket evenmask = peven_mask(a.v);
 
-  // Scale by 2^-e, exactly, with max(|a|, |b|) = m * 2^e and m in [0.5, 1), so the squares below
-  // neither overflow nor underflow.
-  RealPacket exponent;
+  // With max(|a|, |b|) = m * 2^e and m in [0.5, 1), the squares below neither overflow nor lose bits of their
+  // rounding errors to underflow while |e| <= (-min_exponent - digits) / 2. Outside that range scale by 2^-e,
+  // exactly; inside it keep e = 0, so that log|z| = log(h) + e * log(2) does not cancel near |z| = 1.
+  constexpr int kMaxUnscaledExponent = (-NumTraits<RealScalar>::min_exponent() - NumTraits<RealScalar>::digits()) / 2;
+  const RealPacket cst_max_unscaled_exponent = pset1<RealPacket>(static_cast<RealScalar>(kMaxUnscaledExponent));
   pfrexp(pmax(pabs(a.v), pcplxflip(Packet(pabs(a.v))).v), exponent);
+  exponent = pandnot(exponent, pcmp_le(pabs(exponent), cst_max_unscaled_exponent));
   const RealPacket a_v = pldexp(a.v, pnegate(exponent));
   RealPacket a_abs = pabs(a_v);
   RealPacket a_flip = pcplxflip(Packet(a_abs)).v;       // |b|, |a|
@@ -280,8 +288,8 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet phypot_complex(const 
   // handle zero-case
   RealPacket iszero = pcmp_eq(por(a_abs, a_flip), cst_zero_rp);
 
-  h = pandnot(h, iszero);              // |sqrt(a^2+b^2), sqrt(a^2+b^2)|
-  return Packet(pldexp(h, exponent));  // |sqrt(a^2+b^2), sqrt(a^2+b^2)|
+  h = pandnot(h, iszero);  // |sqrt(a^2+b^2), sqrt(a^2+b^2)| * 2^-e
+  return Packet(h);        // |sqrt(a^2+b^2), sqrt(a^2+b^2)| * 2^-e
 }
 
 EIGEN_GCC_FAST_MATH_COMPLEX_VECTORIZE_WORKAROUND_POP
