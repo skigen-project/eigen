@@ -18,7 +18,7 @@ namespace Eigen {
 
 template <typename Derived>
 typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::sum() const {
-  // An empty outer-vector block (e.g., a row of a matrix with no columns) cannot construct an iterator.
+  // The sum of an empty matrix is zero, as for dense ones.
   if (size() == 0) return Scalar(0);
   Scalar res(0);
   internal::evaluator<Derived> thisEval(derived());

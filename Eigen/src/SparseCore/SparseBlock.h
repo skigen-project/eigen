@@ -505,11 +505,28 @@ template <typename ArgType, int BlockRows, int BlockCols, bool InnerPanel>
 class unary_evaluator<Block<ArgType, BlockRows, BlockCols, InnerPanel>, IteratorBased>::OuterVectorInnerIterator {
   // NOTE see above. The block crosses the outer vectors of ArgType; a 1x1 block's own flag is ArgType's.
   enum { XprIsRowMajor = int(ArgType::IsRowMajor) == 0 };
+  // The iterator on an outer vector of ArgType exists only while that vector lies in the block. An empty block can
+  // start at or past ArgType's last outer vector, or ArgType can have none at all (a 3x0 column-major matrix), so
+  // there may be nothing to open an iterator on.
+  union ItStorage {
+    char unused;
+    EvalIterator it;
+    ItStorage() : unused() {}
+    ~ItStorage() {}
+  };
   const unary_evaluator& m_eval;
   Index m_outerPos;
   const Index m_innerIndex;
   Index m_end;
-  EvalIterator m_it;
+  bool m_hasIt;
+  ItStorage m_storage;
+
+  void openIterator() {
+    if (m_hasIt) internal::destroy_at(&m_storage.it);
+    m_hasIt = false;
+    internal::construct_at(&m_storage.it, m_eval.m_argImpl, m_outerPos);
+    m_hasIt = true;
+  }
 
  public:
   EIGEN_STRONG_INLINE OuterVectorInnerIterator(const unary_evaluator& aEval, Index outer)
@@ -518,12 +535,27 @@ class unary_evaluator<Block<ArgType, BlockRows, BlockCols, InnerPanel>, Iterator
         m_innerIndex(XprIsRowMajor ? aEval.m_block.startRow() : aEval.m_block.startCol()),
         m_end(XprIsRowMajor ? aEval.m_block.startCol() + aEval.m_block.blockCols()
                             : aEval.m_block.startRow() + aEval.m_block.blockRows()),
-        m_it(m_eval.m_argImpl, m_outerPos) {
+        m_hasIt(false) {
     EIGEN_UNUSED_VARIABLE(outer);
     eigen_assert(outer == 0);
 
-    while (m_it && m_it.index() < m_innerIndex) ++m_it;
-    if ((!m_it) || (m_it.index() != m_innerIndex)) ++(*this);
+    if (m_outerPos >= m_end) return;
+    openIterator();
+    while (m_storage.it && m_storage.it.index() < m_innerIndex) ++m_storage.it;
+    if ((!m_storage.it) || (m_storage.it.index() != m_innerIndex)) ++(*this);
+  }
+
+  OuterVectorInnerIterator(const OuterVectorInnerIterator& other)
+      : m_eval(other.m_eval),
+        m_outerPos(other.m_outerPos),
+        m_innerIndex(other.m_innerIndex),
+        m_end(other.m_end),
+        m_hasIt(other.m_hasIt) {
+    if (m_hasIt) internal::construct_at(&m_storage.it, other.m_storage.it);
+  }
+
+  ~OuterVectorInnerIterator() {
+    if (m_hasIt) internal::destroy_at(&m_storage.it);
   }
 
   inline StorageIndex index() const {
@@ -534,18 +566,17 @@ class unary_evaluator<Block<ArgType, BlockRows, BlockCols, InnerPanel>, Iterator
   inline Index row() const { return XprIsRowMajor ? 0 : index(); }
   inline Index col() const { return XprIsRowMajor ? index() : 0; }
 
-  inline Scalar value() const { return m_it.value(); }
-  inline Scalar& valueRef() { return m_it.valueRef(); }
+  inline Scalar value() const { return m_storage.it.value(); }
+  inline Scalar& valueRef() { return m_storage.it.valueRef(); }
 
   inline OuterVectorInnerIterator& operator++() {
     // search next non-zero entry
     while (++m_outerPos < m_end) {
       // Restart iterator at the next inner-vector:
-      internal::destroy_at(&m_it);
-      internal::construct_at(&m_it, m_eval.m_argImpl, m_outerPos);
+      openIterator();
       // search for the key m_innerIndex in the current outer-vector
-      while (m_it && m_it.index() < m_innerIndex) ++m_it;
-      if (m_it && m_it.index() == m_innerIndex) break;
+      while (m_storage.it && m_storage.it.index() < m_innerIndex) ++m_storage.it;
+      if (m_storage.it && m_storage.it.index() == m_innerIndex) break;
     }
     return *this;
   }

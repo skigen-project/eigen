@@ -244,6 +244,19 @@ void test_empty_reductions() {
   VERIFY_IS_EQUAL(r.col(1).sum(), 0.0);
 }
 
+// An empty block that crosses the outer vectors must not open an iterator on one. The outer index array here is
+// followed by a nonzero count, and the index and value pointers are null, so such an iterator would dereference null.
+void test_empty_outer_vector_block_opens_no_iterator() {
+  const int outer[2] = {0, 5};
+  Map<const SparseMatrix<double, ColMajor, int>> c(3, 0, 5, outer, static_cast<const int*>(nullptr),
+                                                   static_cast<const double*>(nullptr));
+  MatrixXd d = c.row(1);
+  VERIFY_IS_EQUAL(d.size(), 0);
+  SparseVector<double, RowMajor> x = c.row(1);
+  VERIFY_IS_EQUAL(x.size(), 0);
+  VERIFY_IS_EQUAL(x.nonZeros(), 0);
+}
+
 void test_swap_with_matrix() {
   // The matrix may be uncompressed and holds a different number of nonzeros than the vector.
   SparseMatrix<double> m(5, 1);
@@ -284,4 +297,5 @@ EIGEN_DECLARE_TEST(sparse_vector) {
   CALL_SUBTEST_1(test_pruning());
   CALL_SUBTEST_1(test_swap_with_matrix());
   CALL_SUBTEST_1(test_empty_reductions());
+  CALL_SUBTEST_1(test_empty_outer_vector_block_opens_no_iterator());
 }
