@@ -703,7 +703,7 @@ supplied as a template parameter.
 Eigen::Tensor<float, 2> a(3, 4);
 auto dim0 = a.dimension<0>();
 int dim1 = a.dimension(1);
-std::cout << "Dim 0: " << << dim0 << " Dim 1: " << dim1;
+std::cout << "Dim 0: " << dim0 << " Dim 1: " << dim1;
 // Dim 0: 3 Dim 1: 4
 ```
 
