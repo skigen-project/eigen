@@ -1653,9 +1653,10 @@ struct packetmath_minmax_propagation_test<Scalar, Packet, std::enable_if_t<!NumT
   using PacketTraits = internal::packet_traits<Scalar>;
 
   // NaN payloads are not pinned down across backends, so a NaN result only has to stay a NaN. AArch32 Advanced SIMD
-  // always flushes subnormals to zero, so vminnm/vmaxnm return a subnormal number as a zero of the same sign.
+  // always flushes subnormals to zero, so vminnm/vmaxnm return a subnormal number as a zero of the same sign; only
+  // packet results with float lanes (bfloat16 goes through Packet4f) may do so.
   static void verify_semantics(const Scalar& a, const Scalar& b, const Scalar& plain, const Scalar& fast,
-                               const Scalar& nan, const Scalar& numbers) {
+                               const Scalar& nan, const Scalar& numbers, bool may_flush = false) {
     const bool a_is_nan = (numext::isnan)(a), b_is_nan = (numext::isnan)(b);
     if (a_is_nan || b_is_nan) {
       VERIFY((numext::isnan)(nan));
@@ -1663,7 +1664,8 @@ struct packetmath_minmax_propagation_test<Scalar, Packet, std::enable_if_t<!NumT
         VERIFY((numext::isnan)(numbers));
       } else {
         const Scalar& number = a_is_nan ? b : a;
-        const bool flushed = EIGEN_ARCH_ARM && numext::abs(number) < (std::numeric_limits<Scalar>::min)() &&
+        const bool flushed = may_flush && number != Scalar(0) &&
+                             numext::abs(number) < (std::numeric_limits<Scalar>::min)() &&
                              test::biteq(numbers, number < Scalar(0) ? Scalar(-0.0) : Scalar(0));
         VERIFY(flushed || test::biteq(numbers, number));
       }
@@ -1688,6 +1690,8 @@ struct packetmath_minmax_propagation_test<Scalar, Packet, std::enable_if_t<!NumT
     // Without HasMin/HasMax the helper degrades to the scalar op and writes only one element.
     constexpr int kMinLanes = PacketTraits::HasMin ? PacketSize : 1;
     constexpr int kMaxLanes = PacketTraits::HasMax ? PacketSize : 1;
+    constexpr bool kMayFlush = EIGEN_ARCH_ARM && !internal::is_scalar<Packet>::value &&
+                               (std::is_same<Scalar, float>::value || std::is_same<Scalar, Eigen::bfloat16>::value);
 
     test::packet_helper<PacketTraits::HasMin, Packet> hmin;
     test::packet_helper<PacketTraits::HasMax, Packet> hmax;
@@ -1708,13 +1712,13 @@ struct packetmath_minmax_propagation_test<Scalar, Packet, std::enable_if_t<!NumT
         hmin.store(fast, internal::pmin<PropagateFast>(hmin.load(lhs), hmin.load(rhs)));
         hmin.store(nan, internal::pmin<PropagateNaN>(hmin.load(lhs), hmin.load(rhs)));
         hmin.store(numbers, internal::pmin<PropagateNumbers>(hmin.load(lhs), hmin.load(rhs)));
-        for (int k = 0; k < kMinLanes; ++k) verify_semantics(a, b, plain[k], fast[k], nan[k], numbers[k]);
+        for (int k = 0; k < kMinLanes; ++k) verify_semantics(a, b, plain[k], fast[k], nan[k], numbers[k], kMayFlush);
 
         hmax.store(plain, internal::pmax(hmax.load(lhs), hmax.load(rhs)));
         hmax.store(fast, internal::pmax<PropagateFast>(hmax.load(lhs), hmax.load(rhs)));
         hmax.store(nan, internal::pmax<PropagateNaN>(hmax.load(lhs), hmax.load(rhs)));
         hmax.store(numbers, internal::pmax<PropagateNumbers>(hmax.load(lhs), hmax.load(rhs)));
-        for (int k = 0; k < kMaxLanes; ++k) verify_semantics(a, b, plain[k], fast[k], nan[k], numbers[k]);
+        for (int k = 0; k < kMaxLanes; ++k) verify_semantics(a, b, plain[k], fast[k], nan[k], numbers[k], kMayFlush);
       }
     }
   }
