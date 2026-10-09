@@ -150,6 +150,7 @@ void MatrixPowerAtomic<MatrixType>::compute(ResultType& res) const {
       break;
     case 2:
       compute2x2(res, m_p);
+      res.coeffRef(1, 0) = Scalar(0);
       break;
     default:
       computeBig(res);

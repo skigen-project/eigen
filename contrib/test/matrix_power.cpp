@@ -156,6 +156,17 @@ void testSingularTwoByTwo() {
   VERIFY_IS_APPROX(R * R, A);
 }
 
+// MatrixPowerAtomic left the (1, 0) entry of a 2x2 result unset, and MatrixPower read it when it coupled a 2x2 block
+// to a zero eigenvalue, as for the first matrix of testSingularTrailingZero().
+void testAtomicTwoByTwoLowerPart() {
+  Matrix2d T, expected, res = Matrix2d::Constant(std::numeric_limits<double>::quiet_NaN());
+  T << 4, 1, 0, 9;
+  expected << 2, 0.2, 0, 3;
+  Block<Matrix2d, Dynamic, Dynamic> block(res, 0, 0, 2, 2);
+  MatrixPowerAtomic<Matrix2d>(T, 0.5).compute(block);
+  VERIFY_IS_APPROX(res, expected);
+}
+
 // MatrixPower::compute() did not size the result for 0x0 and 1x1 bases.
 void testComputeResultSize() {
   MatrixXd a = MatrixXd::Constant(1, 1, 4), r;
@@ -258,6 +269,7 @@ EIGEN_DECLARE_TEST(matrix_power) {
   CALL_SUBTEST_10(testSingular(Matrix3d(), 1024 * NumTraits<double>::epsilon()));
   CALL_SUBTEST_10(testSingularTrailingZero());
   CALL_SUBTEST_10(testSingularTwoByTwo());
+  CALL_SUBTEST_10(testAtomicTwoByTwoLowerPart());
   CALL_SUBTEST_10(testInfiniteEntry());
   CALL_SUBTEST_10(testNonFiniteExponent());
   CALL_SUBTEST_11(testSingular(Matrix3f(), 2048 * NumTraits<float>::epsilon()));
