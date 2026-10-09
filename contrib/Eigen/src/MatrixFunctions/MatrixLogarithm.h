@@ -237,8 +237,8 @@ void matrix_log_compute_big(const MatrixType& A, MatrixType& result) {
   // The matrix logarithm is undefined for singular matrices. Without this
   // guard, a zero diagonal entry (eigenvalue) is a fixed point of the
   // square-rooting loop below (sqrt(0) = 0), so the loop never terminates
-  // (bug #1613). A nonfinite entry likewise never reaches the Pade region.
-  if ((T.diagonal().array() == Scalar(0)).any() || !T.allFinite()) {
+  // (bug #1613).
+  if ((T.diagonal().array() == Scalar(0)).any()) {
     result.setConstant(T.rows(), T.rows(), NumTraits<RealScalar>::quiet_NaN());
     return;
   }
@@ -254,6 +254,12 @@ void matrix_log_compute_big(const MatrixType& A, MatrixType& result) {
                                                    1.1880960220216759245467951592883642e-1L);  // quadruple precision
 
   while (true) {
+    // A nonfinite entry is likewise a fixed point, and the square roots can create one: R(i,j) divides by
+    // R(i,i) + R(j,j), which is zero for the roots i and -i of -1+0i and -1-0i.
+    if (!T.allFinite()) {
+      result.setConstant(T.rows(), T.rows(), NumTraits<RealScalar>::quiet_NaN());
+      return;
+    }
     RealScalar normTminusI = (T - MatrixType::Identity(T.rows(), T.rows())).cwiseAbs().colwise().sum().maxCoeff();
     if (normTminusI < maxNormForPade) {
       degree = matrix_log_get_pade_degree(normTminusI);

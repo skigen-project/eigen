@@ -211,6 +211,15 @@ void testMatrixLogarithmSingular() {
   VERIFY(A.log().array().isNaN().all());
 }
 
+// The loop could also create an infinite entry: the square roots of -1+0i and -1-0i are i and -i, and the
+// superdiagonal entry between them divides by their sum. The three eigenvalues form one atomic block.
+void testMatrixLogarithmBranchCut() {
+  using C = std::complex<double>;
+  MatrixXcd A(3, 3);
+  A << C(-1, 0.0), C(1, 0), C(0, 0), C(0, 0), C(-1, -0.0), C(1, 0), C(0, 0), C(0, 0), C(-1, 0.0);
+  VERIFY(MatrixXcd(A.log()).array().isNaN().all());
+}
+
 // An empty matrix has no eigenvalue clusters, but the start of the first block was written anyway.
 template <typename MatrixType>
 void testEmptyMatrix() {
@@ -235,6 +244,7 @@ EIGEN_DECLARE_TEST(matrix_function) {
 
   CALL_SUBTEST_3(testMatrixLogarithmSingular<MatrixXf>());
   CALL_SUBTEST_7(testMatrixLogarithmSingular<MatrixXd>());
+  CALL_SUBTEST_7(testMatrixLogarithmBranchCut());
   CALL_SUBTEST_3(testEmptyMatrix<MatrixXf>());
   CALL_SUBTEST_7(testEmptyMatrix<MatrixXcd>());
 }

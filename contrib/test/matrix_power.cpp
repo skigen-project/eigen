@@ -168,6 +168,13 @@ void testInfiniteEntry() {
   Matrix3d a = Matrix3d::Identity();
   a(0, 2) = std::numeric_limits<double>::infinity();
   VERIFY(a.pow(0.5).array().isNaN().all());
+
+  // So did an infinite entry created by the loop: the square roots of -1+0i and -1-0i are i and -i, and the
+  // superdiagonal entry between them divides by their sum.
+  using C = std::complex<double>;
+  Matrix3cd b;
+  b << C(-1, 0.0), C(1, 0), C(0, 0), C(0, 0), C(-1, -0.0), C(0, 0), C(0, 0), C(0, 0), C(2, 0);
+  VERIFY(b.pow(0.5).array().isNaN().all());
 }
 
 // A nonfinite exponent used to hang the binary powering of the integral part.

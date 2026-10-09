@@ -213,13 +213,14 @@ void MatrixPowerAtomic<MatrixType>::computeBig(ResultType& res) const {
   bool hasExtraSquareRoot = false;
 
   for (Index i = 0; i < m_A.cols(); ++i) eigen_assert(m_A(i, i) != RealScalar(0));
-  // A nonfinite entry is a fixed point of the square roots below.
-  if (!T.allFinite()) {
-    res.setConstant(Scalar(NumTraits<RealScalar>::quiet_NaN()));
-    return;
-  }
 
   while (true) {
+    // A nonfinite entry is a fixed point of the square roots, which can also create one: R(i,j) divides by
+    // R(i,i) + R(j,j), which is zero for the roots i and -i of -1+0i and -1-0i.
+    if (!T.allFinite()) {
+      res.setConstant(Scalar(NumTraits<RealScalar>::quiet_NaN()));
+      return;
+    }
     IminusT = MatrixType::Identity(m_A.rows(), m_A.cols()) - T;
     normIminusT = IminusT.cwiseAbs().colwise().sum().maxCoeff();
     if (normIminusT < maxNormForPade) {
