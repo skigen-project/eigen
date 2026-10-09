@@ -146,6 +146,16 @@ void testSingularTrailingZero() {
   VERIFY_IS_APPROX(A.pow(0.5), A);
 }
 
+// A 2x2 base kept its zero eigenvalues in the atomic block, where a double one gave p * 0^(p-1) * 0 = NaN.
+void testSingularTwoByTwo() {
+  VERIFY(Matrix2d(Matrix2d::Zero().pow(0.5)).isZero());
+  VERIFY(Matrix2d(Matrix2d::Zero().pow(1.5)).isZero());
+  Matrix2d A;
+  A << 0, 0, 3, 2;
+  Matrix2d R = A.pow(0.5);
+  VERIFY_IS_APPROX(R * R, A);
+}
+
 // MatrixPower::compute() did not size the result for a 1x1 base.
 void testComputeOneByOne() {
   MatrixXd a = MatrixXd::Constant(1, 1, 4), r;
@@ -236,6 +246,7 @@ EIGEN_DECLARE_TEST(matrix_power) {
   CALL_SUBTEST_9(testSingular(MatrixXe(7, 7), 256 * NumTraits<long double>::epsilon()));
   CALL_SUBTEST_10(testSingular(Matrix3d(), 1024 * NumTraits<double>::epsilon()));
   CALL_SUBTEST_10(testSingularTrailingZero());
+  CALL_SUBTEST_10(testSingularTwoByTwo());
   CALL_SUBTEST_10(testInfiniteEntry());
   CALL_SUBTEST_10(testNonFiniteExponent());
   CALL_SUBTEST_11(testSingular(Matrix3f(), 2048 * NumTraits<float>::epsilon()));
