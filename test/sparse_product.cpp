@@ -909,6 +909,17 @@ void test_pruned_product_row_vector() {
   r.insert(3) = 5;
   SparseVector<double, RowMajor> c = (r * A).pruned();
   VERIFY_IS_APPROX(MatrixXd(c.toDense()), MatrixXd(r.toDense() * A.toDense()));
+
+  // A row-major product whose nested lhs evaluates column-major.
+  SparseMatrix<double> P(4, 4), Q(4, 4);
+  SparseMatrix<double, RowMajor> S(4, 4);
+  for (int i = 0; i < 4; ++i) {
+    P.insert(i, i) = i + 1;
+    Q.insert(i, (i + 1) % 4) = 2;
+    S.insert(i, (i + 2) % 4) = 3;
+  }
+  SparseMatrix<double, RowMajor> R = (P * Q * S).pruned();
+  VERIFY_IS_APPROX(MatrixXd(R.toDense()), MatrixXd(P.toDense() * Q.toDense() * S.toDense()));
 }
 
 template <typename = void>
