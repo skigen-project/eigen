@@ -184,11 +184,10 @@ void testInfiniteEntry() {
   a(0, 2) = std::numeric_limits<double>::infinity();
   VERIFY(a.pow(0.5).array().isNaN().all());
 
-  // So did an infinite entry created by the loop: the square roots of -1+0i and -1-0i are i and -i, and the
-  // superdiagonal entry between them divides by their sum.
-  using C = std::complex<double>;
-  Matrix3cd b;
-  b << C(-1, 0.0), C(1, 0), C(0, 0), C(0, 0), C(-1, -0.0), C(0, 0), C(0, 0), C(0, 0), C(2, 0);
+  // So did an infinite entry created by the loop: the first square root divides b(0, 1) by 2 sqrt(b(0, 0)) = 2e-10,
+  // which overflows, as the (0, 1) entry of the result does.
+  Matrix3d b;
+  b << 1e-20, 1e300, 0, 0, 1e-20, 1, 0, 0, 1e-20;
   VERIFY(b.pow(0.5).array().isNaN().all());
 }
 

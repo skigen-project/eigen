@@ -217,7 +217,7 @@ void MatrixPowerAtomic<MatrixType>::computeBig(ResultType& res) const {
 
   while (true) {
     // A nonfinite entry is a fixed point of the square roots, which can also create one: R(i,j) divides by
-    // R(i,i) + R(j,j), which is zero for the roots i and -i of -1+0i and -1-0i.
+    // R(i,i) + R(j,j), which can be tiny, or zero for the roots i and -i of -1+0i and -1-0i.
     if (!T.allFinite()) {
       res.setConstant(Scalar(NumTraits<RealScalar>::quiet_NaN()));
       return;

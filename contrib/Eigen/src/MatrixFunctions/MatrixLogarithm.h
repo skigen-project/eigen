@@ -255,7 +255,7 @@ void matrix_log_compute_big(const MatrixType& A, MatrixType& result) {
 
   while (true) {
     // A nonfinite entry is likewise a fixed point, and the square roots can create one: R(i,j) divides by
-    // R(i,i) + R(j,j), which is zero for the roots i and -i of -1+0i and -1-0i.
+    // R(i,i) + R(j,j), which can be tiny, or zero for the roots i and -i of -1+0i and -1-0i.
     if (!T.allFinite()) {
       result.setConstant(T.rows(), T.rows(), NumTraits<RealScalar>::quiet_NaN());
       return;
