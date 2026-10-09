@@ -28,14 +28,14 @@ class TensorBlockIO;
 // TODO(ezhulenev): We compute strides many times in different evaluators, use
 // this function instead everywhere.
 template <int Layout, typename IndexType, int NumDims>
-EIGEN_ALWAYS_INLINE std::enable_if_t<NumDims == 0, DSizes<IndexType, NumDims> > strides_impl(
+EIGEN_ALWAYS_INLINE std::enable_if_t<NumDims == 0, DSizes<IndexType, NumDims>> strides_impl(
     const DSizes<IndexType, NumDims>& /*dimensions*/) {
   DSizes<IndexType, NumDims> strides;
   return strides;
 }
 
 template <int Layout, typename IndexType, int NumDims>
-EIGEN_ALWAYS_INLINE std::enable_if_t<(NumDims > 0), DSizes<IndexType, NumDims> > strides_impl(
+EIGEN_ALWAYS_INLINE std::enable_if_t<(NumDims > 0), DSizes<IndexType, NumDims>> strides_impl(
     const DSizes<IndexType, NumDims>& dimensions) {
   DSizes<IndexType, NumDims> strides;
   // TODO(ezhulenev): Benchmark whether template-unrolling this loop is beneficial.
@@ -278,7 +278,15 @@ class TensorBlockDescriptor {
 
   IndexType offset() const { return m_offset; }
   const Dimensions& dimensions() const { return m_dimensions; }
-  IndexType dimension(int index) const { return m_dimensions[index]; }
+  template <Index N>
+  IndexType dimension() const {
+    EIGEN_STATIC_ASSERT(0 <= N && N < NumDims, INVALID_DIMENSION);
+    return m_dimensions[N];
+  }
+  IndexType dimension(Index n) const {
+    eigen_internal_assert(0 <= n && n < NumDims);
+    return m_dimensions[n];
+  }
   IndexType size() const { return array_prod<IndexType>(m_dimensions); }
 
   const DestinationBuffer& destination() const { return m_destination; }
@@ -868,7 +876,7 @@ class TensorCwiseUnaryBlock {
 
  public:
   typedef std::conditional_t<NoArgBlockAccess, void,
-                             TensorCwiseUnaryOp<UnaryOp, const typename ArgTensorBlock::XprType> >
+                             TensorCwiseUnaryOp<UnaryOp, const typename ArgTensorBlock::XprType>>
       XprType;
 
   typedef typename XprScalar<XprType>::type Scalar;
@@ -899,7 +907,7 @@ class TensorCwiseBinaryBlock {
  public:
   typedef std::conditional_t<
       NoArgBlockAccess, void,
-      TensorCwiseBinaryOp<BinaryOp, const typename LhsTensorBlock::XprType, const typename RhsTensorBlock::XprType> >
+      TensorCwiseBinaryOp<BinaryOp, const typename LhsTensorBlock::XprType, const typename RhsTensorBlock::XprType>>
       XprType;
 
   typedef typename XprScalar<XprType>::type Scalar;
