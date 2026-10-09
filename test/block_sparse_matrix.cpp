@@ -582,6 +582,22 @@ void test_block_sparse_triangular_solve(int bN) {
     G.template triangularView<Upper>().transpose().solveInPlace(y);
     VERIFY_IS_APPROX(DenseMat(dG.template triangularView<Upper>()).transpose() * y, b);
   }
+
+  // An outer vector whose only blocks lie in the opposite triangle has no diagonal block to solve with.
+  {
+    DenseMat dL = makeDenseLower(), dU = makeDenseUpper();
+    dL.topRows(B).setZero();
+    dL.leftCols(B).setZero();
+    dL.block(0, B, B, B) = DenseMat::Random(B, B);
+    dU.topRows(B).setZero();
+    dU.leftCols(B).setZero();
+    dU.block(B, 0, B, B) = DenseMat::Random(B, B);
+    BSM L = denseToBlock<B, B, Scalar, Options, StorageIndex>(dL);
+    BSM U = denseToBlock<B, B, Scalar, Options, StorageIndex>(dU);
+    DenseMat x = DenseMat::Random(N, 2);
+    VERIFY_RAISES_ASSERT(L.template triangularView<Lower>().solveInPlace(x));
+    VERIFY_RAISES_ASSERT(U.template triangularView<Upper>().transpose().solveInPlace(x));
+  }
 }
 
 // ---------------------------------------------------------------------------

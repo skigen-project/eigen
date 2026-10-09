@@ -1446,6 +1446,7 @@ class BlockSparseTriangularView {
       // A general stored matrix also holds blocks of the opposite triangle; skip them.
       if (diagFirst) beg = std::lower_bound(beg, end, StorageIndex(k));
       if (!diagFirst) end = std::upper_bound(beg, end, StorageIndex(k));
+      eigen_assert(beg != end && "solveInPlace: missing diagonal block");
       if (beg == end) continue;
       const StorageIndex* diag_ptr = diagFirst ? beg : end - 1;
       const StorageIndex* off_beg = diagFirst ? beg + 1 : beg;
@@ -1495,6 +1496,7 @@ class BlockSparseTriangularView {
       // A general stored matrix also holds blocks of the opposite triangle; skip them.
       if (diagFirst) beg = std::lower_bound(beg, end, StorageIndex(k));
       if (!diagFirst) end = std::upper_bound(beg, end, StorageIndex(k));
+      eigen_assert(beg != end && "solveInPlace: missing diagonal block");
       if (beg == end) continue;
       const StorageIndex* diag_ptr = diagFirst ? beg : end - 1;
       const StorageIndex* off_beg = diagFirst ? beg + 1 : beg;
