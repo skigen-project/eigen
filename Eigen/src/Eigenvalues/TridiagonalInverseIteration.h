@@ -747,8 +747,10 @@ Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& sub
       // neighbours at its reorthogonalization threshold bgap keep |v_i' v_j| <~ sqrt(nb) (shift_tol / bgap)^3.
       // The Sturm check below passes such shifts, so re-bisect at the block's scale when that can exceed
       // 32 eps: in float from ||T|| ~ 40 ||T_b|| at nb = 1000, in double only beyond that check's own reach.
-      const RealScalar ratio = shift_tol / bgap(b);
-      bool needs_refinement = ratio * ratio * ratio * numext::sqrt(RealScalar(nb)) > RealScalar(32) * eps;
+      // Tested as shift_tol > bgap (32 eps / sqrt(nb))^(1/3), which neither divides nor overflows (the factor is
+      // below 1), whereas (shift_tol / bgap)^3 overflows once ||T|| / ||T_b|| passes about 6e16 in float and 3e115
+      // in double, and is 0/0 for supplied shifts on a block whose gap underflows.
+      bool needs_refinement = shift_tol > bgap(b) * numext::cbrt(RealScalar(32) * eps / numext::sqrt(RealScalar(nb)));
       if (!needs_refinement) {
         endpoints.resize(2 * mb);
         counts.resize(2 * mb);

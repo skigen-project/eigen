@@ -11,6 +11,7 @@
 #include "main.h"
 #include "fp_control.h"
 #include "tridiag_test_matrices.h"
+#include <cfenv>
 #include <limits>
 #include <Eigen/Eigenvalues>
 
@@ -778,6 +779,60 @@ void tridiagonal_eigensolver_staged_small_block() {
   VERIFY((block.transpose() * block - MatrixType::Identity(nb, nb)).cwiseAbs().maxCoeff() <= cross_cluster_bound);
 }
 
+// Which of `excepts` f() raises, run with the floating-point environment held; -1 if it cannot be held.
+template <typename Func>
+int fp_exceptions_raised_by(int excepts, const Func& f) {
+  std::fenv_t environment;
+  if (std::feholdexcept(&environment) != 0) {
+    std::cout << "SKIP: floating-point exception check: feholdexcept failed.\n";
+    f();
+    return -1;
+  }
+  f();
+  const int raised = std::fetestexcept(excepts);
+  VERIFY_IS_EQUAL(std::fesetenv(&environment), 0);
+  return raised;
+}
+
+// The gate deciding whether to re-bisect a block's shifts compares their error bound with the block's gap without
+// forming the ratio of the two, which finite input can make overflow when cubed, or 0/0. FE_DIVBYZERO is not checked:
+// an exact shift's vanishing LU pivot has an infinite reciprocal by design.
+template <typename Scalar>
+void tridiagonal_eigensolver_block_gate_fp_exceptions() {
+#if defined(FE_OVERFLOW) && defined(FE_INVALID)
+  using VectorType = Matrix<Scalar, Dynamic, 1>;
+  // diag(sqrt(highest), tridiag(1, 2, 1)_4), staged: (shift error / gap)^3 overflows. The block's vectors are still
+  // those of the block solved alone.
+  const Index nb = 4;
+  VectorType d = VectorType::Constant(nb + 1, Scalar(2)), e = VectorType::Ones(nb);
+  d(0) = numext::sqrt(NumTraits<Scalar>::highest());
+  e(0) = Scalar(0);
+  TridiagonalEigenSolver<Scalar> local, staged;
+  local.computeEigenvalues(d.tail(nb).eval(), e.tail(nb - 1).eval());
+  local.computeEigenvectors();
+  staged.computeEigenvalues(d, e);
+  int raised = fp_exceptions_raised_by(FE_OVERFLOW | FE_INVALID, [&] { staged.computeEigenvectors(); });
+  if (raised >= 0) VERIFY_IS_EQUAL(raised, 0);
+  VERIFY_IS_EQUAL(staged.info(), Success);
+  VERIFY_IS_EQUAL(staged.eigenvectors().bottomLeftCorner(nb, nb), local.eigenvectors());
+
+  // diag(1, [0 a; a 0]) with a = 8 denorm_min and its exact eigenvalues supplied: the block's gap underflows to zero
+  // and supplied shifts carry a zero error bound, so the ratio was 0/0. (Hardware that flushes subnormal inputs splits
+  // the block instead.)
+  const Scalar a = Scalar(8) * std::numeric_limits<Scalar>::denorm_min();
+  VectorType ds(3), es(2), w(3);
+  ds << Scalar(1), Scalar(0), Scalar(0);
+  es << Scalar(0), a;
+  w << -a, a, Scalar(1);
+  TridiagonalEigenSolver<Scalar> supplied;
+  raised = fp_exceptions_raised_by(FE_OVERFLOW | FE_INVALID, [&] { supplied.computeEigenvectors(ds, es, w); });
+  if (raised >= 0) VERIFY_IS_EQUAL(raised, 0);
+  VERIFY_IS_EQUAL(supplied.info(), Success);
+#else
+  std::cout << "SKIP: block gate exception check: FE_OVERFLOW or FE_INVALID is unavailable.\n";
+#endif
+}
+
 // d and e against their power-of-two scaled copies, computed beforehand, in every flush-to-zero mode: eigenvalues to
 // the bisection error plus the quantization of the range they are stored in, eigenvectors (invariant under the
 // scaling) against the scaled residual.
@@ -851,6 +906,8 @@ EIGEN_DECLARE_TEST(tridiagonal_eigensolver) {
   CALL_SUBTEST_1(tridiagonal_eigensolver_subnormal_staged<double>());
   CALL_SUBTEST_2(tridiagonal_eigensolver_subnormal_staged<float>());
   CALL_SUBTEST_2(tridiagonal_eigensolver_staged_small_block<float>());
+  CALL_SUBTEST_1(tridiagonal_eigensolver_block_gate_fp_exceptions<double>());
+  CALL_SUBTEST_2(tridiagonal_eigensolver_block_gate_fp_exceptions<float>());
   CALL_SUBTEST_2(tridiagonal_eigensolver_power_of_two_scaling<>());
   CALL_SUBTEST_2(tridiagonal_eigensolver_scaling_units<float>());
   CALL_SUBTEST_1(tridiagonal_eigensolver_scaling_units<double>());
