@@ -156,6 +156,34 @@ void testSingularTwoByTwo() {
   VERIFY_IS_APPROX(R * R, A);
 }
 
+// The coupling T11^(p-1) T12 of the nonsingular block T11 to the zero eigenvalues must not overflow or underflow when
+// the result does not. Forming T11^p T12 first failed for s = 1e300 and s = 1e-300, and forming T11^(p-1) first
+// failed for the tiny nonnormal T11 below.
+void testSingularExtremeScale() {
+  // The complex pow(t, p) = exp(p log t) of a diagonal entry t near 1e+-300 can lose |p log t| ~ 345 ulp.
+  const double tol = 512 * NumTraits<double>::epsilon();
+  Matrix2d A2, R2;
+  A2 << 1, 1, 0, 0;  // idempotent
+  Matrix3d A3, R3, expected;
+  A3 << 1, 1, 1, 0, 2, 1, 0, 0, 0;
+  const double r2 = std::sqrt(2.0);
+  expected << 1, 1 / (1 + r2), 1 / r2, 0, r2, 1 / r2, 0, 0, 0;  // A3^(1/2)
+  for (double s : {1e300, 1e-300}) {
+    R2 = (s * A2).pow(0.5);
+    VERIFY((R2 / std::sqrt(s)).isApprox(A2, tol));
+    R3 = (s * A3).pow(0.5);
+    VERIFY((R3 / std::sqrt(s)).isApprox(expected, tol));
+  }
+
+  // (s [[1, c, 1], [0, 1, 1], [0, 0, 0]])^p = s^p [[1, c p, 1 + c (p - 1)], [0, 1, 1], [0, 0, 0]], while
+  // T11^(p-1) has the entry s^(p-1) c (p - 1) ~ -5e308, which overflows.
+  const double s = 1e-305, c = 1e4, p = 0.001;
+  A3 << 1, c, 1, 0, 1, 1, 0, 0, 0;
+  expected << 1, c * p, 1 + c * (p - 1), 0, 1, 1, 0, 0, 0;
+  R3 = (s * A3).pow(p);
+  VERIFY((R3 / std::pow(s, p)).isApprox(expected, tol));
+}
+
 // MatrixPowerAtomic left the (1, 0) entry of a 2x2 result unset, and MatrixPower read it when it coupled a 2x2 block
 // to a zero eigenvalue, as for the first matrix of testSingularTrailingZero().
 void testAtomicTwoByTwoLowerPart() {
@@ -268,6 +296,7 @@ EIGEN_DECLARE_TEST(matrix_power) {
   CALL_SUBTEST_10(testSingular(Matrix3d(), 1024 * NumTraits<double>::epsilon()));
   CALL_SUBTEST_10(testSingularTrailingZero());
   CALL_SUBTEST_10(testSingularTwoByTwo());
+  CALL_SUBTEST_10(testSingularExtremeScale());
   CALL_SUBTEST_10(testAtomicTwoByTwoLowerPart());
   CALL_SUBTEST_10(testInfiniteEntry());
   CALL_SUBTEST_10(testNonFiniteExponent());

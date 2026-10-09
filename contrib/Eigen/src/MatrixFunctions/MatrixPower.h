@@ -565,10 +565,16 @@ void MatrixPower<MatrixType>::computeFracPower(ResultType& res, RealScalar p) {
   eigen_assert(m_rank + m_nulls == rows());
 
   MatrixPowerAtomic<ComplexMatrix>(m_T.topLeftCorner(m_rank, m_rank), p).compute(blockTp);
-  if (m_nulls) {
-    m_fT.topRightCorner(m_rank, m_nulls) = m_T.topLeftCorner(m_rank, m_rank)
-                                               .template triangularView<Upper>()
-                                               .solve(blockTp * m_T.topRightCorner(m_rank, m_nulls));
+  if (m_nulls && m_rank) {
+    // T^p = [T11^p, T11^(p-1) T12; 0, 0]. With s = min |diag(T11)|, form (s^(1-p) T11^p) T11^(-1) = (T11 / s)^(p-1),
+    // which does not depend on the scale of T, multiply by T12, and divide by s^(1-p) last: T11^p T12 or T11^(p-1)
+    // itself can overflow or underflow when the result does not.
+    using std::pow;
+    const RealScalar scale = pow(m_T.diagonal().head(m_rank).cwiseAbs().minCoeff(), 1 - p);
+    m_fT.topRightCorner(m_rank, m_nulls).noalias() =
+        m_T.topLeftCorner(m_rank, m_rank).template triangularView<Upper>().template solve<OnTheRight>(scale * blockTp) *
+        m_T.topRightCorner(m_rank, m_nulls);
+    m_fT.topRightCorner(m_rank, m_nulls) /= scale;
   }
   revertSchur(m_tmp, m_fT, m_U);
   res = m_tmp * res;
