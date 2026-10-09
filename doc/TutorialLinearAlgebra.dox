@@ -157,7 +157,7 @@ All of these decompositions offer a solve() method that works as in the above ex
 \li \b SVD decompositions (BDCSVD, JacobiSVD) are the most robust but also the slowest, being the sort of persons who must investigate everything and hurry over nothing. Use these when
     you need singular values/vectors, not just the solution.
 \li \b HouseholderQR is the fastest option for full-rank least squares problems, but it does not
-    reveal rank (it is discreet to a fault) and cannot compute minimum-norm solutions for rank-deficient problems.
+    reveal rank (it is prudent to a fault) and cannot compute minimum-norm solutions for rank-deficient problems.
 \li FullPivLU and FullPivHouseholderQR use complete pivoting, which rules out blocking and so makes
     them substantially slower, increasingly so as the matrix grows; they are, in a word, the scrupulous gentlemen who examine every item twice. What it buys -- a smaller growth
     factor for LU, a more reliable rank decision for QR -- rarely repays that cost on its own, so

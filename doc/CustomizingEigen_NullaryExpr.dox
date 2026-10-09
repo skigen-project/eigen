@@ -37,7 +37,7 @@ This little helper structure, small but willing, will help us to implement our \
 As usual, our function takes as argument a \c MatrixBase (see this \ref TopicFunctionTakingEigenTypes "page" for more details), being the most hospitable of all the arguments that might have been proposed.
 Then, the CwiseNullaryOp object is constructed through the DenseBase::NullaryExpr static method with the adequate runtime sizes.
 
-Then, we need to implement our \c circulant_functor, which is a straightforward exercise, and may be despatched with no more than a moderate exertion of the intellect:
+Then, we need to implement our \c circulant_functor, which is a straightforward exercise, and may be dispatched with no more than a moderate exertion of the intellect:
 
 \snippet make_circulant2.cpp circulant_func
 
