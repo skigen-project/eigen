@@ -156,11 +156,15 @@ void testSingularTwoByTwo() {
   VERIFY_IS_APPROX(R * R, A);
 }
 
-// MatrixPower::compute() did not size the result for a 1x1 base.
-void testComputeOneByOne() {
+// MatrixPower::compute() did not size the result for 0x0 and 1x1 bases.
+void testComputeResultSize() {
   MatrixXd a = MatrixXd::Constant(1, 1, 4), r;
   MatrixPower<MatrixXd>(a).compute(r, 0.5);
   VERIFY_IS_APPROX(r, MatrixXd::Constant(1, 1, 2));
+  MatrixXd empty(0, 0);
+  r.setOnes(2, 2);
+  MatrixPower<MatrixXd>(empty).compute(r, 0.5);
+  VERIFY_IS_EQUAL(r.size(), 0);
 }
 
 // An infinite entry used to hang the square-rooting loop for atomic blocks larger than 2x2.
@@ -245,7 +249,7 @@ EIGEN_DECLARE_TEST(matrix_power) {
   CALL_SUBTEST_7(testSingular(Matrix3dRowMajor(), 512 * NumTraits<double>::epsilon()));
   CALL_SUBTEST_3(testSingular(Matrix4cd(), 8 * NumTraits<std::complex<double>>::epsilon()));
   CALL_SUBTEST_4(testSingular(MatrixXd(8, 8), 128 * NumTraits<double>::epsilon()));
-  CALL_SUBTEST_4(testComputeOneByOne());
+  CALL_SUBTEST_4(testComputeResultSize());
   CALL_SUBTEST_1(testSingular(Matrix2f(), 8 * NumTraits<float>::epsilon()));
   CALL_SUBTEST_5(testSingular(Matrix3cf(), 8 * NumTraits<std::complex<float>>::epsilon()));
   CALL_SUBTEST_8(testSingular(Matrix4f(), 256 * NumTraits<float>::epsilon()));

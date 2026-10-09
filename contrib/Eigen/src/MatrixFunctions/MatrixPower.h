@@ -461,6 +461,7 @@ void MatrixPower<MatrixType>::compute(ResultType& res, RealScalar p) {
   using std::pow;
   switch (cols()) {
     case 0:
+      res.resize(0, 0);
       break;
     case 1:
       res.resize(1, 1);
