@@ -883,6 +883,43 @@ void test_ambivector_failed_reallocation() {
   }
   VERIFY_IS_EQUAL(ThrowingScalar::live, live_before);
 }
+
+// An insertion at the front of a list that has filled its capacity must relocate the list first, not write a node
+// past its end. Descending indices make every insertion a front insertion. A write past the end is invisible
+// without a sanitizer, but the relocation it skips is not: it throws here.
+template <typename = void>
+void test_ambivector_front_insertion_relocates() {
+  using ambivector_throwing::ThrowingScalar;
+  typedef internal::AmbiVector<ThrowingScalar, int> AmbiVec;
+  const int live_before = ThrowingScalar::live;
+  {
+    const Index n = 1200;  // a list capacity of a third of n
+    AmbiVec v(n);
+    v.init(IsSparse);
+    v.restart();
+
+    ThrowingScalar::throw_on_relocation = true;
+    Index inserted = 0;
+    bool threw = false;
+    while (!threw && inserted < n / 2) {
+      try {
+        ThrowingScalar& value = v.coeffRef(n - 1 - inserted);
+        value = ThrowingScalar(1);
+        ++inserted;
+      } catch (const ambivector_throwing::scalar_exception&) {
+        threw = true;
+      }
+    }
+    ThrowingScalar::throw_on_relocation = false;
+    VERIFY(threw);
+    VERIFY_IS_EQUAL(v.nonZeros(), inserted);
+
+    v.restart();
+    v.coeffRef(n - 1 - inserted) = ThrowingScalar(2);
+    VERIFY_IS_EQUAL(v.nonZeros(), inserted + 1);
+  }
+  VERIFY_IS_EQUAL(ThrowingScalar::live, live_before);
+}
 #endif  // EIGEN_EXCEPTIONS
 
 // A list that fills its initial capacity must grow before an insertion at its front.
@@ -973,6 +1010,7 @@ EIGEN_DECLARE_TEST(sparse_product) {
 #if defined(EIGEN_EXCEPTIONS)
     CALL_SUBTEST_6((test_ambivector_failed_insertion<>()));
     CALL_SUBTEST_6((test_ambivector_failed_reallocation<>()));
+    CALL_SUBTEST_6((test_ambivector_front_insertion_relocates<>()));
 #endif
   }
 }
