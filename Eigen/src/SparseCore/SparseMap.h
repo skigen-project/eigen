@@ -143,6 +143,18 @@ class SparseMapBase<Derived, ReadOnlyAccessors> : public SparseCompressedBase<De
         m_values(other.m_values),
         m_innerNonZeros(other.m_innerNonZeros) {}
 
+  // Rebinds like the implicit copy assignment did, with the same m_zero_nnz redirect.
+  inline SparseMapBase& operator=(const SparseMapBase& other) {
+    m_outerSize = other.m_outerSize;
+    m_innerSize = other.m_innerSize;
+    m_zero_nnz = other.m_zero_nnz;
+    m_outerIndex = other.m_outerIndex == other.m_zero_nnz.data() ? m_zero_nnz.data() : other.m_outerIndex;
+    m_innerIndices = other.m_innerIndices;
+    m_values = other.m_values;
+    m_innerNonZeros = other.m_innerNonZeros;
+    return *this;
+  }
+
  protected:
   inline SparseMapBase() = default;
 };

@@ -307,6 +307,19 @@ void check_vector_ref_copy() {
   source->~RefType();
   std::memset(static_cast<void *>(&buffer), 0xff, sizeof(buffer));
   VERIFY_IS_EQUAL(copy.sum(), 3.0);
+
+  // The same holds for a copy assignment, which rebinds the target.
+  using MutRefType = Ref<SparseVector<double>>;
+  SparseVector<double> w(5);
+  w.insert(0) = 4;
+  internal::aligned_storage<sizeof(MutRefType), EIGEN_ALIGNOF(MutRefType)>::type mutBuffer;
+  MutRefType *mutSource = ::new (static_cast<void *>(&mutBuffer)) MutRefType(v);
+  MutRefType target(w);
+  target = *mutSource;
+  mutSource->~MutRefType();
+  std::memset(static_cast<void *>(&mutBuffer), 0xff, sizeof(mutBuffer));
+  VERIFY_IS_EQUAL(target.nonZeros(), 2);
+  VERIFY_IS_EQUAL(target.sum(), 3.0);
 }
 
 void call_ref() {
