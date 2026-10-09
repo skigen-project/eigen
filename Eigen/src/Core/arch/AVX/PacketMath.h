@@ -2912,8 +2912,8 @@ inline __m128i segment_mask_8x8(Index begin, Index count) {
   mask <<= (CHAR_BIT / 2) * count;
   mask <<= (CHAR_BIT / 2) * count;
   mask--;
-  mask <<= (CHAR_BIT / 2) * begin;
-  mask <<= (CHAR_BIT / 2) * begin;
+  // begin == 8 only when count == 0, where mask == 0
+  mask <<= CHAR_BIT * (begin & 7);
 #if !EIGEN_ARCH_x86_64
   return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&mask));
 #else
