@@ -28,6 +28,7 @@ inline typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot
       YOU_MIXED_DIFFERENT_NUMERIC_TYPES__YOU_NEED_TO_USE_THE_CAST_METHOD_OF_MATRIXBASE_TO_CAST_NUMERIC_TYPES_EXPLICITLY)
 
   eigen_assert(size() == other.size());
+  if (size() == 0) return Scalar(0);
 
   internal::evaluator<Derived> thisEval(derived());
   typename internal::evaluator<Derived>::InnerIterator i(thisEval, 0);
@@ -57,6 +58,7 @@ inline typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot
       YOU_MIXED_DIFFERENT_NUMERIC_TYPES__YOU_NEED_TO_USE_THE_CAST_METHOD_OF_MATRIXBASE_TO_CAST_NUMERIC_TYPES_EXPLICITLY)
 
   eigen_assert(size() == other.size());
+  if (size() == 0) return Scalar(0);
 
   internal::evaluator<Derived> thisEval(derived());
   typename internal::evaluator<Derived>::InnerIterator i(thisEval, 0);

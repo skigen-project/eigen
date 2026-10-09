@@ -233,6 +233,15 @@ void test_empty_reductions() {
   VERIFY(m.isApprox(m2));
   VERIFY_IS_EQUAL(v.squaredNorm(), 0.0);
   VERIFY_IS_EQUAL(v.dot(VectorXd(0)), 0.0);
+
+  // Empty blocks that cross the outer vectors of a matrix with no outer vectors.
+  SparseMatrix<double> c(3, 0);
+  SparseMatrix<double, RowMajor> r(0, 3);
+  VERIFY_IS_EQUAL(c.row(1).sum(), 0.0);
+  VERIFY_IS_EQUAL(c.row(1).norm(), 0.0);
+  VERIFY_IS_EQUAL(c.row(1).dot(RowVectorXd(0)), 0.0);
+  VERIFY_IS_EQUAL(c.row(1).dot(SparseVector<double, RowMajor>(0)), 0.0);
+  VERIFY_IS_EQUAL(r.col(1).sum(), 0.0);
 }
 
 void test_swap_with_matrix() {
