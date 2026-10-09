@@ -420,7 +420,10 @@ EIGEN_DEVICE_FUNC inline Packet ptrue(const Packet& a) {
   }
   Packet b;
   memset(static_cast<void*>(&b), 0xff, sizeof(Packet));
-  EIGEN_FAST_MATH_CONSTANT_BARRIER(b);
+  // Every backend stores integer packets in integer vector types, which the poison folding does not affect.
+  EIGEN_IF_CONSTEXPR (!NumTraits<typename unpacket_traits<Packet>::type>::IsInteger) {
+    EIGEN_FAST_MATH_CONSTANT_BARRIER(b);
+  }
   return b;
 }
 
