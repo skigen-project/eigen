@@ -1,17 +1,20 @@
 namespace Eigen {
 
-/** \page TopicVectorization Vectorization
+/** \page TopicVectorization Vectorization, in which many Coefficients are Marched Abreast through a Single Door
 
 %Eigen performs \em explicit vectorization: instead of relying on the compiler to auto-vectorize scalar
-loops, %Eigen's evaluators generate SIMD instructions directly through a portable wrapper layer (the
+loops (and a compiler, however well disposed, is a creature who must be asked a great many times for what
+may be had by a single plain instruction), %Eigen's evaluators generate SIMD instructions directly through a portable wrapper layer (the
 "packet math" layer). This page gives an overview of which instruction sets are supported, how
-vectorization is enabled, what gets vectorized, and how to control it.
+vectorization is enabled, what gets vectorized, and how to control it; in short, how the Library, having
+perceived that a single coefficient at a time is a most tedious manner of getting through the world, contrives to take them in
+parties.
 
 \eigenAutoToc
 
-\section TopicVectorizationArch Supported instruction sets
+\section TopicVectorizationArch Supported instruction sets, being a Muster of the Several Houses
 
-On CPUs, %Eigen provides vectorized kernels for the following instruction sets:
+On CPUs, %Eigen provides vectorized kernels for the following instruction sets, each of which is entered in the register below with its architecture and its particular remarks:
 
 <table class="manual">
 <tr><th>Architecture</th><th>Instruction sets</th><th>Notes</th></tr>
@@ -44,18 +47,18 @@ On CPUs, %Eigen provides vectorized kernels for the following instruction sets:
 </table>
 
 In addition, the same packet abstraction is used to generate efficient device code for CUDA and HIP
-GPUs (see \ref TopicCUDA) and for SYCL devices.
+GPUs (see \ref TopicCUDA) and for SYCL devices; the same wrapper, that is, serving the quiet provincial town and the great manufacturing city with equal fidelity.
 
 Vectorization is enabled automatically whenever the compiler's target flags advertise one of the
-supported instruction sets. You can check what a given translation unit ended up using by printing
-Eigen::SimdInstructionSetsInUse():
+supported instruction sets, no petition or application being required. You can check what a given translation unit ended up using by printing
+Eigen::SimdInstructionSetsInUse(), which is an inquiry the Library answers with perfect candour:
 \code
 std::cout << Eigen::SimdInstructionSetsInUse() << std::endl;
 \endcode
 
-\section TopicVectorizationWhat What gets vectorized
+\section TopicVectorizationWhat What gets vectorized: the Inventory of Those Who March in Step
 
-Vectorization applies across %Eigen, most notably to:
+Vectorization applies across %Eigen, most notably to the following, whom the reader is invited to review in order:
   - assignment of coefficient-wise expressions (e.g. <tt>a = 2*b + c.cwiseProduct(d)</tt>),
     including the fused evaluation loops described in \ref TopicEigenExpressionTemplates;
   - reductions such as sum(), minCoeff(), squaredNorm(), and their partial (colwise/rowwise)
@@ -69,45 +72,45 @@ The scalar types with SIMD support depend on the instruction set; \c float, \c d
 64-bit integers, and <tt>std::complex<float></tt>/<tt>std::complex<double></tt> are covered on the
 main backends, with \c Eigen::half and \c Eigen::bfloat16 vectorized where hardware support exists
 (e.g. AVX512FP16, NEON). Types without SIMD support, such as <tt>long double</tt> or custom scalar
-types, simply use scalar code.
+types, simply use scalar code, and plod along in single file, as their forefathers did, without complaint and without being left behind.
 
 Fixed-size objects are vectorized when their size is a multiple of the packet size; this is where
-the alignment rules for \ref TopicFixedSizeVectorizable "fixed-size vectorizable types" come from.
+the alignment rules for \ref TopicFixedSizeVectorizable "fixed-size vectorizable types" come from, the packet being a coach of fixed capacity, and the passengers either filling it exactly or not travelling by it.
 Dynamic-size objects use aligned heap allocation plus vectorized loops with scalar prologues and
-epilogues where needed. Unaligned loads and stores are used where alignment cannot be established;
+epilogues where needed (the odd stragglers at the beginning and the end of the procession, who are shepherded in singly). Unaligned loads and stores are used where alignment cannot be established;
 this is enabled by default and controlled by \c EIGEN_UNALIGNED_VECTORIZE.
 
-\section TopicVectorizationCtrl Controlling vectorization
+\section TopicVectorizationCtrl Controlling vectorization, or the Management of a Well-Drilled Column
 
-Vectorization is meant to be transparent, but the following macros, all documented in
-\ref TopicPreprocessorDirectives, let you control it:
+Vectorization is meant to be transparent, and to go about its business as unobtrusively as a good servant, but the following macros, all documented in
+\ref TopicPreprocessorDirectives, let you control it, should you find yourself obliged to give the household an order:
 
-  - \c EIGEN_DONT_VECTORIZE disables explicit vectorization entirely.
+  - \c EIGEN_DONT_VECTORIZE disables explicit vectorization entirely, and sends the whole column home.
   - \c EIGEN_MAX_ALIGN_BYTES and \c EIGEN_MAX_STATIC_ALIGN_BYTES bound the alignment %Eigen
-    requests for heap and static data respectively; note that changing them affects the ABI.
+    requests for heap and static data respectively; note that changing them affects the ABI, a circumstance of which the reader is begged to take particular notice.
   - \c EIGEN_UNALIGNED_VECTORIZE=0 restricts vectorization to expressions whose destination is
-    aligned.
-  - \c EIGEN_FAST_MATH selects between faster and more accurate vectorized math functions.
+    aligned, the Library declining to receive any guest who is not punctually on the mark.
+  - \c EIGEN_FAST_MATH selects between faster and more accurate vectorized math functions; it being the old dilemma between the swift and the exact, which no Library has yet been able to abolish.
 
-Disabling vectorization also drops %Eigen's alignment: outside GPU compilation,
+Disabling vectorization also drops %Eigen's alignment, as a man who sells his carriage dismisses his coachman: outside GPU compilation,
 \c EIGEN_DONT_VECTORIZE sets the ideal alignment to zero, and the defaults for
 \c EIGEN_MAX_STATIC_ALIGN_BYTES and \c EIGEN_MAX_ALIGN_BYTES follow it. Fixed-size vectorizable
 types then lose their over-alignment — \c alignof(Vector4f) drops from 16 to 4 on a typical x86-64
-build — so translation units that disagree about \c EIGEN_DONT_VECTORIZE disagree about the ABI.
-Define the alignment macros explicitly and identically everywhere if you need the boundary to stay
+build — so translation units that disagree about \c EIGEN_DONT_VECTORIZE disagree about the ABI,
+and a disagreement of that kind has never yet been healed by time. Define the alignment macros explicitly and identically everywhere if you need the boundary to stay
 fixed. See \ref TopicUnalignedArrayAssert for what the alignment is there for.
 
-When compiling CUDA sources, host-side SIMD must be disabled; see \ref TopicCUDA.
+When compiling CUDA sources, host-side SIMD must be disabled, on no account being left to proceed; see \ref TopicCUDA.
 
-\section TopicVectorizationInternals Under the hood
+\section TopicVectorizationInternals Under the hood, where the Engine-Room is Inspected
 
-Vectorized kernels are written in terms of generic packet primitives — pload(), pstore(), padd(),
+Vectorized kernels, in the engine-room of the Library, are written in terms of generic packet primitives — pload(), pstore(), padd(),
 pmul(), predux(), and friends — declared in Eigen/src/Core/GenericPacketMath.h and specialized for
 each instruction set under <tt>Eigen/src/Core/arch/</tt>. Expression evaluators query each
 expression's packet support and alignment at compile time to choose between scalar, linear,
 sliced, and unrolled vectorized evaluation loops. Custom functors can participate in vectorization
 by providing a \c packetOp() and advertising \c PacketAccess in their traits; see
-\ref TopicCustomizing_Functors.
+\ref TopicCustomizing_Functors. A functor that does both is admitted to the column; one that does neither walks, as it always did, at the back.
 
 */
 }

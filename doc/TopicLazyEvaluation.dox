@@ -1,8 +1,9 @@
 namespace Eigen {
 
-/** \page TopicLazyEvaluation Lazy Evaluation and Aliasing
+/** \page TopicLazyEvaluation Lazy Evaluation and Aliasing, or the Virtue of Putting Off Until Tomorrow What Need Not Be Done Today
 
-Executive summary: %Eigen has intelligent compile-time mechanisms to enable lazy evaluation and removing temporaries where appropriate.
+Executive summary: %Eigen has intelligent compile-time mechanisms to enable lazy evaluation and removing temporaries where appropriate;
+mechanisms which may be compared to a prudent steward, who will do no work that the estate does not require, nor leave undone any that it does.
 It will handle aliasing automatically in most cases, for example with matrix products. The automatic behavior can be overridden
 manually by using the MatrixBase::eval() and MatrixBase::noalias() methods.
 
@@ -11,22 +12,22 @@ When you write a line of code involving a complex expression such as
 \code mat1 = mat2 + mat3 * (mat4 + mat5);
 \endcode
 
-%Eigen determines automatically, for each sub-expression, whether to evaluate it into a temporary variable. Indeed, in certain cases it is better to evaluate a sub-expression into a temporary variable, while in other cases it is better to avoid that.
+%Eigen determines automatically, for each sub-expression, whether to evaluate it into a temporary variable. Indeed, in certain cases it is better to evaluate a sub-expression into a temporary variable, while in other cases it is better to avoid that; and the whole art of the matter lies in knowing which case one has the honor to be dealing with.
 
-A traditional math library without expression templates always evaluates all sub-expressions into temporaries. So with this code,
+A traditional math library without expression templates always evaluates all sub-expressions into temporaries, as a nervous clerk will copy out every paper three times for fear of losing one. So with this code,
 
 \code vec1 = vec2 + vec3;
 \endcode
 
-a traditional library would evaluate \c vec2 + vec3 into a temporary \c vec4 and then copy \c vec4  into \c vec1. This is of course inefficient: the arrays are traversed twice, so there are a lot of useless load/store operations.
+a traditional library would evaluate \c vec2 + vec3 into a temporary \c vec4 and then copy \c vec4  into \c vec1. This is of course inefficient: the arrays are traversed twice, so there are a lot of useless load/store operations, and the memory bus is made to carry the same parcel to the same door and back again.
 
 Expression-templates-based libraries can avoid evaluating sub-expressions into temporaries, which in many cases results in large speed improvements.
-This is called <i>lazy evaluation</i> as an expression is getting evaluated as late as possible.
+This is called <i>lazy evaluation</i> as an expression is getting evaluated as late as possible, like a gentleman who will not rise until the last moment at which rising can be made to answer.
 In %Eigen <b>all expressions are lazy-evaluated</b>.
 More precisely, an expression starts to be evaluated once it is assigned to a matrix.
-Until then nothing happens beyond constructing the abstract expression tree.
+Until then nothing happens beyond constructing the abstract expression tree; the plan is drawn, the clerks are assembled, and not a pen has yet been dipped in ink.
 In contrast to most other expression-templates-based libraries, however, <b>%Eigen might choose to evaluate some sub-expressions into temporaries</b>.
-There are two reasons for that: first, pure lazy evaluation is not always a good choice for performance; second, pure lazy evaluation can be very dangerous, for example with matrix products: doing <tt>mat = mat*mat</tt> gives a wrong result if the matrix product is directly evaluated within the destination matrix, because of the way matrix product works.
+There are two reasons for that: first, pure lazy evaluation is not always a good choice for performance; second, pure lazy evaluation can be very dangerous, for example with matrix products: doing <tt>mat = mat*mat</tt> gives a wrong result if the matrix product is directly evaluated within the destination matrix, because of the way matrix product works, the destination being overwritten whilst the operands are yet being read, like a man who should burn the pages of a ledger as he consults them.
 
 For these reasons, %Eigen has intelligent compile-time mechanisms to determine automatically which sub-expression should be evaluated into a temporary variable.
 
@@ -46,9 +47,9 @@ Here is now a more involved example:
 \code mat1 = -mat2 + mat3 + 5 * mat4;
 \endcode
 
-Here again %Eigen won't introduce any temporary, thus producing a single <b>fused</b> evaluation loop, which is clearly the correct choice.
+Here again %Eigen won't introduce any temporary, thus producing a single <b>fused</b> evaluation loop, which is clearly the correct choice, and which the reader will approve upon the least reflection.
 
-\section TopicLazyEvaluationWhichExpr Which sub-expressions are evaluated into temporaries?
+\section TopicLazyEvaluationWhichExpr Which sub-expressions are evaluated into temporaries? An Inquiry Conducted With Some Rigor
 
 The default evaluation strategy is to fuse the operations in a single loop, and %Eigen will choose it except in a few circumstances.
 
@@ -59,8 +60,8 @@ The most important example of such an expression is the \link Product matrix pro
 \endcode
 
 %Eigen will evaluate <tt>mat * mat</tt> into a temporary matrix, and then copy it into the original \c mat.
-This guarantees a correct result as we saw above that lazy evaluation gives wrong results with matrix products.
-It also doesn't cost much, as the cost of the matrix product itself is much higher.
+This guarantees a correct result, as we saw above that lazy evaluation gives wrong results with matrix products.
+It also doesn't cost much, as the cost of the matrix product itself is much higher; the price of the cautious lodging being trifling beside that of the journey.
 Note that this temporary is introduced at evaluation time only, that is, within operator= in this example.
 The expression <tt>mat * mat</tt> still returns an abstract product type.
 
@@ -69,7 +70,7 @@ What if you know that the result does not alias the operand of the product and w
 \code mat1.noalias() = mat2 * mat2;
 \endcode
 
-Here, since we know that mat2 is not the same matrix as mat1, we know that lazy evaluation is not dangerous, so we may force lazy evaluation. Concretely, the effect of noalias() here is to let the product be evaluated directly into \c mat1 instead of going through a temporary.
+Here, since we know that mat2 is not the same matrix as mat1, we know that lazy evaluation is not dangerous, so we may force lazy evaluation. Concretely, the effect of noalias() here is to let the product be evaluated directly into \c mat1 instead of going through a temporary. The reader is reminded, however, that noalias() is a promise and not an inspection; and that a promise broken here yields a Chancery suit of the worst description, which has been known to outlast both the plaintiff and the program.
 
 <b>The second circumstance</b> in which %Eigen chooses to evaluate a sub-expression, is when it sees a nested expression such as <tt>a + b</tt> where \c b is already an expression having the evaluate-before-nesting flag (\c EvalBeforeNestingBit).
 Again, the most important example of such an expression is the \link Product matrix product expression\endlink.
@@ -90,7 +91,7 @@ Indeed, in certain cases, an intermediate result is sufficiently costly to compu
 \code mat1 = mat2 * (mat3 + mat4);
 \endcode
 
-Here, provided the matrices have at least 2 rows and 2 columns, each coefficient of the expression <tt>mat3 + mat4</tt> is going to be used several times in the matrix product. Instead of computing the sum every time, it is much better to compute it once and store it in a temporary variable. %Eigen understands this and evaluates <tt>mat3 + mat4</tt> into a temporary variable before evaluating the product.
+Here, provided the matrices have at least 2 rows and 2 columns, each coefficient of the expression <tt>mat3 + mat4</tt> is going to be used several times in the matrix product. Instead of computing the sum every time, it is much better to compute it once and store it in a temporary variable, as a thrifty housekeeper will reckon up the weekly bills once and not at every tradesman's knock. %Eigen understands this and evaluates <tt>mat3 + mat4</tt> into a temporary variable before evaluating the product.
 
 */
 

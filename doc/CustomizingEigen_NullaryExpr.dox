@@ -1,16 +1,16 @@
 namespace Eigen {
 
-/** \page TopicCustomizing_NullaryExpr Matrix manipulation via nullary-expressions
+/** \page TopicCustomizing_NullaryExpr Matrix manipulation via nullary-expressions, or Much Accomplished upon Very Little
 
 
-The main purpose of the class CwiseNullaryOp is to define \em procedural matrices such as constant or random matrices as returned by the Ones(), Zero(), Constant(), Identity() and Random() methods.
-Nevertheless, with some imagination it is possible to accomplish very sophisticated matrix manipulation with minimal efforts such that \ref TopicNewExpressionType "implementing new expression" is rarely needed.
+The main purpose of the class CwiseNullaryOp is to define \em procedural matrices such as constant or random matrices as returned by the Ones(), Zero(), Constant(), Identity() and Random() methods; matrices, that is, which own no coefficients at all, but manufacture each upon demand, like a conjuror who produces handkerchiefs from an empty hat.
+Nevertheless, with some imagination (a commodity of which the gentle reader, it is hoped, has laid in a fair stock) it is possible to accomplish very sophisticated matrix manipulation with minimal efforts such that \ref TopicNewExpressionType "implementing new expression" is rarely needed.
 
-\section NullaryExpr_Circulant Example 1: circulant matrix
+\section NullaryExpr_Circulant Example 1: circulant matrix, whose Columns Go Round and Round
 
 To explore these possibilities let us start with the  \em circulant example of the \ref TopicNewExpressionType "implementing new expression" topic.
 Let us recall that a circulant matrix is a matrix where each column is the same as the
-column to the left, except that it is cyclically shifted downwards.
+column to the left, except that it is cyclically shifted downwards; each, as it were, being its neighbour's very image, with the bottom coefficient carried round to the top like a man who has walked off the end of a staircase and found himself at the head of it again.
 For example, here is a 4-by-4 circulant matrix:
 \f[ \begin{bmatrix}
     1 & 8 & 4 & 2 \\
@@ -18,69 +18,69 @@ For example, here is a 4-by-4 circulant matrix:
     4 & 2 & 1 & 8 \\
     8 & 4 & 2 & 1
 \end{bmatrix} \f]
-A circulant matrix is uniquely determined by its first column. We wish
+A circulant matrix is uniquely determined by its first column, the remaining columns being, in a manner of speaking, only the first in a succession of disguises. We wish
 to write a function \c makeCirculant which, given the first column,
 returns an expression representing the circulant matrix.
 
-For this exercise, the return type of \c makeCirculant will be a CwiseNullaryOp that we need to instantiate with:
+For this exercise, the return type of \c makeCirculant will be a CwiseNullaryOp that we need to instantiate with the following two articles, neither of which can be dispensed with:
 1 - a proper \c circulant_functor storing the input vector and implementing the adequate coefficient accessor \c operator(i,j)
 2 - a template instantiation of class Matrix conveying compile-time information such as the scalar type, sizes, and preferred storage layout.
 
-Calling \c ArgType the type of the input vector, we can construct the equivalent squared Matrix type as follows:
+Calling \c ArgType the type of the input vector, we can construct the equivalent squared Matrix type (the square being, in this instance, the only respectable shape for a circulant) as follows:
 
 \snippet make_circulant2.cpp square
 
-This little helper structure will help us to implement our \c makeCirculant function as follows:
+This little helper structure, small but willing, will help us to implement our \c makeCirculant function as follows:
 
 \snippet make_circulant2.cpp makeCirculant
 
-As usual, our function takes as argument a \c MatrixBase (see this \ref TopicFunctionTakingEigenTypes "page" for more details).
+As usual, our function takes as argument a \c MatrixBase (see this \ref TopicFunctionTakingEigenTypes "page" for more details), being the most hospitable of all the arguments that might have been proposed.
 Then, the CwiseNullaryOp object is constructed through the DenseBase::NullaryExpr static method with the adequate runtime sizes.
 
-Then, we need to implement our \c circulant_functor, which is a straightforward exercise:
+Then, we need to implement our \c circulant_functor, which is a straightforward exercise, and may be despatched with no more than a moderate exertion of the intellect:
 
 \snippet make_circulant2.cpp circulant_func
 
-We are now all set to try our new feature:
+We are now all set, our trunks being corded and our tickets in our pockets, to try our new feature:
 
 \snippet make_circulant2.cpp main
 
 
 If all the fragments are combined, the following output is produced,
-showing that the program works as expected:
+showing that the program works as expected, to the lasting credit of all concerned:
 
 \include make_circulant2.out
 
-This implementation of \c makeCirculant is much simpler than \ref TopicNewExpressionType "defining a new expression" from scratch.
+This implementation of \c makeCirculant is much simpler than \ref TopicNewExpressionType "defining a new expression" from scratch, which is a labour akin to building a coach before one may so much as drive to market.
 
 
-\section NullaryExpr_Indexing Example 2: indexing rows and columns
+\section NullaryExpr_Indexing Example 2: indexing rows and columns, or the Art of Picking and Choosing
 
 \note Since %Eigen 3.4, indexing a matrix with arrays of row and column indices is directly supported
 through \c operator(), see \ref TutorialSlicingIndexing. The example below remains instructive as a
-demonstration of what can be built from nullary expressions.
+demonstration of what can be built from nullary expressions, in the way that an old coach, long since superseded by the railway, remains instructive to the student of carriage-building.
 
-The goal here is to mimic MatLab's ability to index a matrix through two vectors of indices referencing the rows and columns to be picked respectively, like this:
+The goal here is to mimic MatLab's ability to index a matrix through two vectors of indices referencing the rows and columns to be picked respectively (that is, to select from the matrix, with a fastidious finger, only those rows and only those columns which are wanted), like this:
 
 \snippet nullary_indexing.out main1
 
-To this end, let us first write a nullary-functor storing references to the input matrix and to the two arrays of indices, and implementing the required \c operator()(i,j):
+To this end, let us first write a nullary-functor storing references to the input matrix and to the two arrays of indices (it holds no coefficients of its own, but only the references, as a clerk holds the keys to a strong-room which is not his), and implementing the required \c operator()(i,j):
 
 \snippet nullary_indexing.cpp functor
 
-Then, let's create an \c indexing(A,rows,cols) function creating the nullary expression:
+Then, let's create an \c indexing(A,rows,cols) function creating the nullary expression, which is the functor's public face and presentable at any door:
 
 \snippet nullary_indexing.cpp function
 
-Finally, here is an example of how this function can be used:
+Finally, here is an example of how this function can be used, and the reader will, it is to be hoped, forgive the brevity of it:
 
 \snippet nullary_indexing.cpp main1
 
-This straightforward implementation is already quite powerful as the row or column index arrays can also be expressions to perform offsetting, modulo, striding, reverse, etc.
+This straightforward implementation is already quite powerful as the row or column index arrays can also be expressions to perform offsetting, modulo, striding, reverse, etc.; so that a plain and unassuming little function is found, upon acquaintance, to have a great deal more in it than its appearance promised.
 
 \snippet nullary_indexing.cpp main2
 
-and the output is:
+and the output, which may be compared with the expectations of the reader, is:
 
 \snippet nullary_indexing.out main2
 

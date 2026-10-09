@@ -3,8 +3,8 @@
 
 namespace Eigen {
 
-/** \page UserManual_CustomizingEigen Extending/Customizing Eigen
-  %Eigen can be extended in several ways, for instance, by defining global methods, by inserting custom methods within main %Eigen's classes through the \ref TopicCustomizing_Plugins "plugin" mechanism, by adding support to \ref TopicCustomizing_CustomScalar "custom scalar types" etc. See below for the respective sub-topics.
+/** \page UserManual_CustomizingEigen Extending/Customizing Eigen, for Those Who Cannot Leave Well Alone
+  %Eigen can be extended in several ways, for instance, by defining global methods, by inserting custom methods within the main %Eigen classes through the \ref TopicCustomizing_Plugins "plugin" mechanism, by adding support to \ref TopicCustomizing_CustomScalar "custom scalar types" and so forth, as the ingenuity or the obstinacy of the reader may dictate. See below for the respective sub-topics, each of which awaits the visitor with its own particular welcome.
   - \subpage TopicCustomizing_Plugins
   - \subpage TopicCustomizing_InheritingMatrix
   - \subpage TopicCustomizing_CustomScalar
@@ -15,7 +15,7 @@ namespace Eigen {
 */
 
 
-/** \page UserManual_Generalities General topics
+/** \page UserManual_Generalities General topics, Being a Miscellany of Matters Which Concern Everybody
   - \subpage TopicFunctionTakingEigenTypes
   - \subpage TopicScalarTypes
   - \subpage TopicVectorization
@@ -34,7 +34,7 @@ namespace Eigen {
   - \subpage TopicCMakeGuide
 */
 
-/** \page UserManual_UnderstandingEigen Understanding Eigen
+/** \page UserManual_UnderstandingEigen Understanding Eigen, or a Visit Behind the Scenes
   - \subpage TopicEigenExpressionTemplates
   - \subpage TopicInsideEigenExample
   - \subpage TopicClassHierarchy
@@ -42,11 +42,11 @@ namespace Eigen {
 */
 
 /** \defgroup Support_modules Support modules
-  * Category of modules which add support for external libraries.
+  * Category of modules which add support for external libraries; foreign correspondents, as it were, of the %Eigen house.
   */
 
 
-/** \defgroup DenseMatrixManipulation_chapter Dense matrix and array manipulation */
+/** \defgroup DenseMatrixManipulation_chapter Dense matrix and array manipulation, Being the First and Fundamental Chapter */
 /** \defgroup DenseMatrixManipulation_Alignement Alignment issues */
 /** \defgroup DenseMatrixManipulation_Reference Reference */
 
@@ -108,7 +108,7 @@ namespace Eigen {
     \ingroup DenseMatrixManipulation_chapter */
 
 
-/** \defgroup DenseLinearSolvers_chapter Dense linear problems and decompositions */
+/** \defgroup DenseLinearSolvers_chapter Dense linear problems and decompositions, Being the Chapter of Solutions */
 /** \defgroup DenseLinearSolvers_Reference Reference */
 
 /** \addtogroup TutorialLinearAlgebra
@@ -138,7 +138,7 @@ namespace Eigen {
 
 
 
-/** \defgroup Sparse_chapter Sparse linear algebra */
+/** \defgroup Sparse_chapter Sparse linear algebra, Wherein Most of the Entries Are Happily Absent */
 /** \defgroup Sparse_Reference Reference */
 
 /** \addtogroup TutorialSparse
@@ -171,7 +171,7 @@ namespace Eigen {
     \ingroup Sparse_chapter */
 
 
-/** \defgroup Geometry_chapter Geometry */
+/** \defgroup Geometry_chapter Geometry, Concerning Points, Rotations, and Other Persons of Position */
 /** \defgroup Geometry_Reference Reference */
 
 /** \addtogroup TutorialGeometry
@@ -184,6 +184,6 @@ namespace Eigen {
 /** \addtogroup Splines_Module
     \ingroup Geometry_Reference */
 
-/** \internal \brief Namespace containing low-level routines from the %Eigen library. */
+/** \internal \brief Namespace containing the low-level routines of the %Eigen library, the machinery below stairs, which the gentle reader is not generally expected to visit. */
 namespace internal {}
 }

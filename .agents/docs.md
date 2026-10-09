@@ -1,20 +1,21 @@
-# Documentation
+# Documentation: Wherein the Student Is Instructed in the Keeping of the Library's Records
 
 Use this guide when editing a Doxygen block, a page under [`doc/`](../doc), a snippet or example, or a documented public
 name. The documentation consists of the Doxygen comments in the headers, the topic pages in `doc/*.dox`, and the
 programs under [`doc/snippets`](../doc/snippets), [`doc/examples`](../doc/examples) and their `contrib/doc`
 counterparts. The `doc` target compiles and runs those programs, and the pages embed their output. Keep the Doxygen
-block above a changed declaration describing the current behavior, preconditions, and return value. When a module
+block above a changed declaration describing the current behavior, preconditions, and return value; a record that has ceased to describe its subject is worse than none, being a false witness with an air of authority. When a module
 `README` names a value that the change alters, update the `README` too.
 
-## The Blocking Job
+## The Blocking Job, or, the Tollgate in the Dark
 
 The documentation job is blocking and easy to miss. Unlike the clang-format, codespell, and clang-tidy jobs,
 `build:linux:docs` in [`ci/build.linux.gitlab-ci.yml`](../ci/build.linux.gitlab-ci.yml) is not `allow_failure`.
-[`doc/Doxyfile.in`](../doc/Doxyfile.in) sets `WARN_AS_ERROR = FAIL_ON_WARNINGS_PRINT`, so one Doxygen warning fails it.
+[`doc/Doxyfile.in`](../doc/Doxyfile.in) sets `WARN_AS_ERROR = FAIL_ON_WARNINGS_PRINT`, so one Doxygen warning fails it;
+a single warning, however small and however respectably dressed, being sufficient to detain the entire coach.
 The job does not run in the default merge-request pipeline. It runs on schedules, web pipelines, a merge request
 labeled `docs-build` or `all-tests`, and a push to the default branch. A malformed `\ref` can therefore pass review
-with green CI and then break the pipeline on `master` after the merge.
+with green CI and then break the pipeline on `master` after the merge, like a bad coin that passes through a dozen honest hands and is discovered only at the bank.
 
 For changes to Doxygen markup, a cross-reference target, a documented name, a module `README`, or a snippet, apply
 `docs-build`. That label runs only this job and leaves the test tier unchanged, so it can be combined with
@@ -28,13 +29,13 @@ add it for that purpose. Add it only with the user's explicit permission for tha
 The recurring authoring mistake is trailing punctuation that Doxygen reads as part of a cross-reference. A colon
 directly after `\ref name` becomes part of the symbol Doxygen tries to resolve, so `\ref adjoint: the ...` fails while
 `\ref adjoint. The ...` resolves. Separate a reference from following prose with a space, comma, or period. Punctuation
-inside the name itself is fine: `\ref MatrixBase::cross()` is a qualified symbol, not a colon attached to a name.
+inside the name itself is fine: `\ref MatrixBase::cross()` is a qualified symbol, not a colon attached to a name. Such is the pedantry of the machine, which will on no account permit a colon to loiter beside a name it is attempting to look up.
 
 A second way to break the job without editing a comment is to insert a declaration between a Doxygen block and the
 entity it describes. A block without a structural command (`\class`, `\fn`, `\ingroup`, ...) documents whatever
 declaration follows it. When that declaration is `namespace internal {`, the whole `Eigen::internal` namespace becomes
 documented. Every internal doc block then enters the output, and any `\param` mismatch hidden in those blocks fails
-the build far from the edit. For example, commit 8f8d4ed4c placed helper structs under the `Transform::rotate` block,
+the build far from the edit; the culprit being, as in all the best mysteries, at the opposite end of the town from the crime. For example, commit 8f8d4ed4c placed helper structs under the `Transform::rotate` block,
 which exposed a stale `\param` in `GMRES.h`. After inserting code near a doc block, confirm the block still directly
 precedes its declaration. If the Doxygen log prints `Generating docs for namespace Eigen::internal`, some block now
 documents that namespace instead of its own declaration.
@@ -54,9 +55,9 @@ name, search those directories: a renamed or removed name breaks the documentati
 well formed. Only the *configured* programs are built. For example, `contrib/doc/examples/CMakeLists.txt` adds its
 `SYCL` subdirectory only when `EIGEN_TEST_SYCL` is set. `build:linux:docs` does not set it, so the job stays green when
 a contrib SYCL example is broken. The target covers only the sets the configuration enables; check the CMake condition
-before citing it as coverage.
+before citing it as coverage, for a guard who inspects only the rooms he has been given the keys to will report, with perfect honesty, that the house is secure.
 
-## Building Locally
+## Building Locally, by One's Own Fireside
 
 `EIGEN_BUILD_DOC` defaults on for a top-level, non-cross-compiling configuration, but `doc` is excluded from `all` and
 must be named:

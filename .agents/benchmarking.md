@@ -1,9 +1,10 @@
-# Benchmarking
+# Benchmarking, or the Honest Weighing of Speed in a Dishonest World
 
-Use this guide for performance-sensitive changes and benchmark reviews. Back a performance claim with a benchmark that
-ships in the same merge request. Correctness tests still ship separately from the benchmark. Run them before timing.
+Consult this guide for performance-sensitive changes and benchmark reviews. Back every performance claim with a
+benchmark that ships in the same merge request, a claim without one being no better than a rumor at a country inn.
+Correctness tests still ship separately from the benchmark, and must be run before any timing is taken.
 
-## Performance Hypothesis
+## Performance Hypothesis, in which the Reader is Persuaded to Think before he Measures
 
 Performance-critical changes should start from an explicit hypothesis about what limits performance and how the
 proposed change reduces that cost. Ground the hypothesis in a cost model appropriate to the operation, considering
@@ -17,9 +18,10 @@ A lightweight model is often sufficient:
 For this example, assembly analysis can check whether those accesses disappear, while benchmarks test whether the
 reduction improves performance at the relevant sizes. Check the model's assumptions, including whether bandwidth
 limits the operation, whether the compiler already eliminates the temporary, and how the working set fits in cache.
-Scale the analysis to the change; a formal model is not required for every contribution.
+Scale the analysis to the change; a formal model is not required for every contribution, and a modest alteration
+need not be attended by a Royal Commission.
 
-## Projects and Builds
+## Projects and Builds, being a Short Itinerary of the Roads to the Benchmark
 
 The supported and contrib benchmark trees are separate, standalone CMake projects. They are not part of Eigen's
 main test build and both require Google Benchmark:
@@ -41,10 +43,10 @@ Consult [`benchmarks/CMakeLists.txt`](../benchmarks/CMakeLists.txt) and
 [`contrib/benchmarks/CMakeLists.txt`](../contrib/benchmarks/CMakeLists.txt) for current targets and compile
 settings. CUDA benchmarks also have a standalone project and instructions in
 [`contrib/benchmarks/GPU/CMakeLists.txt`](../contrib/benchmarks/GPU/CMakeLists.txt). No CI job builds or runs
-benchmarks, so CI checks neither that a benchmark compiles nor that a performance claim holds. Build and run the
-benchmark locally. Report the measurement conditions this guide requires.
+benchmarks, so CI checks neither that a benchmark compiles nor that a performance claim holds; nobody is keeping watch
+at that gate. Build and run the benchmark locally. Report the measurement conditions this guide requires.
 
-### GPU kernel benchmarks
+### GPU kernel benchmarks, a Digression Concerning the Graphical Provinces
 
 `benchmarks/GPU/` times the kernels Eigen generates for `GpuDevice` (elementwise expressions, launch overhead,
 reductions, contractions and allocation) against hand-written kernels and vendor baselines. It is part of the supported
@@ -71,22 +73,23 @@ cost of the host API. The `host_us_per_launch` counter is the host-side cost of 
 their results against a reference outside the timed loop.
 
 With every number you report, quote the `GPU:` line the binary prints (it is also in the JSON context). Say whether
-the clocks were locked; a laptop under WSL2 cannot lock them.
+the clocks were locked; a laptop under WSL2 cannot lock them, being in this respect a creature of unalterable habits.
 
-## Adding A Benchmark
+## Adding A Benchmark, wherein a New Candidate is Admitted to the Scales
 
 Put each benchmark family in its own translation unit, `bench_<topic>.cpp` in the module directory
 (`benchmarks/LU/bench_lu.cpp`). Register it in the `CMakeLists.txt` beside it with
 `eigen_add_benchmark(<target> <source> [LIBRARIES ...] [DEFINITIONS ...])`, which links `benchmark_main`, compiles at
 `-O3` with `NDEBUG`, and takes the include path from the tree. Do not merge families into one file: combining them
-changes the code layout, and that alone has shifted timings of unchanged kernels by tens of percent.
+changes the code layout, and that alone has shifted timings of unchanged kernels by tens of percent, which is to say
+that a family housed under one roof will quarrel with its neighbors over the very floorboards.
 
 For a multi-threaded benchmark, call `UseRealTime()` on the registration to measure elapsed time. The default CPU
 timer measures only the main thread and misses the worker threads. When total CPU consumption is also needed, add
 `MeasureProcessCPUTime()`, which includes those workers. See Google Benchmark's
 [CPU timers](https://google.github.io/benchmark/user_guide.html#cpu-timers).
 
-## Benchmark Design
+## Benchmark Design, or Principles for the Construction of an Honest Trial
 
 - Benchmark the user-visible operation affected by the change, with representative scalar types, sizes, shapes,
   storage layouts, sparsity, and thread counts. Include transition sizes where a kernel or blocking strategy changes.
@@ -96,13 +99,14 @@ timer measures only the main thread and misses the worker threads. When total CP
   reported rate.
 - Keep allocation, input generation, validation, and unrelated setup outside the timed region. Prevent dead-code
   elimination with Google Benchmark's `DoNotOptimize` and `ClobberMemory` where appropriate.
-- Validate results outside the measured loop. A faster incorrect kernel is not a useful result.
+- Validate results outside the measured loop. A faster incorrect kernel is not a useful result; the swiftest
+  messenger in the kingdom is of small service if he delivers the wrong letter.
 - Use enough work per iteration to dominate timer noise without hiding important small-problem behavior. Report
   meaningful rates or byte/operation counters when they improve interpretation.
 - Compare the change against the relevant baseline with identical compiler, optimization, ISA, dependency, and
   benchmark arguments. Record the commit, hardware, compiler, flags, and command needed to reproduce the result.
 
-## Argument Grids
+## Argument Grids, being a Brief Account of the Orderly Arrangement of Sizes
 
 Express static grids declaratively on the registration:
 
@@ -111,13 +115,15 @@ Express static grids declaratively on the registration:
 - `ArgsProduct({{...}, {...}})` for Cartesian products.
 
 Do not use `Apply()`. Its callback takes a `benchmark::internal::Benchmark*`, a library-internal name that benchmark
-sources must not reference. A grid that seems to need `Apply()` can be written by listing its points with
-`ArgsProduct` or `Args`, or by registering several benchmarks.
+sources must not reference, since it belongs to the private apartments of that library and no visitor has been invited
+there. A grid that seems to need `Apply()` can be written by listing its points with `ArgsProduct` or `Args`, or by
+registering several benchmarks.
 
-## Running Measurements
+## Running Measurements, or the Conduct of the Trial itself, in Five Particulars
 
 1. Check `uptime` and stop or finish competing builds and compute-heavy work. Run only one benchmark process at a
-   time; concurrent benchmarks invalidate both measurements.
+   time; concurrent benchmarks invalidate both measurements, as two witnesses who speak at once are understood by
+   nobody.
 2. Keep the machine, CPU affinity, power/governor policy, thermal state, compiler, flags, ISA, and dependencies as
    constant as practical. Disclose anything that could not be controlled.
 3. Use multiple repetitions, for example `--benchmark_repetitions=10`. Retain the raw results. Compare medians plus a
@@ -136,7 +142,7 @@ performance claim; an unqualified ratio from a loaded host is not.
 Never infer a general speedup from one convenient size or one warm run. State the tested domain. Include regressions
 as well as improvements. Keep numerical accuracy results separate from performance measurements.
 
-## Supporting Performance Evidence
+## Supporting Performance Evidence, in which Two Further Witnesses are Called to Corroborate the First
 
 A good merge request connects the hypothesis, the code change, and supporting evidence. Benchmark measurements
 establish the observed performance effect. Callgrind counts, assembly analysis, or both help test whether the change

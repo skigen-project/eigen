@@ -1,17 +1,17 @@
 namespace Eigen {
 
-/** \eigenManualPage TutorialSTL STL iterators and algorithms
+/** \eigenManualPage TutorialSTL In Which the Reader Is Conducted Through the STL, Among Its Iterators and Algorithms
 
-Since the version 3.4, %Eigen's dense matrices and arrays provide STL compatible iterators.
-As demonstrated below, this makes them naturally compatible with range-for-loops and STL's algorithms.
+Ever since the version 3.4 (a happy date, which the student of this Library will do well to remember), %Eigen's dense matrices and arrays have furnished STL compatible iterators,
+and, as demonstrated below, this renders them naturally compatible, without any introduction or ceremony, with range-for-loops and with the whole respectable company of STL's algorithms.
 
 \eigenAutoToc
 
-\section TutorialSTLVectors Iterating over 1D arrays and vectors 
+\section TutorialSTLVectors Iterating over 1D arrays and vectors, being the Simplest Case 
 
-Any dense 1D expression exposes the pair of `begin()/end()` methods to iterate over it.
+Any dense 1D expression exposes, like a pair of lodge gates, the `begin()/end()` methods, by which the visitor may walk over it from one end to the other.
 
-This directly enables range for loops:
+This at once admits the range for loops, which may stroll through without further formality:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>
@@ -21,7 +21,7 @@ This directly enables range for loops:
 \verbinclude Tutorial_range_for_loop_1d.out
 </td></tr></table>
 
-One dimensional expressions can also easily be passed to STL algorithms:
+One dimensional expressions can likewise be handed, with perfect ease, to the STL algorithms, who receive them as old acquaintances:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>
@@ -31,13 +31,13 @@ One dimensional expressions can also easily be passed to STL algorithms:
 \verbinclude Tutorial_std_sort.out
 </td></tr></table>
 
-Similar to `std::vector`, 1D expressions also expose the pair of `cbegin()/cend()` methods to conveniently get const iterators on non-const objects.
+In imitation of `std::vector`, 1D expressions further expose the pair of `cbegin()/cend()` methods, whereby the traveller may conveniently obtain const iterators upon objects that are not themselves const, and so look without any danger of touching.
 
-\section TutorialSTLMatrices Iterating over coefficients of 2D arrays and matrices
+\section TutorialSTLMatrices Iterating over coefficients of 2D arrays and matrices, a Matter of Some Delicacy
 
-STL iterators are intrinsically designed to iterate over 1D structures.
-This is why `begin()/end()` methods are disabled for 2D expressions.
-Iterating over all coefficients of a 2D expressions is still easily accomplished by creating a 1D linear view through `reshaped()`:
+STL iterators are, by their very constitution and from the cradle, designed to iterate over 1D structures, being persons who know a straight road and no other.
+This is why the `begin()/end()` methods are disabled for 2D expressions; the gates, in that quarter, are locked.
+Iterating over all the coefficients of a 2D expression is nevertheless easily accomplished, by the simple expedient of unrolling the grid into a 1D linear view through `reshaped()`:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>
@@ -47,11 +47,11 @@ Iterating over all coefficients of a 2D expressions is still easily accomplished
 \verbinclude Tutorial_range_for_loop_2d.out
 </td></tr></table>
 
-\section TutorialSTLRowsColumns Iterating over rows or columns of 2D arrays and matrices
+\section TutorialSTLRowsColumns Iterating over rows or columns of 2D arrays and matrices, by Whole Families at a Time
 
-It is also possible to get iterators over rows or columns of 2D expressions.
-Those are available through the `rowwise()` and `colwise()` proxies.
-Here is an example sorting each row of a matrix:
+It is also possible to procure iterators over entire rows or columns of 2D expressions, which are then visited as whole families, not as single members.
+These are available through the `rowwise()` and `colwise()` proxies.
+Here is an example sorting each row of a matrix, in which every row is set in order, and not one is suffered to remain in confusion:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>

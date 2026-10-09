@@ -1,54 +1,54 @@
 namespace Eigen {
 
-/** \page GettingStarted Getting started
+/** \page GettingStarted Getting started, Wherein the Newcomer Is Received and Set Upon His Way
 
 \eigenAutoToc
 
-This is a very short guide on how to get started with Eigen. It has a dual purpose. It serves as a minimal introduction to the Eigen library for people who want to start coding as soon as possible. You can also read this page as the first part of the Tutorial, which explains the library in more detail; in this case you will continue with \ref TutorialMatrixClass.
+This is a very short guide on how to get started with Eigen, and the reader who has been alarmed by the length of the neighboring volumes may take heart. It has a dual purpose. It serves as a minimal introduction to the Eigen library for people who want to start coding as soon as possible, and who will not be kept waiting in the hall. You can also read this page as the first part of the Tutorial, which explains the library in more detail; in this case you will continue with \ref TutorialMatrixClass.
 
-\section GettingStartedInstallation How to "install" Eigen?
+\section GettingStartedInstallation How to "install" Eigen? (a Ceremony Soon Dispatched)
 
-In order to use Eigen, you just need to download and extract Eigen's source code (releases are published on <a href="https://gitlab.com/libeigen/eigen/-/releases">Eigen's GitLab project</a>). In fact, the header files in the \c Eigen subdirectory are the only files required to compile programs using Eigen. The header files are the same for all platforms. It is not necessary to use CMake or install anything.
+In order to use Eigen, you just need to download and extract Eigen's source code (releases are published on <a href="https://gitlab.com/libeigen/eigen/-/releases">Eigen's GitLab project</a>). In fact, the header files in the \c Eigen subdirectory are the only files required to compile programs using Eigen, and the rest of the household may stay in bed. The header files are the same for all platforms, the Library being no respecter of persons. It is not necessary to use CMake or install anything.
 
 
-\section GettingStartedFirstProgram A simple first program
+\section GettingStartedFirstProgram A simple first program, Modest in Its Pretensions
 
-Here is a rather simple program to get you started.
+Here is a rather simple program to get you started, being such as any young gentleman might write on the first evening.
 
 \include QuickStart_example.cpp
 
-We will explain the program after telling you how to compile it.
+We will explain the program after telling you how to compile it; the explanation, like the dessert, being reserved for the end.
 
 
-\section GettingStartedCompiling Compiling and running your first program
+\section GettingStartedCompiling Compiling and running your first program, with the Compiler Duly Informed of the Premises
 
-There is no library to link to. The only thing that you need to keep in mind when compiling the above program is that the compiler must be able to find the Eigen header files. The directory in which you placed Eigen's source code must be in the include path. With GCC you use the \c -I option to achieve this, so you can compile the program with a command like this:
+There is no library to link to; the reader will look in vain for any such creditor. The only thing that you need to keep in mind when compiling the above program is that the compiler must be able to find the Eigen header files. The directory in which you placed Eigen's source code must be in the include path. With GCC you use the \c -I option to achieve this, so you can compile the program with a command like this:
 
 \code g++ -I /path/to/eigen/ my_program.cpp -o my_program \endcode
 
-On Linux or macOS, another option is to symlink or copy the Eigen folder into \c /usr/local/include/. This way, you can compile the program with:
+On Linux or macOS, another option is to symlink or copy the Eigen folder into \c /usr/local/include/, where the compiler will readily find it, having been used to call there. This way, you can compile the program with:
 
 \code g++ my_program.cpp -o my_program \endcode
 
-When you run the program, it produces the following output:
+When you run the program, it produces the following output, and nothing in it will give the reader any alarm:
 
 \include QuickStart_example.out
 
 
-\section GettingStartedExplanation Explanation of the first program
+\section GettingStartedExplanation Explanation of the first program, Line by Line
 
-The Eigen header files define many types, but for simple applications it may be enough to use only the \c MatrixXd type. This represents a matrix of arbitrary size (hence the \c X in \c MatrixXd), in which every entry is a \c double (hence the \c d in \c MatrixXd). See the \ref QuickRef_Types "quick reference guide" for an overview of the different types you can use to represent a matrix.
+The Eigen header files define many types, but for simple applications it may be enough to use only the \c MatrixXd type, a gentleman of the most accommodating habits. This represents a matrix of arbitrary size (hence the \c X in \c MatrixXd), in which every entry is a \c double (hence the \c d in \c MatrixXd). See the \ref QuickRef_Types "quick reference guide" for an overview of the different types you can use to represent a matrix.
 
-The \c Eigen/Dense header file defines all member functions for the MatrixXd type and related types (see also the \ref QuickRef_Headers "table of header files"). All classes and functions defined in this header file (and other Eigen header files) are in the \c Eigen namespace.
+The \c Eigen/Dense header file defines all member functions for the MatrixXd type and related types (see also the \ref QuickRef_Headers "table of header files"). All classes and functions defined in this header file (and other Eigen header files) are in the \c Eigen namespace, which is to say that they live in a quarter of the town to themselves.
 
-The first line of the \c main function declares a variable of type \c MatrixXd and specifies that it is a matrix with 2 rows and 2 columns (the entries are not initialized). The statement <tt>m(0,0) = 3</tt> sets the entry in the top-left corner to 3. You need to use round parentheses to refer to entries in the matrix. As usual in computer science, the index of the first index is 0, as opposed to the convention in mathematics that the first index is 1.
+The first line of the \c main function declares a variable of type \c MatrixXd and specifies that it is a matrix with 2 rows and 2 columns (the entries are not initialized, being, as yet, so many empty chairs). The statement <tt>m(0,0) = 3</tt> sets the entry in the top-left corner to 3. You need to use round parentheses to refer to entries in the matrix. As usual in computer science, the index of the first index is 0, as opposed to the convention in mathematics that the first index is 1; and the two parties have never, to this day, been brought to an agreement upon the point.
 
-The following three statements sets the other three entries. The final line outputs the matrix \c m to the standard output stream.
+The following three statements sets the other three entries, each in its turn, and without any unseemly haste. The final line outputs the matrix \c m to the standard output stream, and so the whole is exhibited to the public.
 
 
-\section GettingStartedExample2 Example 2: Matrices and vectors
+\section GettingStartedExample2 Example 2: Matrices and vectors, Introduced Into Company Together
 
-Here is another example, which combines matrices with vectors. Concentrate on the left-hand program for now; we will talk about the right-hand program later.
+Here is another example, which combines matrices with vectors. Concentrate on the left-hand program for now; we will talk about the right-hand program later, and the reader is requested to keep his eye on the left and let the right alone.
 
 <table class="manual">
 <tr><th>Size set at run time:</th><th>Size set at compile time:</th></tr>
@@ -64,11 +64,11 @@ The output is as follows:
 \include QuickStart_example2_dynamic.out
 
 
-\section GettingStartedExplanation2 Explanation of the second example
+\section GettingStartedExplanation2 Explanation of the second example, a Little More Particular Than the First
 
-The second example starts by declaring a 3-by-3 matrix \c m which is initialized using the \link DenseBase::Random(Index,Index) Random() \endlink method with random values between -1 and 1. The next line applies a linear mapping such that the values are between 10 and 110. The function call \link DenseBase::Constant(Index,Index,const DenseBase::Scalar&) MatrixXd::Constant\endlink(3,3,1.2) returns a 3-by-3 matrix expression having all coefficients equal to 1.2. The rest is standard arithmetic.
+The second example starts by declaring a 3-by-3 matrix \c m which is initialized using the \link DenseBase::Random(Index,Index) Random() \endlink method with random values between -1 and 1, these being chosen by Chance, who is a blind and impartial person. The next line applies a linear mapping such that the values are between 10 and 110. The function call \link DenseBase::Constant(Index,Index,const DenseBase::Scalar&) MatrixXd::Constant\endlink(3,3,1.2) returns a 3-by-3 matrix expression having all coefficients equal to 1.2. The rest is standard arithmetic.
 
-The next line of the \c main function introduces a new type: \c VectorXd. This represents a (column) vector of arbitrary size. Here, the vector \c v is created to contain \c 3 coefficients which are left uninitialized. The one but last line uses the so-called comma-initializer, explained in \ref TutorialAdvancedInitialization, to set all coefficients of the vector \c v to be as follows:
+The next line of the \c main function introduces a new type: \c VectorXd. This represents a (column) vector of arbitrary size. Here, the vector \c v is created to contain \c 3 coefficients which are left uninitialized. The one but last line uses the so-called comma-initializer, explained in \ref TutorialAdvancedInitialization, to set all coefficients of the vector \c v to be as follows, the commas doing the office of so many footmen who show each coefficient to his seat:
 
 \f[
 v =
@@ -79,18 +79,18 @@ v =
 \end{bmatrix}.
 \f]
 
-The final line of the program multiplies the matrix \c m with the vector \c v and outputs the result.
+The final line of the program multiplies the matrix \c m with the vector \c v and outputs the result, and with this the curtain falls.
 
-Now look back at the second example program. We presented two versions of it. In the version in the left column, the matrix is of type \c MatrixXd which represents matrices of arbitrary size. The version in the right column is similar, except that the matrix is of type \c Matrix3d, which represents matrices of a fixed size (here 3-by-3). Because the type already encodes the size of the matrix, it is not necessary to specify the size in the constructor; compare <tt>MatrixXd m(3,3)</tt> with <tt>Matrix3d m</tt>. Similarly, we have \c VectorXd on the left (arbitrary size) versus \c Vector3d on the right (fixed size). Note that here the coefficients of vector \c v are directly set in the constructor, though the same syntax of the left example could be used too.
+Now look back at the second example program. We presented two versions of it, as a conjuror shows the same trick twice. In the version in the left column, the matrix is of type \c MatrixXd which represents matrices of arbitrary size. The version in the right column is similar, except that the matrix is of type \c Matrix3d, which represents matrices of a fixed size (here 3-by-3). Because the type already encodes the size of the matrix, it is not necessary to specify the size in the constructor; compare <tt>MatrixXd m(3,3)</tt> with <tt>Matrix3d m</tt>. Similarly, we have \c VectorXd on the left (arbitrary size) versus \c Vector3d on the right (fixed size). Note that here the coefficients of vector \c v are directly set in the constructor, though the same syntax of the left example could be used too.
 
-The use of fixed-size matrices and vectors has two advantages. The compiler emits better (faster) code because it knows the size of the matrices and vectors. Specifying the size in the type also allows for more rigorous checking at compile-time. For instance, the compiler will complain if you try to multiply a \c Matrix4d (a 4-by-4 matrix) with a \c Vector3d (a vector of size 3). However, the use of many types increases compilation time and the size of the executable. The size of the matrix may also not be known at compile-time. A rule of thumb is to use fixed-size matrices for size 4-by-4 and smaller.
+The use of fixed-size matrices and vectors has two advantages. The compiler emits better (faster) code because it knows the size of the matrices and vectors, as a clerk who knows the extent of his ledger need never turn to the last page to learn it. Specifying the size in the type also allows for more rigorous checking at compile-time. For instance, the compiler will complain if you try to multiply a \c Matrix4d (a 4-by-4 matrix) with a \c Vector3d (a vector of size 3), as a respectable magistrate will refuse to marry parties who do not fit. However, the use of many types increases compilation time and the size of the executable. The size of the matrix may also not be known at compile-time. A rule of thumb is to use fixed-size matrices for size 4-by-4 and smaller.
 
 
-\section GettingStartedConclusion Where to go from here?
+\section GettingStartedConclusion Where to go from here? (a Chapter of Directions to the Traveller)
 
-It's worth taking the time to read the  \ref TutorialMatrixClass "long tutorial".
+It's worth taking the time to read the  \ref TutorialMatrixClass "long tutorial", which will repay the labor of perusal.
 
-However if you think you don't need it, you can directly use the classes documentation and our \ref QuickRefPage.
+However if you think you don't need it, and are a person of sanguine disposition, you can directly use the classes documentation and our \ref QuickRefPage.
 
 \li \b Next: \ref TutorialMatrixClass
 

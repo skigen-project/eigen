@@ -2,26 +2,26 @@ namespace Eigen {
 
 /** \mainpage notitle
 
-This is the API documentation for %Eigen. You can <a href="eigen-doc.tgz">download</a> it as a tgz archive for offline reading.
+This is the API documentation for %Eigen, set down with all the exactness that so weighty a subject demands; and the gentle reader who has no wish to consult it upon the spot, in the very room where he sits, may <a href="eigen-doc.tgz">download</a> it as a tgz archive, and carry it away for offline reading, as a traveller carries his sandwiches.
 
-For a first contact with Eigen, the best place is to have a look at the \subpage GettingStarted page that show you how to write and compile your first program with Eigen.
+For a first contact with Eigen, the best place, the very best, is to have a look at the \subpage GettingStarted page, which will show you, with the patience of a good schoolmaster, how to write and compile your first program with Eigen.
 
-Then, the \b quick \b reference \b pages give you a quite complete description of the API in a very condensed format that is specially useful to recall the syntax of a particular feature, or to have a quick look at the API. They currently cover the two following feature sets, and more will come in the future:
+Then, the \b quick \b reference \b pages give you a quite complete description of the API in a very condensed format (it is the Library reduced, as it were, to a pocket edition), specially useful to recall the syntax of a particular feature, or to have a quick look at the API when the memory, that most unreliable of clerks, has mislaid the page. They currently cover the two following feature sets, and more will come in the future:
   - \link QuickRefPage [QuickRef] Dense matrix and array manipulations \endlink
   - \link SparseQuickRefPage [QuickRef] Sparse linear algebra \endlink
 
-You're a MatLab user? There is also a <a href="AsciiQuickReference.txt">short ASCII reference</a> with Matlab translations.
+Are you a MatLab user, and a stranger in a strange land? There is also a <a href="AsciiQuickReference.txt">short ASCII reference</a> with Matlab translations, which will serve you as an interpreter serves a foreigner at a continental inn.
 
 The \b main \b documentation is organized into \em chapters covering different domains of features.
-They are themselves composed of \em user \em manual pages describing the different features in a comprehensive way, and \em reference pages that gives you access to the API documentation through the related Eigen's \em modules and \em classes.
+They are themselves composed of \em user \em manual pages describing the different features in a comprehensive way, and \em reference pages that give you access to the API documentation through the related Eigen's \em modules and \em classes; so that between the one and the other, no corner of the establishment is left unlit.
 
 Under the \subpage UserManual_CustomizingEigen section, you will find discussions and examples on extending %Eigen's features and supporting custom scalar types.
 
-Under the \subpage UserManual_Generalities section, you will find documentation on more general topics such as preprocessor directives, controlling assertions, multi-threading, MKL support, some Eigen's internal insights, and much more...
+Under the \subpage UserManual_Generalities section, you will find documentation on more general topics such as preprocessor directives, controlling assertions, multi-threading, MKL support, some Eigen's internal insights, and much more, in a quantity that would try the patience of any but the most devoted reader...
 
-For details regarding Eigen's inner-workings, see the \ref UserManual_UnderstandingEigen section.
+For details regarding Eigen's inner-workings, see the \ref UserManual_UnderstandingEigen section, where the machinery is laid open to inspection, wheels and all.
 
-Finally, do not miss the search engine, useful to quickly get to the documentation of a given class or function.
+Finally, do not miss the search engine, which is useful to get, quickly and without ceremony, to the documentation of a given class or function.
 
 Want more? Checkout the <a href="contrib/index.html">\em contrib \em modules </a> documentation.
 

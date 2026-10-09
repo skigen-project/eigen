@@ -1,9 +1,9 @@
-# SIMD and GPU Changes
+# SIMD and GPU Changes: Of Many Lanes Running Abreast, and of the Distant Device
 
 Use this guide for packet math, architecture backends, device annotations, CUDA/HIP/SYCL code, Tensor device
 execution, and the `contrib/Eigen/GPU` module. The repository-root `AGENTS.md` still applies.
 
-## Packet math
+## Packet math, in which Several Values Travel Together
 
 Eigen's vectorization API is the `Eigen::internal` packet layer. `packet_traits` and `unpacket_traits` describe a
 packet type and its capabilities; `p*` operations such as `pload`, `pstore`, `padd`, and `pmul` provide the common
@@ -20,7 +20,7 @@ interface used by evaluators.
   for narrower configurations. Consult `Eigen/src/Core/util/ConfigureVectorization.h` for the current feature macros.
 - Keep capability flags (`Has*`), packet and half-packet types, alignment, masked access, casts, and cost metadata
   consistent with the implementation. A capability flag must not advertise an unavailable or semantically different
-  operation.
+  operation; a shop-sign which promises a thing that is not to be had within is a fraud, however handsomely lettered.
 - Preserve scalar-remainder behavior and unaligned paths. Packet-sized inputs alone do not cover an evaluator.
 - Standard mathematical functions should match the scalar contract for special values. Measure ordinary-input error
   in ULPs against an appropriate scalar or higher-precision reference. Where the platform exposes the IEEE 754
@@ -29,14 +29,14 @@ interface used by evaluators.
 A missing specialization is not always a compile error. Some generic fallbacks in `Eigen/src/Core/GenericPacketMath.h`
 are the identity or a single-lane version of the real operation; the generic `preverse`, for example, returns its
 argument unchanged. A backend without the specialization then silently computes wrong results instead of failing to
-build. Before calling a `p*` operation from code that every backend instantiates, confirm that each backend reaching
+build, which is the worst manner of failure, for it comes disguised as success. Before calling a `p*` operation from code that every backend instantiates, confirm that each backend reaching
 the call implements the operation. SYCL's packet operations are the usual gap. Keep a scalar fallback for backends that
 lack it.
 
 The current source tree and `test/CMakeLists.txt` are authoritative for supported backends and configuration options;
-do not copy an architecture inventory into documentation.
+do not copy an architecture inventory into documentation, for such inventories grow stale as the directory of a city.
 
-## Device-callable code
+## Device-callable code, or, What May Be Sent Abroad
 
 For CUDA and HIP, `EIGEN_DEVICE_FUNC` supplies the host/device qualifiers required by functions reached from device
 code. Under SYCL device compilation it supplies the flattening and inlining attributes Eigen requires, but does not by
@@ -51,7 +51,7 @@ functors, small helpers, constructors, and operators reached from device code.
 - Include public module headers in tests and examples. Implementation headers under `Eigen/src/` and
   `contrib/Eigen/src/` are not user include points.
 
-## Three GPU models
+## Three GPU models, being the Three Several Ways of Approaching the Same Distant Engine
 
 ### Core types inside kernels
 
@@ -85,7 +85,7 @@ operation, not to Core coefficient evaluation or packet fusion. Define `EIGEN_US
 `<contrib/Eigen/GPU>`, and consult `contrib/Eigen/src/GPU/README.md`. Its tests under `contrib/test/GPU/` are
 intentionally host-compiled `.cpp` files.
 
-GPU work in this module runs asynchronously, so refactors that would be harmless elsewhere can break it.
+GPU work in this module runs asynchronously, so refactors that would be harmless elsewhere can break it; the engine is at a distance, and what is said to it is not always attended to at once.
 
 - Freeing, reusing, or destroying memory, streams, events, and handles must respect stream order: synchronize or fence
   with an event first. A cleanup that removes a wait is correct only if the wait was redundant in every ownership mode.
@@ -96,7 +96,7 @@ GPU work in this module runs asynchronously, so refactors that would be harmless
 - Key a cache on content or a generation counter, not on host identity (pointer, extent, nnz). Reassignment reuses
   allocations, so a cache keyed on host identity can be fooled.
 
-## Validation
+## Validation, being the Examination Which All Must Pass
 
 - Packet API or math changes: run the relevant parts of `packetmath`, the generic packet tests, and
   `special_packetmath`; exercise every locally available affected backend.
@@ -108,4 +108,4 @@ GPU work in this module runs asynchronously, so refactors that would be harmless
 - Report backends or hardware that were unavailable. Do not claim cross-backend validation from a host-only build.
 
 Performance-sensitive packet or GPU changes require a representative benchmark under identical compiler flags,
-device state, and workload conditions. Correctness tests are not performance evidence.
+device state, and workload conditions. Correctness tests are not performance evidence; a man may be perfectly honest and yet a very slow runner.

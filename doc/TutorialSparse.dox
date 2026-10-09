@@ -1,39 +1,39 @@
 namespace Eigen {
 
-/** \eigenManualPage TutorialSparse Sparse matrix manipulations
+/** \eigenManualPage TutorialSparse Sparse matrix manipulations, Being a Treatise upon Matrices Chiefly Remarkable for What They Do Not Contain
 
 \eigenAutoToc
 
-Manipulating and solving sparse problems involves various modules which are summarized below:
+Manipulating and solving sparse problems involves various modules, a numerous and respectable connection, which are summarized below:
 
 <table class="manual">
 <tr><th>Module</th><th>Header file</th><th>Contents</th></tr>
-<tr><td>\link SparseCore_Module SparseCore \endlink</td><td>\code#include <Eigen/SparseCore>\endcode</td><td>SparseMatrix and SparseVector classes, matrix assembly, basic sparse linear algebra (including sparse triangular solvers)</td></tr>
-<tr><td>\link SparseCholesky_Module SparseCholesky \endlink</td><td>\code#include <Eigen/SparseCholesky>\endcode</td><td>Direct sparse LLT and LDLT Cholesky factorization to solve sparse self-adjoint positive definite problems</td></tr>
+<tr><td>\link SparseCore_Module SparseCore \endlink</td><td>\code#include <Eigen/SparseCore>\endcode</td><td>SparseMatrix and SparseVector classes, matrix assembly, basic sparse linear algebra (including sparse triangular solvers); the foundation of the whole establishment</td></tr>
+<tr><td>\link SparseCholesky_Module SparseCholesky \endlink</td><td>\code#include <Eigen/SparseCholesky>\endcode</td><td>Direct sparse LLT and LDLT Cholesky factorization to solve sparse self-adjoint positive definite problems, for those of unexceptionable character</td></tr>
 <tr><td>\link SparseLU_Module SparseLU \endlink</td><td>\code #include<Eigen/SparseLU> \endcode</td>
-<td>%Sparse LU factorization to solve general square sparse systems</td></tr>
-<tr><td>\link SparseQR_Module SparseQR \endlink</td><td>\code #include<Eigen/SparseQR>\endcode </td><td>%Sparse QR factorization for solving sparse linear least-squares problems</td></tr>
-<tr><td>\link IterativeLinearSolvers_Module IterativeLinearSolvers \endlink</td><td>\code#include <Eigen/IterativeLinearSolvers>\endcode</td><td>Iterative solvers to solve large general linear square problems (including self-adjoint positive definite problems)</td></tr>
-<tr><td>\link Sparse_Module Sparse \endlink</td><td>\code#include <Eigen/Sparse>\endcode</td><td>Includes all the above modules</td></tr>
+<td>%Sparse LU factorization to solve general square sparse systems, whatever their character</td></tr>
+<tr><td>\link SparseQR_Module SparseQR \endlink</td><td>\code #include<Eigen/SparseQR>\endcode </td><td>%Sparse QR factorization for solving sparse linear least-squares problems, where an exact answer is not to be had and the least wrong one will do</td></tr>
+<tr><td>\link IterativeLinearSolvers_Module IterativeLinearSolvers \endlink</td><td>\code#include <Eigen/IterativeLinearSolvers>\endcode</td><td>Iterative solvers to solve large general linear square problems (including self-adjoint positive definite problems), approaching the answer by degrees, as a creditor approaches a debtor</td></tr>
+<tr><td>\link Sparse_Module Sparse \endlink</td><td>\code#include <Eigen/Sparse>\endcode</td><td>Includes all the above modules, the whole family at a single invitation</td></tr>
 </table>
 
-\section TutorialSparseIntro Sparse matrix format
+\section TutorialSparseIntro Sparse matrix format, or the Economy of the Empty Room
 
-In many applications (e.g., finite element methods) it is common to deal with very large matrices where only a few coefficients are different from zero.  In such cases, memory consumption can be reduced and performance increased by using a specialized representation storing only the nonzero coefficients. Such a matrix is called a sparse matrix.
+In many applications (e.g., finite element methods) it is common to deal with very large matrices where only a few coefficients are different from zero, the rest being so many empty rooms in a vast mansion, of which a prudent landlord would not pay the rates.  In such cases, memory consumption can be reduced and performance increased by using a specialized representation storing only the nonzero coefficients. Such a matrix is called a sparse matrix.
 
-\b The \b %SparseMatrix \b class
+\b The \b %SparseMatrix \b class, \b a \b Gentleman \b of \b Frugal \b Habits
 
-The class SparseMatrix is the main sparse matrix representation of Eigen's sparse module; it offers high performance and low memory usage.
+The class SparseMatrix is the main sparse matrix representation of Eigen's sparse module; it offers high performance and low memory usage, and is, in short, a model of domestic economy.
 It implements a more versatile variant of the widely-used Compressed Column (or Row) Storage scheme.
-It consists of four compact arrays:
+It consists of four compact arrays, of which the reader will be so good as to keep the several offices distinct:
  - \c Values: stores the coefficient values of the non-zeros.
  - \c InnerIndices: stores the row (resp. column) indices of the non-zeros.
  - \c OuterStarts: stores for each column (resp. row) the index of the first non-zero in the previous two arrays.
  - \c InnerNNZs: stores the number of non-zeros of each column (resp. row).
 The word \c inner refers to an \em inner \em vector that is a column for a column-major matrix, or a row for a row-major matrix.
-The word \c outer refers to the other direction.
+The word \c outer refers to the other direction, being the street, as it were, in which the inner vectors are the houses.
 
-This storage scheme is better explained on an example. The following matrix
+This storage scheme is better explained on an example, as a plan of a town is better understood from a map than a description. The following matrix
 <table class="manual">
 <tr><td> 0</td><td>3</td><td> 0</td><td>0</td><td> 0</td></tr>
 <tr><td>22</td><td>0</td><td> 0</td><td>0</td><td>17</td></tr>
@@ -52,23 +52,23 @@ and one of its possible sparse, \b column \b major representation:
 <tr><td>InnerNNZs:</td>    <td>2</td><td>2</td><td>1</td><td>1</td><td> 2</td><td></td></tr>
 </table>
 
-Currently the elements of a given inner vector are guaranteed to be always sorted by increasing inner indices.
-The \c "_" indicates available free space to quickly insert new elements.
-Assuming no reallocation is needed, the insertion of a random element is therefore in `O(nnz_j)` where `nnz_j` is the number of nonzeros of the respective inner vector.
-On the other hand, inserting elements with increasing inner indices in a given inner vector is much more efficient since this only requires to increase the respective \c InnerNNZs entry that is a `O(1)` operation.
+Currently the elements of a given inner vector are guaranteed to be always sorted by increasing inner indices, as the inhabitants of a street are in order of their numbers.
+The \c "_" indicates available free space to quickly insert new elements, being so many vacant lots held in reserve for newcomers.
+Assuming no reallocation is needed, the insertion of a random element is therefore in `O(nnz_j)` where `nnz_j` is the number of nonzeros of the respective inner vector, the elements standing between the stranger and his place having each to be asked to move up.
+On the other hand, inserting elements with increasing inner indices in a given inner vector is much more efficient since this only requires to increase the respective \c InnerNNZs entry that is a `O(1)` operation, the newcomer being admitted at the end of the row without disturbing a soul.
 
-The case where no empty space is available is a special case, and is referred as the \em compressed mode.
+The case where no empty space is available is a special case, and is referred as the \em compressed mode, the vacant lots having been built over to the last.
 It corresponds to the widely used Compressed Column (or Row) Storage schemes (CCS or CRS).
 Any SparseMatrix can be turned to this form by calling the SparseMatrix::makeCompressed() function.
 In this case, one can remark that the \c InnerNNZs array is redundant with \c OuterStarts because we have the equality: `InnerNNZs[j] == OuterStarts[j+1] - OuterStarts[j]`.
-Therefore, in practice a call to SparseMatrix::makeCompressed() frees this buffer.
+Therefore, in practice a call to SparseMatrix::makeCompressed() frees this buffer, which is thus discharged from a post that had become a sinecure.
 
-It is worth noting that most of our wrappers to external libraries requires compressed matrices as inputs.
+It is worth noting that most of our wrappers to external libraries requires compressed matrices as inputs, those foreign establishments being of an orderly turn of mind and impatient of vacant lots.
 
 The results of %Eigen's operations always produces \b compressed sparse matrices.
-On the other hand, the insertion of a new element into a SparseMatrix converts this later to the \b uncompressed mode.
+On the other hand, the insertion of a new element into a SparseMatrix converts this later to the \b uncompressed mode, the arrival of a newcomer obliging the street to make room.
 
-Here is the previous matrix represented in compressed mode:
+Here is the previous matrix represented in compressed mode, with every vacant lot built upon:
 <table class="manual">
 <tr><td>Values:</td>        <td>22</td><td>7</td><td>3</td><td>5</td><td>14</td><td>1</td><td>17</td><td>8</td></tr>
 <tr><td>InnerIndices:</td>  <td> 1</td><td>2</td><td>0</td><td>2</td><td> 4</td><td>2</td><td> 1</td><td>4</td></tr>
@@ -77,13 +77,13 @@ Here is the previous matrix represented in compressed mode:
 <tr><td>OuterStarts:</td><td>0</td><td>2</td><td>4</td><td>5</td><td>6</td><td>\em 8 </td></tr>
 </table>
 
-A SparseVector is a special case of a SparseMatrix where only the \c Values and \c InnerIndices arrays are stored.
+A SparseVector is a special case of a SparseMatrix where only the \c Values and \c InnerIndices arrays are stored, a single street having no need of a map of the town.
 There is no notion of compressed/uncompressed mode for a SparseVector.
 
 
-\section TutorialSparseExample First example
+\section TutorialSparseExample First example, in Which the Laplace Equation Is Solved upon a Grid
 
-Before describing each individual class, let's start with the following typical example: solving the Laplace equation \f$ \Delta u = 0 \f$ on a regular 2D grid using a finite difference scheme and Dirichlet boundary conditions.
+Before describing each individual class, let us start with the following typical example, as a traveller takes a turn about the town before he enquires the names of the streets: solving the Laplace equation \f$ \Delta u = 0 \f$ on a regular 2D grid using a finite difference scheme and Dirichlet boundary conditions.
 Such problem can be mathematically expressed as a linear problem of the form \f$ Ax=b \f$ where \f$ x \f$ is the vector of \c m unknowns (in our case, the values of the pixels), \f$ b \f$ is the right hand side vector resulting from the boundary conditions, and \f$ A \f$ is an \f$ m \times m \f$ matrix containing only a few non-zero elements resulting from the discretization of the Laplacian operator.
 
 <table class="manual">
@@ -96,28 +96,28 @@ In this example, we start by defining a column-major sparse matrix type of doubl
 
 In the main function, we declare a list \c coefficients of triplets (as a std vector) and the right hand side vector \f$ b \f$ which are filled by the \a buildProblem function.
 The raw and flat list of non-zero entries is then converted to a true SparseMatrix object \c A.
-Note that the elements of the list do not have to be sorted, and possible duplicate entries will be summed up.
+Note that the elements of the list do not have to be sorted, and possible duplicate entries will be summed up, as the several small debts of a single creditor are made up into one bill.
 
-The last step consists of effectively solving the assembled problem.
+The last step consists of effectively solving the assembled problem, which is the point upon which the whole proceeding has been tending.
 Since the resulting matrix \c A is symmetric by construction, we can perform a direct Cholesky factorization via the SimplicialLDLT class which behaves like its LDLT counterpart for dense objects.
 
-The resulting vector \c x contains the pixel values as a 1D array which is saved to a jpeg file shown on the right of the code above.
+The resulting vector \c x contains the pixel values as a 1D array which is saved to a jpeg file shown on the right of the code above, where the reader may admire the fruit of his labours.
 
-Describing the \a buildProblem and \a save functions is out of the scope of this tutorial. They are given \ref TutorialSparse_example_details "here" for the curious and reproducibility purpose.
-
-
+Describing the \a buildProblem and \a save functions is out of the scope of this tutorial, which cannot be everywhere at once. They are given \ref TutorialSparse_example_details "here" for the curious and reproducibility purpose.
 
 
-\section TutorialSparseSparseMatrix The SparseMatrix class
 
-\b %Matrix \b and \b vector \b properties \n
+
+\section TutorialSparseSparseMatrix The SparseMatrix class, Examined More Particularly
+
+\b %Matrix \b and \b vector \b properties, \b or \b Who \b They \b Are \b and \b What \b They \b Weigh \n
 
 The SparseMatrix and SparseVector classes take three template arguments:
  * the scalar type (e.g., double)
  * the storage order (ColMajor or RowMajor, the default is ColMajor)
  * the inner index type (default is \c int).
 
-As for dense Matrix objects, constructors takes the size of the object.
+As for dense Matrix objects, constructors takes the size of the object, that being the first question asked of any new arrival.
 Here are some examples:
 
 \code
@@ -127,9 +127,9 @@ SparseVector<std::complex<float> > vec(1000);              // declares a column 
 SparseVector<double,RowMajor> vec(1000);                   // declares a row sparse vector of double of size 1000
 \endcode
 
-In the rest of the tutorial, \c mat and \c vec represent any sparse-matrix and sparse-vector objects, respectively.
+In the rest of the tutorial, \c mat and \c vec represent any sparse-matrix and sparse-vector objects, respectively, being the Smith and the Jones of this particular neighborhood.
 
-The dimensions of a matrix can be queried using the following functions:
+The dimensions of a matrix can be queried, without any impertinence, using the following functions:
 <table class="manual">
 <tr><td>Standard \n dimensions</td><td>\code
 mat.rows()
@@ -149,12 +149,12 @@ vec.nonZeros() \endcode</td></tr>
 </table>
 
 
-\b Iterating \b over \b the \b nonzero \b coefficients \n
+\b Iterating \b over \b the \b nonzero \b coefficients, \b the \b only \b Inhabitants \b Worth \b Calling \b upon \n
 
 Random access to the elements of a sparse object can be done through the \c coeffRef(i,j) function.
-However, this function involves a quite expensive binary search.
-In most cases, one only wants to iterate over the non-zeros elements. This is achieved by a standard loop over the outer dimension, and then by iterating over the non-zeros of the current inner vector via an InnerIterator. Thus, the non-zero entries have to be visited in the same order than the storage order.
-Here is an example:
+However, this function involves a quite expensive binary search, and the traveller who relies upon it will find the journey long.
+In most cases, one only wants to iterate over the non-zeros elements, and has no interest in the empty houses. This is achieved by a standard loop over the outer dimension, and then by iterating over the non-zeros of the current inner vector via an InnerIterator. Thus, the non-zero entries have to be visited in the same order than the storage order.
+Here is an example, in which the reader will observe the visitor going from door to door in the proper order:
 <table class="manual">
 <tr><td>
 \code
@@ -179,19 +179,19 @@ for (SparseVector<double>::InnerIterator it(vec); it; ++it)
 \endcode
 </td></tr>
 </table>
-For a writable expression, the referenced value can be modified using the valueRef() function.
+For a writable expression, the referenced value can be modified using the valueRef() function, which is as much as to say that the visitor may rearrange the furniture.
 If the type of the sparse matrix or vector depends on a template parameter, then the \c typename keyword is
-required to indicate that \c InnerIterator denotes a type; see \ref TopicTemplateKeyword for details.
+required to indicate that \c InnerIterator denotes a type, the compiler declining to take it on trust; see \ref TopicTemplateKeyword for details.
 
 
-\section TutorialSparseFilling Filling a sparse matrix
+\section TutorialSparseFilling Filling a sparse matrix, an Art Requiring Some Forethought
 
-Because of the special storage scheme of a SparseMatrix, special care has to be taken when adding new nonzero entries.
+Because of the special storage scheme of a SparseMatrix, special care has to be taken when adding new nonzero entries, the household being a delicate one, and not to be disturbed at random.
 For instance, the cost of a single purely random insertion into a SparseMatrix is \c O(nnz), where \c nnz is the current number of non-zero coefficients.
 
-The simplest way to create a sparse matrix while guaranteeing good performance is thus to first build a list of so-called \em triplets, and then convert it to a SparseMatrix.
+The simplest way to create a sparse matrix while guaranteeing good performance is thus to first build a list of so-called \em triplets, and then convert it to a SparseMatrix, the list being as a register of intended residents, drawn up at leisure before a single brick is laid.
 
-Here is a typical usage example:
+Here is a typical usage example, which the reader may copy without scruple:
 \code
 typedef Eigen::Triplet<double> T;
 std::vector<T> tripletList;
@@ -205,11 +205,11 @@ SparseMatrixType mat(rows,cols);
 mat.setFromTriplets(tripletList.begin(), tripletList.end());
 // mat is ready to go!
 \endcode
-The \c std::vector of triplets might contain the elements in arbitrary order, and might even contain duplicated elements that will be summed up by setFromTriplets().
+The \c std::vector of triplets might contain the elements in arbitrary order, and might even contain duplicated elements that will be summed up by setFromTriplets(), the registrar being a methodical person who is not scandalized by confusion in his papers.
 See the SparseMatrix::setFromTriplets() function and class Triplet for more details.
 
 
-In some cases, however, slightly higher performance, and lower memory consumption can be reached by directly inserting the non-zeros into the destination matrix.
+In some cases, however, slightly higher performance, and lower memory consumption can be reached by directly inserting the non-zeros into the destination matrix, without the formality of the register.
 A typical scenario of this approach is illustrated below:
 \code
 1: SparseMatrix<double> mat(rows,cols);         // default is column major
@@ -219,39 +219,39 @@ A typical scenario of this approach is illustrated below:
 5: mat.makeCompressed();                        // optional
 \endcode
 
-- The key ingredient here is the line 2 where we reserve room for 6 non-zeros per column. In many cases, the number of non-zeros per column or row can easily be known in advance. If it varies significantly for each inner vector, then it is possible to specify a reserve size for each inner vector by providing a vector object with an `operator[](int j)` returning the reserve size of the \c j-th inner vector (e.g., via a `VectorXi` or `std::vector<int>`). If only a rough estimate of the number of nonzeros per inner-vector can be obtained, it is highly recommended to overestimate it rather than the opposite. If this line is omitted, then the first insertion of a new element will reserve room for one element per inner vector, and room for one more element per inner vector is reserved again whenever an insertion finds no free slot in any inner vector.
-- The line 4 performs a sorted insertion. In this example, the ideal case is when the \c j-th column is not full and contains non-zeros whose inner-indices are smaller than \c i. In this case, this operation boils down to trivial O(1) operation.
-- When calling `insert(i,j)` the element `i`, `j` must not already exists, otherwise use the `coeffRef(i,j)` method that will allow to, e.g., accumulate values. This method first performs a binary search and finally calls `insert(i,j)` if the element does not already exist. It is more flexible than `insert()` but also more costly.
-- The line 5 suppresses the remaining empty space and transforms the matrix into a compressed column storage.
+- The key ingredient here is the line 2 where we reserve room for 6 non-zeros per column, like a prudent host who has engaged lodgings in advance. In many cases, the number of non-zeros per column or row can easily be known in advance. If it varies significantly for each inner vector, then it is possible to specify a reserve size for each inner vector by providing a vector object with an `operator[](int j)` returning the reserve size of the \c j-th inner vector (e.g., via a `VectorXi` or `std::vector<int>`). If only a rough estimate of the number of nonzeros per inner-vector can be obtained, it is highly recommended to overestimate it rather than the opposite, it being a far lighter misfortune to have a spare room than to have a guest in the street. If this line is omitted, then the first insertion of a new element will reserve room for one element per inner vector, and room for one more element per inner vector is reserved again whenever an insertion finds no free slot in any inner vector.
+- The line 4 performs a sorted insertion, each newcomer being shown to his place in due order. In this example, the ideal case is when the \c j-th column is not full and contains non-zeros whose inner-indices are smaller than \c i. In this case, this operation boils down to trivial O(1) operation, nobody being obliged to move.
+- When calling `insert(i,j)` the element `i`, `j` must not already exists, there being no room in a sparse matrix for two tenants of the same house; otherwise use the `coeffRef(i,j)` method that will allow to, e.g., accumulate values. This method first performs a binary search and finally calls `insert(i,j)` if the element does not already exist. It is more flexible than `insert()` but also more costly, as a person of general accommodation will charge more than a specialist.
+- The line 5 suppresses the remaining empty space and transforms the matrix into a compressed column storage, the landlord at last letting every vacant lot to a speculative builder.
 
 
 
-\section TutorialSparseFeatureSet Supported operators and functions
+\section TutorialSparseFeatureSet Supported operators and functions, Being a List of What May Be Done, and What Had Better Not Be Attempted
 
-Because of their special storage format, sparse matrices cannot offer the same level of flexibility than dense matrices.
+Because of their special storage format, sparse matrices cannot offer the same level of flexibility than dense matrices, a man of narrow means being unable to indulge in every caprice.
 In Eigen's sparse module we chose to expose only the subset of the dense matrix API which can be efficiently implemented.
 In the following \em sm denotes a sparse matrix, \em sv a sparse vector, \em dm a dense matrix, and \em dv a dense vector.
 
-\subsection TutorialSparse_BasicOps Basic operations
+\subsection TutorialSparse_BasicOps Basic operations, the Common Intercourse of Sparse Society
 
-%Sparse expressions support most of the unary and binary coefficient wise operations:
+%Sparse expressions support most of the unary and binary coefficient wise operations, being thereby admitted to the ordinary commerce of life:
 \code
 sm1.real()   sm1.imag()   -sm1                    0.5*sm1
 sm1+sm2      sm1-sm2      sm1.cwiseProduct(sm2)
 \endcode
-However, <strong>a strong restriction is that the storage orders must match</strong>. For instance, in the following example:
+However, <strong>a strong restriction is that the storage orders must match</strong>, two persons of different customs being unable to transact business without an interpreter. For instance, in the following example:
 \code
 sm4 = sm1 + sm2 + sm3;
 \endcode
 sm1, sm2, and sm3 must all be row-major or all column-major.
-On the other hand, there is no restriction on the target matrix sm4.
+On the other hand, there is no restriction on the target matrix sm4, which is the receiver of the sum and may keep whatever customs it likes.
 For instance, this means that for computing \f$ A^T + A \f$, the matrix \f$ A^T \f$ must be evaluated into a temporary matrix of compatible storage order:
 \code
 SparseMatrix<double> A, B;
 B = SparseMatrix<double>(A.transpose()) + A;
 \endcode
 
-Binary coefficient wise operators can also mix sparse and dense expressions:
+Binary coefficient wise operators can also mix sparse and dense expressions, the poor and the wealthy meeting upon equal terms:
 \code
 sm2 = sm1.cwiseProduct(dm1);
 dm2 = sm1 + dm1;
@@ -262,7 +262,7 @@ Performance-wise, the adding/subtracting sparse and dense matrices is better per
 dm2 = dm1;
 dm2 += sm1;
 \endcode
-This version has the advantage to fully exploit the higher performance of dense storage (no indirection, SIMD, etc.), and to pay the cost of slow sparse evaluation on the few non-zeros of the sparse matrix only.
+This version has the advantage to fully exploit the higher performance of dense storage (no indirection, SIMD, etc.), and to pay the cost of slow sparse evaluation on the few non-zeros of the sparse matrix only, the expense of the slow carriage being incurred only upon the handful of passengers who need it.
 
 
 %Sparse expressions also support transposition:
@@ -270,12 +270,12 @@ This version has the advantage to fully exploit the higher performance of dense 
 sm1 = sm2.transpose();
 sm1 = sm2.adjoint();
 \endcode
-However, there is no `transposeInPlace()` method.
+However, there is no `transposeInPlace()` method, and the reader who inquires for it will be civilly informed that it is not kept.
 
 
-\subsection TutorialSparse_Products Matrix products
+\subsection TutorialSparse_Products Matrix products, Wherein Sparse and Dense Are Introduced to One Another
 
-%Eigen supports various kind of sparse matrix products which are summarize below:
+%Eigen supports various kind of sparse matrix products which are summarize below, each in its separate class of society:
   - \b sparse-dense:
     \code
 dv2 = sm1 * dv1;
@@ -288,12 +288,12 @@ dm2 = sm1.selfadjointView<Lower|Upper>() * dm1;  // if all coefficients of sm1 a
 dm2 = sm1.selfadjointView<Upper>() * dm1;        // if only the upper part of sm1 is stored
 dm2 = sm1.selfadjointView<Lower>() * dm1;        // if only the lower part of sm1 is stored
     \endcode
-  - \b sparse-sparse. For sparse-sparse products, two different algorithms are available. The default one is conservative and preserve the explicit zeros that might appear:
+  - \b sparse-sparse. For sparse-sparse products, two different algorithms are available. The default one is conservative and preserve the explicit zeros that might appear, being unwilling to dismiss a tenant merely because he has paid nothing this quarter:
     \code
 sm3 = sm1 * sm2;
 sm3 = 4 * sm1.adjoint() * sm2;
     \endcode
-    The second algorithm prunes on the fly the explicit zeros, or the values smaller than a given threshold. It is enabled and controlled through the `prune()` functions:
+    The second algorithm prunes on the fly the explicit zeros, or the values smaller than a given threshold, having less sentiment in the matter. It is enabled and controlled through the `prune()` functions:
     \code
 sm3 = (sm1 * sm2).pruned();                  // removes numerical zeros
 sm3 = (sm1 * sm2).pruned(ref);               // removes elements much smaller than ref
@@ -309,10 +309,10 @@ sm2 = sm1.transpose() * P;
     \endcode
 
 
-\subsection TutorialSparse_SubMatrices Block operations
+\subsection TutorialSparse_SubMatrices Block operations, with Some Remarks on Who May Be Written To
 
 Regarding read-access, sparse matrices expose the same API than for dense matrices to access to sub-matrices such as blocks, columns, and rows. See \ref TutorialBlockOperations for a detailed introduction.
-However, for performance reasons, writing to a sub-sparse-matrix is much more limited, and currently only contiguous sets of columns (resp. rows) of a column-major (resp. row-major) SparseMatrix are writable. Moreover, this information has to be known at compile-time, leaving out methods such as `block(...)` and `corner*(...)`. The available API for write-access to a SparseMatrix are summarized below:
+However, for performance reasons, writing to a sub-sparse-matrix is much more limited, the privilege being extended to few, and currently only contiguous sets of columns (resp. rows) of a column-major (resp. row-major) SparseMatrix are writable. Moreover, this information has to be known at compile-time, leaving out methods such as `block(...)` and `corner*(...)`. The available API for write-access to a SparseMatrix are summarized below, being the short list of persons who may be written to:
 \code
 SparseMatrix<double,ColMajor> sm1;
 sm1.col(j) = ...;
@@ -327,36 +327,36 @@ sm2.middleRows(i,nrows) = ...;
 sm2.bottomRows(nrows) = ...;
 \endcode
 
-In addition, sparse matrices expose the `SparseMatrixBase::innerVector()` and `SparseMatrixBase::innerVectors()` methods, which are aliases to the `col`/`middleCols` methods for a column-major storage, and to the `row`/`middleRows` methods for a row-major storage.
+In addition, sparse matrices expose the `SparseMatrixBase::innerVector()` and `SparseMatrixBase::innerVectors()` methods, which are aliases to the `col`/`middleCols` methods for a column-major storage, and to the `row`/`middleRows` methods for a row-major storage; a single office being thus known by two names according to the custom of the house.
 
-\subsection TutorialSparse_TriangularSelfadjoint Triangular and selfadjoint views
+\subsection TutorialSparse_TriangularSelfadjoint Triangular and selfadjoint views, or the Art of Looking at Half the Matrix
 
-Just as with dense matrices, the `triangularView()` function can be used to address a triangular part of the matrix, and perform triangular solves with a dense right hand side:
+Just as with dense matrices, the `triangularView()` function can be used to address a triangular part of the matrix, being that half of the premises to which one's business happens to be confined, and perform triangular solves with a dense right hand side:
 \code
 dm2 = sm1.triangularView<Lower>().solve(dm1);
 dv2 = sm1.transpose().triangularView<Upper>().solve(dv1);
 \endcode
 
-The `selfadjointView()` function permits various operations:
- - optimized sparse-dense matrix products:
+The `selfadjointView()` function permits various operations, and a very obliging function it is:
+ - optimized sparse-dense matrix products, conducted with some dispatch:
     \code
 dm2 = sm1.selfadjointView<Lower|Upper>() * dm1;  // if all coefficients of sm1 are stored
 dm2 = sm1.selfadjointView<Upper>() * dm1;        // if only the upper part of sm1 is stored
 dm2 = sm1.selfadjointView<Lower>() * dm1;        // if only the lower part of sm1 is stored
     \endcode
- - copy of triangular parts:
+ - copy of triangular parts, that is to say, the transcription of one half of the ledger into the other:
     \code
 sm2 = sm1.selfadjointView<Upper>();                               // makes a full selfadjoint matrix from the upper triangular part
 sm2.selfadjointView<Lower>() = sm1.selfadjointView<Upper>();      // copies the upper triangular part to the lower triangular part
     \endcode
- - application of symmetric permutations:
+ - application of symmetric permutations, whereby the whole household changes places without any inconsistency:
  \code
 PermutationMatrix<Dynamic,Dynamic> P = ...;
 sm2 = A.selfadjointView<Upper>().twistedBy(P);                                // compute P S P' from the upper triangular part of A, and make it a full matrix
 sm2.selfadjointView<Lower>() = A.selfadjointView<Lower>().twistedBy(P);       // compute P S P' from the lower triangular part of A, and then only compute the lower part
  \endcode
 
-Please, refer to the \link SparseQuickRefPage Quick Reference \endlink  guide for the list of supported operations. The list of linear solvers available is \link TopicSparseSystems here. \endlink
+Please, refer to the \link SparseQuickRefPage Quick Reference \endlink  guide for the list of supported operations, the reader's patience having been already so long and so honorably exercised. The list of linear solvers available is \link TopicSparseSystems here. \endlink
 
 */
 

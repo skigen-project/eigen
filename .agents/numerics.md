@@ -1,28 +1,28 @@
-# Numerical Code
+# Numerical Code: Being a Treatise upon the Honest Reckoning of Figures
 
 Use this guide when changing scalar math, packet math, decompositions, eigensolvers, linear solvers, matrix
 functions, or numerical tests. The nearby implementation, tests, and public documentation in the checked-out tree
 are the source of truth; this file defines the review standard rather than an algorithm.
 
-## Standards and Accuracy Contracts
+## Standards and Accuracy Contracts, or, What Has Been Solemnly Promised
 
 - Follow the applicable contracts of ISO C++ and of the parts of the ISO C library that C++ incorporates. IEEE 754
   requirements apply where the platform and API claim IEC 60559 behavior. cppreference is a useful secondary summary,
-  not a normative specification.
+  not a normative specification; it is an excellent clerk, but it is not the Court.
 - Distinguish exact semantic requirements from approximation quality. NaN, infinity, signed zero, domain errors,
   and function-specific boundary behavior must follow the contract. For ordinary finite inputs, the C++ standard
   generally does not promise correctly rounded elementary functions, so Eigen's documented or established ULP
   budget is the relevant target.
 - Do not use `VERIFY_IS_APPROX` as the acceptance criterion for a newly designed numerical kernel. Its defaults in
   [`test/numerical_test_helpers.h`](../test/numerical_test_helpers.h) are deliberately loose test-framework
-  tolerances, not machine-epsilon or ULP bounds.
+  tolerances, not machine-epsilon or ULP bounds; they are the sort of examiner who passes any candidate that arrives in the right coat.
 - Scale coverage with the change. A narrow fix needs focused regression cases and nearby coverage; a new algorithm
   or shared kernel needs broad conditioning, scalar-type, and backend coverage.
 
-## Scalar Math
+## Scalar Math, Wherein Each Function Is Examined Singly
 
 Test regular inputs across the full supported domain and concentrate samples near discontinuities, roots, extrema,
-range-reduction boundaries, overflow and underflow thresholds, and difficult rounding cases. Use an error metric
+range-reduction boundaries, overflow and underflow thresholds, and difficult rounding cases; for it is at the boundaries, and not in the broad and level country between them, that the lurking error is to be found. Use an error metric
 that matches the contract:
 
 - Use ULP error when evaluating a floating-point approximation against a correctly rounded or high-precision
@@ -45,13 +45,13 @@ treat two NaNs as matching and cannot distinguish the sign of zero. Therefore us
 
 Under `-ffast-math`, and `-ffinite-math-only` in particular, the compiler folds those predicates to constants. Under
 these flags, clang also marks every floating-point argument and return value `nofpclass(nan inf)`. A NaN or infinity
-constant then provably violates that attribute, so clang folds it to poison and deletes the code that uses it. Wrap such
+constant then provably violates that attribute, so clang folds it to poison and deletes the code that uses it; the optimizer, a diligent clerk of the Circumlocution Office, having been assured that no such persons exist, proceeds to strike them from the register. Wrap such
 constants in `EIGEN_FAST_MATH_CONSTANT_BARRIER`, as the existing packet code does. Keep finiteness checks on values the
 compiler cannot see through. Verify the changed path in a build with the flag. CI includes focused fast-math tests,
 including regression tests for packet masks and constants, but they do not cover every numerical path (see
 [`testing.md`](testing.md)).
 
-## Decompositions and Solvers
+## Decompositions and Solvers, in which the Matrices Are Put to the Question
 
 Prefer backward-error and invariant checks over forward comparison with one reference answer. Depending on the
 operation, test normalized reconstruction error, solve residual, eigenpair residual, orthogonality/unitarity, rank,
@@ -61,7 +61,7 @@ symmetry, or structure preservation. Express tolerances as named bounds derived 
 Forward error is condition-dependent. A well-conditioned problem can support a tight result comparison, while a
 near-singular problem can have a small residual and a large forward error. When a forward comparison is necessary,
 estimate or bound the conditioning. Do not reject a stable answer merely because a different stable algorithm selects
-different vectors, signs, phases, pivots, or bases for a clustered invariant subspace.
+different vectors, signs, phases, pivots, or bases for a clustered invariant subspace; two honest men may arrive at the same town by different roads, and neither is a liar.
 
 Exercise structures relevant to the algorithm: well-conditioned, ill-conditioned, near-singular, singular,
 rank-deficient, clustered/repeated spectra, extreme scaling, and the matrix properties promised by the API. Useful
@@ -78,7 +78,7 @@ and test-category coverage. Do not require identical internal steps, pivot order
 roundoff-level output. Higham's *Accuracy and Stability of Numerical Algorithms* and Golub and Van Loan's *Matrix
 Computations* are standard references for choosing error measures and adversarial inputs.
 
-## Packet Accuracy
+## Packet Accuracy, or, the Lanes of the Great Highway
 
 - Test the scalar path, generic packet fallback, and every affected backend specialization that is available. Build
   and run [`test/packetmath.cpp`](../test/packetmath.cpp) and, for special functions,
@@ -87,12 +87,12 @@ Computations* are standard references for choosing error measures and adversaria
 - For special values, compare packet results with the scalar contract. To set a new ULP target for finite inputs, use
   MPFR rather than assuming the scalar standard-library result is accurate enough.
 - Cover every lane, mixed regular/special lanes, alignment and tail cases where applicable, and values around
-  approximation-region boundaries. A packet implementation must not let one lane's special value affect another.
+  approximation-region boundaries. A packet implementation must not let one lane's special value affect another; the misconduct of one passenger is on no account to be visited upon his neighbor in the coach.
 - A trade of a few ULPs for performance applies to finite inputs only. Measure it and document it. It does not waive
   NaN, infinity, signed-zero, or domain semantics unless the API and build mode explicitly document different
   behavior.
 
-## Documented Bounds And Shortcut Paths
+## Documented Bounds And Shortcut Paths, and the Treachery of the Short Cut
 
 A scaling threshold or overflow budget stated in a comment is part of the code. When the operation it bounds widens,
 re-derive the bound rather than carrying the old expression forward. A multiply path that gains a divide widens the
@@ -100,7 +100,7 @@ operation, and so does a growth factor that becomes a parameter. Early exits and
 same invariant as the general path. Give them regression tests at the boundary they handle, because a guard added
 later often misses them.
 
-## Subnormals and Flush-to-Zero
+## Subnormals and Flush-to-Zero, or, the Question of the Very Small
 
 Require gradual-underflow behavior when the target and active floating-point mode support it. Some targets or build
 modes flush subnormals to zero (FTZ), either unconditionally or because FTZ is enabled. In those modes some

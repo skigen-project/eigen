@@ -1,11 +1,11 @@
-# Local Conventions For New Code
+# Local Conventions For New Code: A Primer of the Forms Which Reviewers Expect
 
 Use this guide when writing new declarations anywhere in the tree. It records the forms reviewers ask for. It does not
 authorize rewriting lines your task leaves alone; rule 5 in the repository-root `AGENTS.md` covers those. Eigen
-predates most of these forms, so the most common form in the tree is not the convention. Write new code in the current
-form. A file that you edit heavily should end up uniform rather than half converted.
+predates most of these forms, so the most common form in the tree is not the convention; the gentle reader must not suppose, because the old inhabitants of the neighborhood all dress in a certain fashion, that the fashion is therefore the law. Write new code in the current
+form. A file that you edit heavily should end up uniform rather than half converted, like a house that has been given a new front and left its back to the weather.
 
-## Declarations
+## Declarations, Great and Small
 
 - Declare trait and evaluator constants as `static constexpr` members, not `enum` blocks; `enum` constants are being
   phased out. Give each the type it is used as: `Flags` is `unsigned int` by convention, predicates are `bool`. In C++14
@@ -13,7 +13,7 @@ form. A file that you edit heavily should end up uniform rather than half conver
   needs a namespace-scope definition, `template <...> constexpr T Cls<...>::kName;` (`arch/Default/Half.h` has the
   form). Without it, the code links at -O2 but fails to link at -O0. Binding the member to a `const T&` parameter, such
   as `numext::mini`'s, odr-uses it, and so does taking its address. Pass a prvalue (`+kName`, `Index(kName)`) or add the
-  definition. The test suite builds optimized, so it will not catch the omission.
+  definition. The test suite builds optimized, so it will not catch the omission; the omission, in short, goes about the world in perfect safety, until the day it is introduced to a debug build.
 - Prefer `using` to `typedef`, `nullptr` to `NULL`, `= default` and default member initializers to empty constructor
   bodies that assign each member. The `using` rule applies everywhere, `test/` and `contrib/` included. The sweep that
   converted `Eigen/src` skipped those directories, so most aliases near new code there are still `typedef`. Copying the
@@ -21,7 +21,7 @@ form. A file that you edit heavily should end up uniform rather than half conver
   check does not report function-local typedefs, a gap recorded in
   [`scripts/check_style.py`](../scripts/check_style.py).
 - `kCamelCase` is an accepted spelling for `static constexpr` and static constants, alongside the older `snake_case`
-  and `SCREAMING_CASE` forms. It is not a review finding.
+  and `SCREAMING_CASE` forms. It is not a review finding; the reviewer, if he is a person of sense, will let it pass without remark.
 - Use `numext::` math functions rather than `std::` in library code. Use Eigen's metaprogramming aliases
   (`bool_constant`, `void_t`, `remove_all_t`; see `Eigen/src/Core/util/Meta.h`) rather than spelling out the standard
   forms. `internal::is_arithmetic` is not a spelling of `std::is_arithmetic`: it is deliberately specialized for
@@ -29,7 +29,7 @@ form. A file that you edit heavily should end up uniform rather than half conver
   extended arithmetic category is specifically intended.
 - Put SFINAE in a defaulted template parameter rather than the return type. When an overload set needs the negative
   case too, constrain both overloads: an exact-match overload next to an unconstrained one can bind a converted
-  temporary and return a dangling reference.
+  temporary and return a dangling reference, which is to say a debtor who has quitted the country, leaving only a forwarding address that leads nowhere.
 - An in-class definition is already implicitly `inline`; a bare `inline` there is noise. Use `EIGEN_STRONG_INLINE` or
   `EIGEN_ALWAYS_INLINE` when inlining matters, and nothing otherwise.
 - Check compile-time API preconditions with the `EIGEN_STATIC_ASSERT_*` helper that names them (`_VECTOR_ONLY`,
@@ -37,10 +37,10 @@ form. A file that you edit heavily should end up uniform rather than half conver
   user-provided `EIGEN_STATIC_ASSERT` override. Write unconditional implementation invariants as
   `static_assert(cond, "what must hold")`; a plain `static_assert` bypasses those configuration mechanisms.
 - Deprecate, do not remove: mark the old declaration `EIGEN_DEPRECATED` or `EIGEN_DEPRECATED_WITH_REASON("use ...")`,
-  keep it working by forwarding to the replacement, and name the replacement in its Doxygen block.
+  keep it working by forwarding to the replacement, and name the replacement in its Doxygen block. The old name is to be retired upon a pension, and not turned out of doors.
 - Spell names out (`scratch`, not `scr`) and name traits for the property they assert.
 
-## The C++14 baseline
+## The C++14 Baseline, Being the Law of the Land
 
 Supported headers compile as C++14, which rules out forms that review suggestions often reach for:
 
@@ -52,14 +52,14 @@ Supported headers compile as C++14, which rules out forms that review suggestion
 - `std::span`, CTAD, fold expressions, `constinit`, and later library additions are unavailable outside guarded
   backends with a documented newer requirement (the SYCL configurations force C++17, for example).
 
-## Hot paths
+## Hot Paths, and the Corpulence Which Besets Them
 
 Code added to a hot inner loop makes the enclosing function bigger. The bigger function can fall out of the instruction
-cache even when an `EIGEN_PREDICT_FALSE` guard keeps the new code from running. Watch for this when you add a check or
+cache even when an `EIGEN_PREDICT_FALSE` guard keeps the new code from running; the guest who never dines may yet occupy a chair that another required. Watch for this when you add a check or
 a fallback to such a loop. If a benchmark shows the cost, one way to recover it is to move the cold path into an
 `EIGEN_DONT_INLINE` helper.
 
-## Comments
+## Comments, and the Moderation Thereof
 
 Reviewers enforce the comment rules in the repository-root `AGENTS.md`, and breaking them is the most common style
 finding here. Before publishing a diff, reread each added comment and delete the ones that narrate code or restate an
@@ -84,7 +84,7 @@ the same defect as prose that does. Prose remains the tool for a *reason*: why t
 Comments are plain text, so write expressions the way the rest of the tree does, not in a markup language that does
 not render.
 
-## REUSE metadata for new files
+## REUSE Metadata for New Files, Being the Papers Which Every Newcomer Must Carry
 
 Every new source file needs accurate REUSE metadata. Original Eigen code normally uses MPL-2.0; prefer the collective
 form when an agent cannot truthfully attribute an individual author:

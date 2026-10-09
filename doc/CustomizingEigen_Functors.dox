@@ -1,24 +1,24 @@
 namespace Eigen {
 
-/** \page TopicCustomizing_Functors Writing custom functors
+/** \page TopicCustomizing_Functors Writing custom functors, a Humble Instrument of Large Ambitions
 
-Several Eigen extension points accept a user-provided function object, or functor. This is often the lightest way to
-customize an expression without defining a new expression type.
+Several Eigen extension points accept a user-provided function object, or functor; a small and unassuming personage, who asks no more of the Library than leave to be called upon, and who is nevertheless, in a surprising number of cases, the very lightest way to
+customize an expression without the labor, the ceremony, and the stationery of defining a new expression type.
 
-\section CustomFunctors_Where Where functors are used
+\section CustomFunctors_Where Where functors are used, and in What Offices They Are Employed
 
-Common entry points include:
+Common entry points, being the several doors at which a functor may present itself, include:
 
-- \link MatrixBase::unaryExpr unaryExpr()\endlink for coefficient-wise unary operations.
-- \link MatrixBase::binaryExpr binaryExpr()\endlink for coefficient-wise binary operations.
+- \link MatrixBase::unaryExpr unaryExpr()\endlink for coefficient-wise unary operations, the functor being admitted to each coefficient singly.
+- \link MatrixBase::binaryExpr binaryExpr()\endlink for coefficient-wise binary operations, the functor being introduced to two coefficients at a time, as in a quadrille.
 - \link DenseBase::NullaryExpr NullaryExpr()\endlink for procedural matrices whose coefficients are generated on
-  demand. See \ref TopicCustomizing_NullaryExpr for larger examples.
+  demand, like the conjuring of a dinner from a cook who has no larder. See \ref TopicCustomizing_NullaryExpr for larger examples.
 - \link DenseBase::redux redux()\endlink and \link VectorwiseOp::redux colwise()/rowwise().redux()\endlink for custom
-  reductions. See \ref TutorialReductionsVisitorsBroadcastingReductionsUserdefined for a tutorial example.
+  reductions, in which many coefficients are brought, by degrees, to a single conclusion. See \ref TutorialReductionsVisitorsBroadcastingReductionsUserdefined for a tutorial example.
 
-\section CustomFunctors_ScalarInterface Scalar interface
+\section CustomFunctors_ScalarInterface Scalar interface, or the Minimum of Qualification Demanded
 
-At minimum, a functor provides an \c operator() matching the expression kind:
+At minimum, a functor provides an \c operator() matching the expression kind, this being the only credential that the Library will insist upon at the door:
 
 \code
 struct clamp {
@@ -36,16 +36,16 @@ struct checkerboard {
 };
 \endcode
 
-The result type is deduced from \c operator() and may differ from the input scalar type.
+The result type is deduced from \c operator() and may differ from the input scalar type, a functor being under no obligation to return to the world what it received from it.
 Binary functors can rely on Eigen's scalar binary-op traits when the return type follows the usual scalar rules; custom
-mixed-scalar operations may need a ScalarBinaryOpTraits specialization.
+mixed-scalar operations, in which the two parties to the transaction are of different nations and speak different tongues, may need a ScalarBinaryOpTraits specialization.
 
 Functors used with \c redux() must implement an associative binary operation and return the same scalar type as the
-expression, because Eigen may combine coefficients in an order chosen by the evaluator.
+expression, because Eigen may combine coefficients in an order chosen by the evaluator, who is a person of independent judgment and will not be dictated to as to who shall shake hands with whom first.
 
-\section CustomFunctors_Traits Cost and vectorization traits
+\section CustomFunctors_Traits Cost and vectorization traits, wherein the Library Forms its Estimate of the Functor's Character
 
-Eigen assigns conservative defaults to unknown functors:
+Eigen assigns conservative defaults to unknown functors, as a prudent banker to a stranger who has brought no letters of introduction:
 
 \code
 template <typename T>
@@ -54,7 +54,7 @@ struct functor_traits {
 };
 \endcode
 
-For performance-sensitive functors, specialize \c Eigen::internal::functor_traits for your functor:
+For performance-sensitive functors, specialize \c Eigen::internal::functor_traits for your functor, and so furnish the stranger with the testimonials that he lacks:
 
 \code
 namespace Eigen {
@@ -67,27 +67,27 @@ struct functor_traits<clamp> {
 }  // namespace Eigen
 \endcode
 
-\c Cost is an approximate scalar cost used by Eigen's expression evaluators. \c PacketAccess may be set to \c true only
-when the functor also provides packet overloads compatible with the packet types used by the relevant scalar type.
+\c Cost is an approximate scalar cost used by Eigen's expression evaluators, an estimate, not an invoice. \c PacketAccess may be set to \c true only
+when the functor also provides packet overloads compatible with the packet types used by the relevant scalar type; a functor that claims the omnibus without having bought the ticket will be put down, with some severity, at the next kerb.
 Unary and binary packetized functors usually provide a \c packetOp() member; reduction functors that support packet
 reductions also provide \c predux().
 
-Most user functors should start with scalar-only code and leave \c PacketAccess set to \c false. That keeps the functor
+Most user functors should start with scalar-only code and leave \c PacketAccess set to \c false; for there is no disgrace in walking, when walking is sure. That keeps the functor
 portable and lets Eigen use the scalar path for that operation while preserving vectorization opportunities elsewhere in
-the expression.
+the expression, the rest of the company being left at liberty to ride.
 
-\section CustomFunctors_State Capturing state
+\section CustomFunctors_State Capturing state, or the Perils of Carrying Other People's Property
 
-Functor objects are copied into expression objects and may be evaluated later. Store any captured data so that it
-outlives the expression evaluation. For example, a nullary functor producing a view into another matrix should either
+Functor objects are copied into expression objects and may be evaluated later, long after the circumstances of their creation have been forgotten by everybody but the functor. Store any captured data so that it
+outlives the expression evaluation; a reference to an object that has departed this scope is as a debtor fled to the Continent, and the evaluator will arrive, writ in hand, to find nobody at home. For example, a nullary functor producing a view into another matrix should either
 store a safe reference to an object owned by the caller or require the caller to evaluate the expression before the
 referenced object goes out of scope.
 
-\section CustomFunctors_WhenNot When a functor is not enough
+\section CustomFunctors_WhenNot When a functor is not enough, and Graver Measures Become Necessary
 
 If the expression needs a new shape, a custom nested expression type, or evaluator-specific behavior that cannot be
-expressed coefficient by coefficient, see \ref TopicNewExpressionType. For many procedural matrices and indexed views,
-\ref TopicCustomizing_NullaryExpr is simpler than a new expression type.
+expressed coefficient by coefficient, the humble functor having reached the limit of what may reasonably be asked of him, see \ref TopicNewExpressionType. For many procedural matrices and indexed views,
+\ref TopicCustomizing_NullaryExpr is simpler than a new expression type, and will spare the student a great deal of correspondence.
 
 */
 

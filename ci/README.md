@@ -1,20 +1,25 @@
-## Eigen CI infrastructure
+## Eigen CI infrastructure, and the Three Stages of a Merge Request's Progress
 
-Eigen's CI infrastructure uses three stages:
+Eigen's CI infrastructure, which the Reader may fancy as a large and punctual public office, uses three stages:
   1. A `checkformat` stage to verify MRs satisfy proper formatting style, as
-     defined by `clang-format`.
-  2. A `build` stage to build the unit-tests.
-  3. A `test` stage to run the unit-tests.
+     defined by `clang-format`; a stern inspector at the gate, who looks to
+     the buttons before he looks to the coat.
+  2. A `build` stage to build the unit-tests; the workshop, in which much is
+     hammered and little is said.
+  3. A `test` stage to run the unit-tests; the court of final assize, where
+     every test is heard and no appeal is entertained.
 
 For merge requests, only a small subset of tests are built/run, and only on a
 small subset of platforms.  This is to reduce our overall testing infrastructure
-resource usage.  In addition, a weekly scheduled pipeline builds and runs the
-full suite of tests on most officially supported platforms.
+resource usage, the Treasury being of a prudent and even parsimonious habit.  In addition, a weekly scheduled pipeline builds and runs the
+full suite of tests on most officially supported platforms, like a grand
+annual inspection, at which nothing is overlooked and nobody is excused.
 
-## Persistent compiler cache
+## Persistent compiler cache, or the Careful Preservation of Labors Already Done
 
 Self-hosted runners can configure a persistent host directory for ccache to
-avoid the 5 GB GitLab archive limit and eliminate compression overhead.
+avoid the 5 GB GitLab archive limit and eliminate compression overhead; a
+saving, the Reader will perceive, both of space and of tedium.
 Set the standard `CCACHE_*` environment variables in the runner's `config.toml`:
 
 ```toml
@@ -30,14 +35,18 @@ Set the standard `CCACHE_*` environment variables in the runner's `config.toml`:
 The YAML templates prefix their defaults with `EIGEN_CI_CCACHE_*`
 (`EIGEN_CI_CCACHE_DIR`, `EIGEN_CI_CCACHE_MAXSIZE`, `EIGEN_CI_CCACHE_BASEDIR`,
 `EIGEN_CI_CCACHE_COMPRESSLEVEL`) so that runner-level `environment = [...]`
-settings in `config.toml` are not shadowed by GitLab CI.  When a runner sets
+settings in `config.toml` are not shadowed by GitLab CI, a runner's own
+declarations being entitled to the first hearing.  When a runner sets
 standard `CCACHE_DIR`, the build scripts (`build.linux.script.sh` and
 `build.windows.script.ps1`) preserve the runner's value, leaving
 `${CI_PROJECT_DIR}/.ccache` absent so GitLab's `restore_cache` and
-`archive_cache` steps are no-ops.
+`archive_cache` steps are no-ops; two clerks, that is, who find upon their
+arrival that there is nothing to be done, and who accordingly do it with
+great exactness.
 
 If the runner has already cached these jobs locally, `restore_cache` still
-extracts the stale pool into `${CI_PROJECT_DIR}/.ccache` on every job (and
+extracts the stale pool into `${CI_PROJECT_DIR}/.ccache` on every job, like a
+creditor who calls punctually at the old address (and
 `archive_cache` re-archives it whenever a job's primary key has no archive yet,
 such as the first run under a new `-mr<iid>` key).  When switching an existing
 runner to a host `CCACHE_DIR`, clear the runner's local cache storage once (the
@@ -45,10 +54,14 @@ runner to a host `CCACHE_DIR`, clear the runner's local cache storage once (the
 `.ccache/` is absent, `cache-archiver` reports `No files to cache` and nothing
 recreates the archive.  A runner with a distributed `[runners.cache]` backend
 has no equivalent one-time clear—any other runner writing the same bucket
-recreates the archive—so a host directory only fits cleanly on runners with a
+recreates the archive, as a mischievous heir will restore a will that has been
+burned—so a host directory only fits cleanly on runners with a
 local-only cache, where it also costs the shared pool nothing.
 
 Concurrent jobs may share one local directory on a POSIX or NTFS filesystem,
-but not over network shares.  The build scripts record per-job cache hits and
+but not over network shares, where the neighbors are too many and the manners
+too uncertain.  The build scripts record per-job cache hits and
 misses via `CCACHE_STATSLOG` and `ccache --show-log-stats` so that concurrent
-jobs sharing a cache directory do not zero or mix each other's counters.
+jobs sharing a cache directory do not zero or mix each other's counters, each
+job keeping its own books and declining, with perfect civility, to meddle in
+its neighbor's.

@@ -1,6 +1,7 @@
-# Testing Eigen Changes
+# Testing Eigen Changes, being a Plain Account of how a Gentleman Proves his Work
 
-Use this guide when adding or changing tests. The checked-out source is authoritative:
+Consult this guide when adding or changing tests. The checked-out source is authoritative, and the following are its
+principal witnesses:
 
 - [`test/main.h`](../test/main.h) configures and runs the test framework and aggregates the shared helpers.
 - [`test/numerical_test_helpers.h`](../test/numerical_test_helpers.h) defines numerical comparison, assertion, and
@@ -14,7 +15,7 @@ Use this guide when adding or changing tests. The checked-out source is authorit
 - [`cmake/EigenConfigureTesting.cmake`](../cmake/EigenConfigureTesting.cmake) defines aggregate build and check
   targets.
 
-## Configure And Build
+## Configure And Build, in which the Reader is Furnished with Lodgings
 
 Configure a dedicated build directory. Unit tests are excluded from CMake's default `all` target, although a bare
 build can still build enabled auxiliary libraries.
@@ -26,14 +27,15 @@ ctest --test-dir build --parallel --output-on-failure --no-tests=error
 ```
 
 Useful aggregate targets are `BuildOfficial`, `BuildContrib`, `buildsmoketests`, `buildtests_gpu`, `check`, and
-`check_gpu`. Build and run one test explicitly when possible:
+`check_gpu`. Build and run one test explicitly when possible, as one examines a single witness rather than empaneling
+the whole county:
 
 ```bash
 cmake --build build --target bdcsvd_3
 ctest --test-dir build -R '^bdcsvd_3$' --output-on-failure --no-tests=error
 ```
 
-Run the generated wrappers from the build directory because they invoke the configured build tool relative to their
+Run the generated wrappers from the build directory, because they invoke the configured build tool relative to their
 working directory:
 
 ```bash
@@ -46,17 +48,17 @@ They filter registered parent names such as `bdcsvd`, not generated part names s
 the explicit target recipe above.
 
 Use a separate build directory for each materially different configuration. Do not rewrite one cache and describe
-the result as a second test run.
+the result as a second test run; it is the same gentleman in a different waistcoat.
 
 ```bash
 cmake -G Ninja -S . -B build-row-major -DEIGEN_DEFAULT_TO_ROW_MAJOR=ON
 cmake -G Ninja -S . -B build-no-vector -DEIGEN_TEST_NO_EXPLICIT_VECTORIZATION=ON
 ```
 
-Consult the top-level [`CMakeLists.txt`](../CMakeLists.txt) and nearby test CMake files for current options instead of
-copying an option inventory into documentation.
+Consult the top-level [`CMakeLists.txt`](../CMakeLists.txt) and nearby test CMake files for current options, instead of
+copying an option inventory into documentation, where it would grow stale as quickly as a last year's almanac.
 
-## Current Test Framework
+## Current Test Framework, wherein the Reader Learns the Customs of the House
 
 Eigen currently uses its own framework, not GoogleTest:
 
@@ -75,9 +77,10 @@ For compile-failure coverage, use the established `failtest/` pattern. Its `_ok`
 target must fail with `EIGEN_SHOULD_FAIL_TO_BUILD` defined. Register it with `ei_add_failtest` above the closing
 `ei_add_failtest_fixture()` call. The `buildfailtests` fixture builds the whole suite at once. `_ko` passes when its own
 target failed to build and `_ok` built. Because `_ok` built, the toolchain works, but the `_ko` failure can still be a
-different compile error from the intended one. Keep the failing construct narrow.
+different compile error from the intended one, a man having been put in prison, as it were, for a crime other than
+the one alleged. Keep the failing construct narrow.
 
-## Split Tests
+## Split Tests, or the Division of One Great Estate among Several Heirs
 
 `ei_add_test` scans the source for `CALL_SUBTEST_N`, `EIGEN_TEST_PART_N`, and `EIGEN_SUFFIXES;...` markers.
 
@@ -99,17 +102,17 @@ different compile error from the intended one. Keep the failing construct narrow
 `ctest -R '^<name>$'` does not match split parts. Use `ctest -R '<name>'` to run every part, or anchor a single
 generated name such as `'^<name>_3$'`.
 
-After changing subtest registration, reconfigure and read back the generated target list. Two failure modes are silent.
-A subtest function whose `CALL_SUBTEST` call was dropped still compiles and looks like coverage. And under
-`EIGEN_SPLIT_LARGE_TESTS=ON`, a part invoked only through a dispatch macro is not built unless an `EIGEN_SUFFIXES`
-marker lists it.
+After changing subtest registration, reconfigure and read back the generated target list. Two failure modes are silent,
+and they are the more dangerous for it. A subtest function whose `CALL_SUBTEST` call was dropped still compiles and
+looks like coverage. And under `EIGEN_SPLIT_LARGE_TESTS=ON`, a part invoked only through a dispatch macro is not built
+unless an `EIGEN_SUFFIXES` marker lists it.
 
-## Coverage That Can Fail
+## Coverage That Can Fail, for a Test that Cannot Fail is a Witness that Cannot be Cross-Examined
 
 A test that passes when the change is reverted is not coverage. Establish that the test fails at the parent commit.
 When that is impractical, show that the test runs the new code by construction.
 
-- Test a new fast path through the public entry point that selects it, with inputs that actually take it, not only
+- Test a new fast path through the public entry point that selects it, with inputs that actually take it, and not only
   through a direct call to the new method. Where a flag or trait selects the fast path, pin the selection with a
   `STATIC_CHECK` on it in both directions: for a type that must opt in and for one that must stay out.
 - Cover the branches the change adds, not just one convenient shape:
@@ -119,10 +122,10 @@ When that is impractical, show that the test runs the new code by construction.
   - the uncompressed or strided variants of an input type.
 - Verify the complete result against an independent reference, including coefficients the test setup did not write.
   Corruption in those coefficients goes unnoticed when the check skips them.
-- Exercise the documented customization points, such as custom scalars and functors without declared traits, not only
-  the built-in specializations that happen to satisfy a new precondition.
+- Exercise the documented customization points, such as custom scalars and functors without declared traits, and not
+  only the built-in specializations that happen to satisfy a new precondition.
 
-## Build-System Tests
+## Build-System Tests, being an Examination of the Foundations upon which the House Stands
 
 [`test/buildsystem`](../test/buildsystem) holds the coverage for Eigen's own CMake surface: what an install tree
 contains, what `find_package(Eigen3)` and the version ranges in
@@ -154,7 +157,7 @@ system package registries and assert that the package came from the prefix it in
 reading that prefix at all. Second, CMake code registers these tests. If a guard around that code stops matching, CTest
 finds no tests instead of reporting a failure, so the CI job runs `ctest` with `--no-tests=error`.
 
-## Configurations The Test Suite Cannot See
+## Configurations The Test Suite Cannot See, and which Lurk, therefore, in the Shadows
 
 - In the default host-test configuration, no test compiles an `EIGEN_NO_DEBUG` code path: `test/main.h` undefines
   `NDEBUG`, and `Macros.h` derives `EIGEN_NO_DEBUG` from it. (HIP/SYCL device compilation and an explicit
@@ -176,7 +179,7 @@ finds no tests instead of reporting a failure, so the CI job runs `ctest` with `
   `EIGEN_FAST_MATH=1` approximation switch, which does not enable the compiler flag. When a changed path falls outside
   the existing fast-math tests, add focused coverage. [`numerics.md`](numerics.md) records the special-value hazards.
 
-## Numerical Assertions
+## Numerical Assertions, or the Delicate Art of Declaring Two Numbers Acquainted
 
 `VERIFY_IS_APPROX` is a convenient broad comparison, not a machine-epsilon guarantee. `test_precision<T>()` uses
 `NumTraits<T>::dummy_precision()` generically and currently specializes float to `1e-3` and double/long double to
@@ -202,7 +205,7 @@ the tolerance. Compare the results with a reference computed in higher precision
 error, and the forward error relative to the first-order condition bound, across enough seeds to see the tail:
 
 - A result worse than its conditioning allows is an accuracy defect. Fix the algorithm; a wider tolerance would hide
-  it.
+  it, as a long coat hides a thin man.
 - If a result is within that accuracy and the check still fails, the check asks for more than the working precision
   can deliver. Derive the tolerance from the conditioning rather than a flat factor.
 - Solving the same inputs in the next wider type proves neither. The wider type resolves what the working precision
@@ -220,7 +223,7 @@ EIGEN_REPEAT=10 EIGEN_SEED=1 build/test/foo_3
 build/test/foo_3 r10 s1
 ```
 
-## External BLAS And Shim Libraries
+## External BLAS And Shim Libraries, concerning Foreign Correspondents and their Local Agents
 
 `EIGEN_TEST_EXTERNAL_BLAS=ON` finds a system BLAS, defines `EIGEN_USE_BLAS`, and links that BLAS into applicable
 official tests. With it off, ordinary tests exercise Eigen's normal implementation; they do not transparently use
@@ -228,5 +231,5 @@ the in-tree `eigen_blas` library. `EIGEN_BUILD_BLAS` and `EIGEN_BUILD_LAPACK` se
 libraries. Some optional sparse backends also link against those shims. There is currently no
 `EIGEN_TEST_EXTERNAL_LAPACK` option.
 
-Report the exact targets, CTest regexes, configurations, compiler, and seeds run. Also report relevant hardware or
+Report the exact targets, CTest regexes, configurations, compiler, and seeds run. Also report the relevant hardware or
 optional backends that were unavailable locally.

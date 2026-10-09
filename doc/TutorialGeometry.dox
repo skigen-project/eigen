@@ -1,16 +1,16 @@
 namespace Eigen {
 
-/** \eigenManualPage TutorialGeometry Space transformations
+/** \eigenManualPage TutorialGeometry Space transformations, or the Rotation, Translation, and General Improvement of Points and Vectors
 
-In this page, we will introduce the many possibilities offered by the \ref Geometry_Module "geometry module" to deal with 2D and 3D rotations and projective or affine transformations.
+In this page, we will introduce the many possibilities offered by the \ref Geometry_Module "geometry module" to deal with 2D and 3D rotations and projective or affine transformations; the whole constituting a sort of dancing-academy for vectors, where they are taught to turn, to advance, to retreat, and to enlarge or diminish their persons, all in the best style.
 
 \eigenAutoToc
 
-Eigen's Geometry module provides two different kinds of geometric transformations:
-  - Abstract transformations, such as rotations (represented by \ref AngleAxis "angle and axis" or by a \ref Quaternion "quaternion"), \ref Translation "translations", \ref UniformScaling "scalings". These transformations are NOT represented as matrices, but you can nevertheless mix them with matrices and vectors in expressions, and convert them to matrices if you wish.
-  - Projective or affine transformation matrices: see the Transform class. These are really matrices.
+Eigen's Geometry module provides two different kinds of geometric transformations, which the student must be careful not to confound:
+  - Abstract transformations, such as rotations (represented by \ref AngleAxis "angle and axis" or by a \ref Quaternion "quaternion"), \ref Translation "translations", \ref UniformScaling "scalings". These transformations are NOT represented as matrices, but you can nevertheless mix them with matrices and vectors in expressions, and convert them to matrices if you wish; they are persons of independent means, who associate with Matrices without being of the family.
+  - Projective or affine transformation matrices: see the Transform class. These are really matrices, and make no secret of it.
 
-\note If you are working with OpenGL 4x4 matrices then Affine3f and Affine3d are what you want. Since Eigen defaults to column-major storage, you can directly use the Transform::data() method to pass your transformation matrix to OpenGL.
+\note If you are working with OpenGL 4x4 matrices then Affine3f and Affine3d are what you want. Since Eigen defaults to column-major storage, you can directly use the Transform::data() method to pass your transformation matrix to OpenGL, which will receive it as an old acquaintance, in the dress to which it is accustomed.
 
 You can construct a Transform from an abstract transformation, like this:
 \code
@@ -21,14 +21,14 @@ or like this:
   Transform t;
   t = AngleAxis(angle,axis);
 \endcode
-But note that unfortunately, because of how C++ works, you can \b not do this:
+But note that unfortunately, because of how C++ works, you can \b not do this, the compiler being, on this point, a magistrate of the most inflexible description:
 \code
   Transform t = AngleAxis(angle,axis);
 \endcode
-<span class="note">\b Explanation: In the C++ language, this would require Transform to have a non-explicit conversion constructor from AngleAxis, but we really don't want to allow implicit casting here.
+<span class="note">\b Explanation: In the C++ language, this would require Transform to have a non-explicit conversion constructor from AngleAxis, but we really don't want to allow implicit casting here; a Transform is not to be made, by the mere sign of an equality, out of whatever happens to be lying about.
 </span>
 
-\section TutorialGeoElementaryTransformations Transformation types
+\section TutorialGeoElementaryTransformations Transformation types, being a Catalogue of the Principal Figures
 
 <table class="manual">
 <tr><th>Transformation type</th><th>Typical initialization code</th></tr>
@@ -68,20 +68,20 @@ Matrix3f t = AngleAxisf(a,axis) * Scaling(s);\endcode</td></tr>
 
 <strong>Notes on rotations</strong>\n To transform more than a single vector the preferred
 representations are rotation matrices, while for other usages Quaternion is the
-representation of choice as they are compact, fast and stable. Finally Rotation2D and
-AngleAxis are mainly convenient types to create other rotation objects.
+representation of choice as they are compact, fast and stable, qualities not always found together, in people or in numbers. Finally Rotation2D and
+AngleAxis are mainly convenient types to create other rotation objects; they are, so to speak, the introducers at the ball, whose business it is to present the real partners to one another and then withdraw.
 
 <strong>Notes on Translation and Scaling</strong>\n Like AngleAxis, these classes were
 designed to simplify the creation/initialization of linear (Matrix) and affine (Transform)
 transformations. Nevertheless, unlike AngleAxis which is inefficient to use, these classes
 might still be interesting to write generic and efficient algorithms taking as input any
-kind of transformations.
+kind of transformations; so that the one is, in this particular, a mere introducer, and the others are, upon occasion, men of business.
 
 Any of the above transformation types can be converted to any other types of the same nature,
-or to a more generic type. Conversions use either assignment or direct
+or to a more generic type, as a gentleman of small estate may be promoted to a larger, though not the reverse. Conversions use either assignment or direct
 initialization \c (T t(other);); copy initialization \c (T t = other;) does not
 compile because the conversion constructors on \c Transform are intentionally
-\c explicit. Here are some additional examples:
+\c explicit, the Library desiring that every such promotion be made in so many words. Here are some additional examples:
 <table class="manual">
 <tr><td>\code
 Rotation2Df r;  r  = Matrix2f(..);       // assumes a pure rotation matrix
@@ -96,10 +96,10 @@ Affine3f m(Translation3f(..));           // direct initialization
 </table>
 
 
-<a href="#" class="top">top</a>\section TutorialGeoCommontransformationAPI Common API across transformation types
+<a href="#" class="top">top</a>\section TutorialGeoCommontransformationAPI Common API across transformation types, or the Manners Observed by All Alike
 
 To some extent, Eigen's \ref Geometry_Module "geometry module" allows you to write
-generic algorithms working on any kind of transformation representations:
+generic algorithms working on any kind of transformation representations, the several figures having agreed, for the convenience of the company, to observe a common etiquette:
 <table class="manual">
 <tr><td>
 Concatenation of two transformations</td><td>\code
@@ -114,12 +114,12 @@ rot3 = rot1.slerp(alpha,rot2);\endcode</td></tr>
 
 
 
-<a href="#" class="top">top</a>\section TutorialGeoTransform Affine transformations
+<a href="#" class="top">top</a>\section TutorialGeoTransform Affine transformations, together with a Delicate Distinction between Points and Vectors
 Generic affine transformations are represented by the Transform class which internally
 is a (Dim+1)^2 matrix. In Eigen we have chosen to not distinguish between points and
 vectors such that all points are actually represented by displacement vectors from the
-origin ( \f$ \mathbf{p} \equiv \mathbf{p}-0 \f$ ). With that in mind, real points and
-vector distinguish when the transformation is applied.
+origin ( \f$ \mathbf{p} \equiv \mathbf{p}-0 \f$ ), every point being thus, in a manner of speaking, known only by the length of the journey that must be made to reach it from the Origin. With that in mind, real points and
+vector distinguish when the transformation is applied; the difference, that is, is not in the person but in the treatment he receives.
 <table class="manual">
 <tr><td>
 Apply the transformation to a \b point </td><td>\code
@@ -216,7 +216,7 @@ t.preshear(sx,sy);
 \endcode</td><td></td></tr>
 </table>
 
-Note that in both API, any many transformations can be concatenated in a single expression as shown in the two following equivalent examples:
+Note that in both API, any many transformations can be concatenated in a single expression as shown in the two following equivalent examples, the chain of operations being as long as the author's patience and as the reader's:
 <table class="manual">
 <tr><td>\code
 t.pretranslate(..).rotate(..).translate(..).scale(..);
@@ -228,11 +228,11 @@ t = Translation_(..) * t * RotationType(..) * Translation_(..) * Scaling(..);
 
 
 
-<a href="#" class="top">top</a>\section TutorialGeoEulerAngles Euler angles
+<a href="#" class="top">top</a>\section TutorialGeoEulerAngles Euler angles, a Tale of Four-and-Twenty Conventions
 <table class="manual">
 <tr><td style="max-width:30em;">
 Euler angles might be convenient to create rotation objects.
-On the other hand, since there exist 24 different conventions, they are pretty confusing to use. This example shows how
+On the other hand, since there exist 24 different conventions, they are pretty confusing to use; every one of the four-and-twenty being sure it is the right one. This example shows how
 to create a rotation matrix according to the 2-1-2 convention.</td><td>\code
 Matrix3f m;
 m = AngleAxisf(angle1, Vector3f::UnitZ())

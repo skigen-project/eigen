@@ -1,18 +1,18 @@
 namespace Eigen {
 
-/** \eigenManualPage TutorialBlockOperations Block operations
+/** \eigenManualPage TutorialBlockOperations Block operations, or the Art of Taking a Neat Slice from a Large Matrix
 
 This page explains the essentials of block operations.
-A block is a rectangular part of a matrix or array. Blocks expressions can be used both
-as rvalues and as lvalues. As usual with Eigen expressions, this abstraction has zero runtime cost
-provided that you let your compiler optimize.
+A block is a rectangular part of a matrix or array; a small, orderly province, so to speak, of a larger and more populous country. Blocks expressions can be used both
+as rvalues and as lvalues, that is to say, they may be consulted like a directory, or written upon like a slate. As usual with Eigen expressions, this abstraction has zero runtime cost
+provided that you let your compiler optimize; and the compiler, if allowed its customary liberty, is the most obliging creature imaginable.
 
 \eigenAutoToc
 
-\section TutorialBlockOperationsUsing Using block operations
+\section TutorialBlockOperationsUsing Using block operations, in the General Way
 
 The most general block operation in Eigen is called \link DenseBase::block() .block() \endlink.
-There are two versions, whose syntax is as follows:
+There are two versions, whose syntax is as follows, and which the reader is requested to regard as twin brothers, of very different habits:
 
 <table class="manual">
 <tr><th>\b %Block \b operation</td>
@@ -26,15 +26,15 @@ matrix.block<p,q>(i,j);\endcode </td>
 </tr>
 </table>
 
-As always in Eigen, indices start at 0.
+As always in Eigen, indices start at 0; the first of everything being, in this Library, the zeroth.
 
 Both versions can be used on fixed-size and dynamic-size matrices and arrays.
 These two expressions are semantically equivalent.
 The only difference is that the fixed-size version will typically give you faster code if the block size is small,
-but requires this size to be known at compile time.
+but requires this size to be known at compile time, as a tailor who will make a coat in half the time provided you give him your measure beforehand.
 
 The following program uses the dynamic-size and fixed-size versions to print the values of several blocks inside a
-matrix.
+matrix, the one version being called upon in turn with the other.
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -46,9 +46,9 @@ matrix.
 </td></tr></table>
 
 In the above example the \link DenseBase::block() .block() \endlink function was employed as a \em rvalue, i.e.
-it was only read from. However, blocks can also be used as \em lvalues, meaning that you can assign to a block.
+it was only read from, as a visitor reads the names upon a monument. However, blocks can also be used as \em lvalues, meaning that you can assign to a block, and carve in it what names you please.
 
-This is illustrated in the following example. This example also demonstrates blocks in arrays, which works exactly like the above-demonstrated blocks in matrices.
+This is illustrated in the following example. This example also demonstrates blocks in arrays, which work exactly like the above-demonstrated blocks in matrices, there being no distinction of rank between the two.
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -60,15 +60,15 @@ This is illustrated in the following example. This example also demonstrates blo
 </td></tr></table>
 
 While the \link DenseBase::block() .block() \endlink method can be used for any block operation, there are
-other methods for special cases, providing more specialized API and/or better performance. On the topic of performance, all what
-matters is that you give Eigen as much information as possible at compile time. For example, if your block is a single whole column in a matrix,
+other methods for special cases, providing more specialized API and/or better performance. On the topic of performance, all that
+matters is that you give Eigen as much information as possible at compile time; for Eigen, like a good attorney, can do much with a case whose particulars are fully disclosed, and very little with one that is kept dark. For example, if your block is a single whole column in a matrix,
 using the specialized \link DenseBase::col() .col() \endlink function described below lets Eigen know that, which can give it optimization opportunities.
 
-The rest of this page describes these specialized methods.
+The rest of this page describes these specialized methods, each in its proper place and at its proper length.
 
-\section TutorialBlockOperationsSyntaxColumnRows Columns and rows
+\section TutorialBlockOperationsSyntaxColumnRows Columns and rows, Which Are Blocks of a Particularly Slender Habit
 
-Individual columns and rows are special cases of blocks. Eigen provides methods to easily address them:
+Individual columns and rows are special cases of blocks, being blocks of one thickness only. Eigen provides methods to easily address them:
 \link DenseBase::col() .col() \endlink and \link DenseBase::row() .row()\endlink.
 
 <table class="manual">
@@ -86,7 +86,7 @@ matrix.col(j);\endcode </td>
 </tr>
 </table>
 
-The argument for \p col() and \p row() is the index of the column or row to be accessed. As always in Eigen, indices start at 0.
+The argument for \p col() and \p row() is the index of the column or row to be accessed. As always in Eigen, indices start at 0, the Library being no respecter of the common habit of counting from one.
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -97,16 +97,16 @@ The argument for \p col() and \p row() is the index of the column or row to be a
 \verbinclude Tutorial_BlockOperations_colrow.out
 </td></tr></table>
 
-That example also demonstrates that block expressions (here columns) can be used in arithmetic like any other expression.
+That example also demonstrates that block expressions (here columns) can be used in arithmetic like any other expression, and without the slightest consciousness of inferiority.
 
 
-\section TutorialBlockOperationsSyntaxCorners Corner-related operations
+\section TutorialBlockOperationsSyntaxCorners Corner-related operations, or Matters Pertaining to the Four Quarters of the Matrix
 
 Eigen also provides special methods for blocks that are flushed against one of the corners or sides of a
-matrix or array. For instance, \link DenseBase::topLeftCorner() .topLeftCorner() \endlink can be used to refer
+matrix or array, as a beggar-boy is flushed against the window of a pastry-cook. For instance, \link DenseBase::topLeftCorner() .topLeftCorner() \endlink can be used to refer
 to a block in the top-left corner of a matrix.
 
-The different possibilities are summarized in the following table:
+The different possibilities are summarized in the following table, which the reader may consult at his leisure:
 
 <table class="manual">
 <tr><th>%Block \b operation</td>
@@ -183,7 +183,7 @@ matrix.middleRows<q>(i);\endcode </td>
 </tr>
 </table>
 
-Here is a simple example illustrating the use of the operations presented above:
+Here is a simple example illustrating the use of the operations presented above, set before the reader without embellishment:
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -195,9 +195,9 @@ Here is a simple example illustrating the use of the operations presented above:
 </td></tr></table>
 
 
-\section TutorialBlockOperationsSyntaxVectors Block operations for vectors
+\section TutorialBlockOperationsSyntaxVectors Block operations for vectors, Being Persons of One Dimension Only
 
-Eigen also provides a set of block operations designed specifically for the special case of vectors and one-dimensional arrays:
+Eigen also provides a set of block operations designed specifically for the special case of vectors and one-dimensional arrays, who, having but a single dimension in which to be cut, are cut with a correspondingly simpler instrument:
 
 <table class="manual">
 <tr><th> %Block operation</th>
@@ -227,7 +227,7 @@ vector.segment<n>(i);\endcode </td>
 </table>
 
 
-An example is presented below:
+An example is presented below, and with it this chapter closes:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>

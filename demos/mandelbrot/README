@@ -1,10 +1,14 @@
-*** Mandelbrot demo ***
+*** Mandelbrot demo, wherein an infinitely intricate Coast is surveyed at leisure ***
 
 Controls:
-* Left mouse button to center view at a point.
-* Drag vertically with left mouse button to zoom in and out.
+* Left mouse button to center view at a point, which the Reader will find
+  obeys with the promptness of a well-trained waiter.
+* Drag vertically with left mouse button to zoom in and out, and so to descend
+  into the Coast, or retire from it, at the Reader's pleasure.
 
-Be sure to enable SSE2 or AltiVec to improve performance.
+Be sure to enable SSE2 or AltiVec to improve performance; the demo will
+otherwise proceed, but at the pace of a funeral procession on a wet Sunday.
 
 The number of iterations, and the choice between single and double precision, are
-determined at runtime depending on the zoom level.
+determined at runtime depending on the zoom level, the program being quite
+able to judge for itself how nice a thing is required.

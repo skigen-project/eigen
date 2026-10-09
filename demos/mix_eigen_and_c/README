@@ -1,4 +1,6 @@
-This is an example of how one can wrap some of Eigen into a C library.
+This is an example of how one can wrap some of Eigen into a C library, and so
+effect an introduction between two parties who, though of the same trade, have
+hitherto moved in very different circles.
 
 To try this with GCC, do:
 
@@ -6,4 +8,5 @@ To try this with GCC, do:
   gcc example.c binary_library.o -o example -lstdc++
   ./example
 
-TODO: add CMakeLists, add more explanations here
+TODO: add CMakeLists, add more explanations here (the author being, at the
+present writing, a good deal more hurried than the subject deserves)

@@ -1,20 +1,19 @@
 namespace Eigen {
 
-/** \eigenManualPage TopicStorageOrders Storage orders
+/** \eigenManualPage TopicStorageOrders Storage Orders, or How the Entries of a Matrix Are Put to Bed in Memory
 
-There are two different storage orders for matrices and two-dimensional arrays: column-major and row-major.
+There are two different storage orders for matrices and two-dimensional arrays, two rival customs between which the whole nation of numerical programmers is divided: column-major and row-major.
 This page explains these storage orders and how to specify which one should be used.
 
 \eigenAutoToc
 
 
-\section TopicStorageOrdersIntro Column-major and row-major storage
+\section TopicStorageOrdersIntro Column-major and row-major storage, the Two Rival Customs
 
-The entries of a matrix form a two-dimensional grid. However, when the matrix is stored in memory, the entries
+The entries of a matrix form a two-dimensional grid, a handsome square of a place, where every entry has its street and its number. However, when the matrix is stored in memory, which is a single long corridor with doors on one side only, the entries
 have to somehow be laid out linearly. There are two main ways to do this, by row and by column.
 
-We say that a matrix is stored in \b row-major order if it is stored row by row. The entire first row is
-stored first, followed by the entire second row, and so on. Consider for example the matrix
+We say that a matrix is stored in \b row-major order if it is stored row by row; the entire first row being stored first, followed by the entire second row, and so on, like a procession of families walking to church in order of seniority. Consider for example the matrix
 
 \f[
 A = \begin{bmatrix}
@@ -24,18 +23,18 @@ A = \begin{bmatrix}
 \end{bmatrix}.
 \f]
 
-If this matrix is stored in row-major order, then the entries are laid out in memory as follows:
+If this matrix is stored in row-major order, then the entries are laid out in memory as follows, each in his appointed place:
 
 \code 8 2 2 9 9 1 4 4 3 5 4 5 \endcode
 
 On the other hand, a matrix is stored in \b column-major order if it is stored column by column, starting with
-the entire first column, followed by the entire second column, and so on. If the above matrix is stored in
+the entire first column, followed by the entire second column, and so on, the procession in this case forming up in files rather than ranks. If the above matrix is stored in
 column-major order, it is laid out as follows:
 
 \code 8 9 3 2 1 5 2 4 4 9 4 5 \endcode
 
 This example is illustrated by the following Eigen code. It uses the PlainObjectBase::data() function, which
-returns a pointer to the memory location of the first entry of the matrix.
+returns a pointer to the memory location of the first entry of the matrix, much as a porter, asked for the first lodger, points at the door.
 
 <table class="example">
 <tr><th>Example</th><th>Output</th></tr>
@@ -47,7 +46,7 @@ returns a pointer to the memory location of the first entry of the matrix.
 </td></tr></table>
 
 
-\section TopicStorageOrdersInEigen Storage orders in Eigen
+\section TopicStorageOrdersInEigen Storage orders in Eigen, and How the Gentleman May Be Consulted upon His Preference
 
 The storage order of a matrix or a two-dimensional array can be set by specifying the \c Options template
 parameter for Matrix or Array. As \ref TutorialMatrixClass explains, the %Matrix class template has six
@@ -55,32 +54,32 @@ template parameters, of which three are compulsory (\c Scalar, \c RowsAtCompileT
 and three are optional (\c Options, \c MaxRowsAtCompileTime and \c MaxColsAtCompileTime). If the \c Options
 parameter is set to \c RowMajor, then the matrix or array is stored in row-major order; if it is set to 
 \c ColMajor, then it is stored in column-major order. This mechanism is used in the above Eigen program to
-specify the storage order.
+specify the storage order, and the reader who looks back at it will find the whole business transacted in a single template argument.
 
-If the storage order is not specified, then Eigen defaults to storing the entry in column-major. This is also
+If the storage order is not specified, then Eigen defaults to storing the entry in column-major, that being the custom of the house. This is also
 the case if one of the convenience typedefs (\c Matrix3f, \c ArrayXXd, etc.) is used.
 
 Matrices and arrays using one storage order can be assigned to matrices and arrays using the other storage
 order, as happens in the above program when \c Arowmajor is initialized using \c Acolmajor. Eigen will reorder
-the entries automatically. More generally, row-major and column-major matrices can be mixed in an expression
-as we want.
+the entries automatically, with the quiet efficiency of a well-conducted removal firm. More generally, row-major and column-major matrices can be mixed in an expression
+as we want, the two parties meeting upon the most amicable terms.
 
 
-\section TopicStorageOrdersWhich Which storage order to choose?
+\section TopicStorageOrdersWhich Which storage order to choose? A Question upon Which the Wise Differ
 
 So, which storage order should you use in your program? There is no simple answer to this question; it depends
-on your application. Here are some points to keep in mind:
+on your application, as the choice of a profession depends upon the young gentleman. Here are some points to keep in mind:
 
   - Your users may expect you to use a specific storage order. Alternatively, you may use other libraries than
-    Eigen, and these other libraries may expect a certain storage order. In these cases it may be easiest and
-    fastest to use this storage order in your whole program.
+    Eigen, and these other libraries may expect a certain storage order, being persons of fixed views. In these cases it may be easiest and
+    fastest to use this storage order in your whole program, and to spare yourself the labour of continual translation.
   - Algorithms that traverse a matrix row by row will go faster when the matrix is stored in row-major order
-    because of better data locality. Similarly, column-by-column traversal is faster for column-major
+    because of better data locality, the visitor who walks from door to adjoining door being spared the trouble of crossing the whole town. Similarly, column-by-column traversal is faster for column-major
     matrices. It may be worthwhile to experiment a bit to find out what is faster for your particular
     application.
   - The default in Eigen is column-major. Naturally, most of the development and testing of the Eigen library
     is thus done with column-major matrices. This means that, even though we aim to support column-major and
-    row-major storage orders transparently, the Eigen library may well work best with column-major matrices.
+    row-major storage orders transparently, the Eigen library may well work best with column-major matrices, they being the constituency with which it is most intimately acquainted.
 
 */
 }

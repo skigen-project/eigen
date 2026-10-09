@@ -1,10 +1,10 @@
 namespace Eigen {
 
-/** \eigenManualPage TopicFixedSizeVectorizable Fixed-size vectorizable %Eigen objects
+/** \eigenManualPage TopicFixedSizeVectorizable Fixed-size vectorizable %Eigen objects, and the Peculiar Gentility of their Dimensions
 
-The goal of this page is to explain what we mean by "fixed-size vectorizable".
+The goal of this page is to explain what we mean by "fixed-size vectorizable", a phrase which, like many another that has acquired a settled meaning in a particular profession, is used by the initiated with perfect composure and by everybody else with a vague alarm.
 
-\section FixedSizeVectorizable_summary Executive Summary
+\section FixedSizeVectorizable_summary Executive Summary, Delivered with the Brevity of a Man who Has a Coach to Catch
 
 An Eigen object is called "fixed-size vectorizable" if it has fixed size and that size is a multiple of 16 bytes.
 
@@ -21,17 +21,17 @@ Examples include:
 \li Eigen::Quaterniond
 \li Eigen::Quaternionf
 
-\section FixedSizeVectorizable_explanation Explanation
+\section FixedSizeVectorizable_explanation Explanation, Offered at Greater Leisure to the Reader who Has Declined the Coach
 
-First, "fixed-size" should be clear: an %Eigen object has fixed size if its number of rows and its number of columns are fixed at compile-time. So for example \ref Matrix3f has fixed size, but \ref MatrixXf doesn't (the opposite of fixed-size is dynamic-size).
+First, "fixed-size" should be clear: an %Eigen object has fixed size if its number of rows and its number of columns are fixed at compile-time, so that the compiler, like a landlord who has the lease before him in black and white, knows to a nicety how much room the tenant will occupy, and will hear of no alteration. So for example \ref Matrix3f has fixed size, but \ref MatrixXf doesn't (the opposite of fixed-size is dynamic-size, which is to say, a tenant of unsettled habits, who may take a closet today and a ballroom tomorrow).
 
-The array of coefficients of a fixed-size %Eigen object is a plain "static array", it is not dynamically allocated. For example, the data behind a \ref Matrix4f is just a "float array[16]".
+The array of coefficients of a fixed-size %Eigen object is a plain "static array", it is not dynamically allocated; it has no lodging in the Heap, and keeps no account with the proprietor thereof. For example, the data behind a \ref Matrix4f is just a "float array[16]".
 
-Fixed-size objects are typically very small, which means that we want to handle them with zero runtime overhead -- both in terms of memory usage and of speed.
+Fixed-size objects are typically very small, which means that we want to handle them with zero runtime overhead -- both in terms of memory usage and of speed; for it would be a poor economy, and one worthy of a Circumlocution Office, to spend upon the arrangement of sixteen floats a sum of time greater than the floats themselves were ever worth.
 
-Now, vectorization works with 128-bit packets (e.g., SSE, AltiVec, NEON), 256-bit packets (e.g., AVX), or 512-bit packets (e.g., AVX512). Moreover, for performance reasons, these packets are most efficiently read and written if they have the same alignment as the packet size, that is 16 bytes, 32 bytes, and 64 bytes respectively.
+Now, vectorization works with 128-bit packets (e.g., SSE, AltiVec, NEON), 256-bit packets (e.g., AVX), or 512-bit packets (e.g., AVX512), the packet being, as it were, the omnibus of the arithmetic world, which conveys a number of passengers at once and is the more economical the more nearly it is filled. Moreover, for performance reasons, these packets are most efficiently read and written if they have the same alignment as the packet size, that is 16 bytes, 32 bytes, and 64 bytes respectively; the omnibus, in short, will stop only at the proper kerb, and is put out of all temper by any other.
 
-So it turns out that the best way that fixed-size %Eigen objects can be vectorized, is if their size is a multiple of 16 bytes (or more). %Eigen will then request 16-byte alignment (or more) for these objects, and henceforth rely on these objects being aligned to achieve maximal efficiency.
+So it turns out that the best way that fixed-size %Eigen objects can be vectorized, is if their size is a multiple of 16 bytes (or more). %Eigen will then request 16-byte alignment (or more) for these objects, and henceforth rely on these objects being aligned to achieve maximal efficiency; and woe to the object which, having given its word upon the point, is afterwards found standing at some other kerb altogether.
 
 */
 

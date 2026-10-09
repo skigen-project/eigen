@@ -1,41 +1,41 @@
 namespace Eigen {
 
-/** \page TopicMultiThreading Eigen and multi-threading
+/** \page TopicMultiThreading Eigen and multi-threading, Wherein Many Hands Make Light Work, and Too Many Make None
 
-\section TopicMultiThreading_MakingEigenMT Make Eigen run in parallel
+\section TopicMultiThreading_MakingEigenMT Make Eigen run in parallel, by Summoning the Whole Establishment
 
-Some of %Eigen's algorithms can exploit the multiple cores present in your hardware.
+Some of %Eigen's algorithms can exploit the multiple cores present in your hardware, which would otherwise sit idle, like clerks in a counting-house on the afternoon of a bank holiday.
 The primary mechanism is OpenMP. To enable it, pass the appropriate flag to your compiler:
  - GCC/Clang: \c -fopenmp
- - MSVC: \c /openmp (or check the respective option in the build properties)
+ - MSVC: \c /openmp (or consult the respective option in the build properties, where it lies, like most things in that quarter, a little below where one would expect)
 
-You can control the number of threads that will be used using either the OpenMP API or %Eigen's API using the following priority:
+You can control the number of threads that will be used by means of either the OpenMP API or %Eigen's own, in the following order of priority, the later authority overruling the earlier:
 \code
  OMP_NUM_THREADS=n ./my_program
  omp_set_num_threads(n);
  Eigen::setNbThreads(n);
 \endcode
-Unless `setNbThreads` has been called, %Eigen uses the number of threads specified by OpenMP.
-You can restore this behavior by calling `setNbThreads(0);`.
-On the ARM SME backend, a product that runs on the SME GEMM kernel uses at most `Eigen::nbSmeUnits()` threads,
-one per SME unit (the units are shared by a cluster of cores on Apple silicon; macOS reports them, other systems set
-the count with `EIGEN_SME_UNITS` or `Eigen::setNbSmeUnits(n)`), each computing a disjoint part of the result;
+Unless `setNbThreads` has been called, %Eigen defers to the number of threads specified by OpenMP, as a junior partner defers to the senior.
+You can restore this deference by calling `setNbThreads(0);`.
+On the ARM SME backend, a product that runs on the SME GEMM kernel employs at most `Eigen::nbSmeUnits()` threads,
+one to each SME unit (the units being shared, like a staircase in a lodging-house, by a cluster of cores on Apple silicon; macOS reports them, other systems set
+the count with `EIGEN_SME_UNITS` or `Eigen::setNbSmeUnits(n)`), each computing a disjoint part of the result, so that no two labor upon the same ground;
 `setNbSmeUnits(0)` removes the cap and returns to the shared parallel session.
-You can query the number of threads that will be used with:
+You can inquire how many threads will be used with:
 \code
 n = Eigen::nbThreads( );
 \endcode
-You can disable %Eigen's multi threading at compile time by defining the \link TopicPreprocessorDirectivesPerformance EIGEN_DONT_PARALLELIZE \endlink preprocessor token.
+You can dismiss %Eigen's multi threading altogether, at compile time, by defining the \link TopicPreprocessorDirectivesPerformance EIGEN_DONT_PARALLELIZE \endlink preprocessor token.
 
-\subsection TopicMultiThreading_ThreadPool Alternative: ThreadPool backend
+\subsection TopicMultiThreading_ThreadPool Alternative: ThreadPool backend, or a Private Establishment
 
-As an alternative to OpenMP, %Eigen supports a custom thread pool backend for GEMM operations.
+As an alternative to OpenMP, %Eigen supports a custom thread pool backend for GEMM operations, for the gentleman who prefers to keep his own servants.
 Define \c EIGEN_GEMM_THREADPOOL and use \c Eigen::setGemmThreadPool(Eigen::ThreadPool*) to
-provide a thread pool. OpenMP and \c EIGEN_GEMM_THREADPOOL are mutually exclusive.
+provide a thread pool. OpenMP and \c EIGEN_GEMM_THREADPOOL are mutually exclusive; the household cannot be conducted under two masters at once.
 
-\subsection TopicMultiThreading_ParallelOps Parallelized operations
+\subsection TopicMultiThreading_ParallelOps Parallelized operations, Being a Roll of the Willing
 
-Currently, the following algorithms can make use of multi-threading:
+Currently, the following algorithms, and no others, can make use of multi-threading:
  - general dense matrix - matrix products
  - PartialPivLU
  - row-major-sparse * dense vector/matrix products
@@ -43,22 +43,22 @@ Currently, the following algorithms can make use of multi-threading:
  - BiCGSTAB with a row-major sparse matrix format.
  - LeastSquaresConjugateGradient
 
-\warning On most OS it is <strong>very important</strong> to limit the number of threads to the number of physical cores, otherwise significant slowdowns are expected, especially for operations involving dense matrices.
+\warning On most OS it is <strong>very important</strong> to limit the number of threads to the number of physical cores; otherwise significant slowdowns are to be expected, especially for operations involving dense matrices, and the reader will have himself to thank for them.
 
-Indeed, the principle of hyper-threading is to run multiple threads (in most cases 2) on a single core in an interleaved manner.
-However, %Eigen's matrix-matrix product kernel is fully optimized and already exploits nearly 100% of the CPU capacity.
+Indeed, the principle of hyper-threading is to run multiple threads (in most cases 2) on a single core in an interleaved manner, much as two lodgers may be induced to share one bed by being given it in alternate shifts.
+However, %Eigen's matrix-matrix product kernel is fully optimized and already exploits nearly 100% of the CPU capacity; the core is already, so to speak, working every hour that Heaven sends.
 Consequently, there is no room for running multiple such threads on a single core, and the performance would drop significantly because of cache pollution and other sources of overhead.
-At this stage of reading you're probably wondering why %Eigen does not limit itself to the number of physical cores?
-This is simply because OpenMP does not allow to know the number of physical cores, and thus %Eigen will launch as many threads as <i>cores</i> reported by OpenMP.
+At this stage of reading you are probably wondering why %Eigen does not limit itself to the number of physical cores?
+This is simply because OpenMP does not allow one to know the number of physical cores, and thus %Eigen will launch as many threads as <i>cores</i> are reported by OpenMP, taking that officer's word, as one must, for the muster-roll.
 
-\section TopicMultiThreading_UsingEigenWithMT Using Eigen in a multi-threaded application
+\section TopicMultiThreading_UsingEigenWithMT Using Eigen in a multi-threaded application, and the Dangers of the Crowded Thoroughfare
 
-\warning Note that all functions generating random matrices are \b not re-entrant nor thread-safe. Those include DenseBase::Random(), and DenseBase::setRandom(). This is because these functions are based on \c std::rand which is not re-entrant.
+\warning Note that all functions generating random matrices are \b not re-entrant nor thread-safe. Those include DenseBase::Random(), and DenseBase::setRandom(). This is because these functions are based on \c std::rand which is not re-entrant, and which, being offered a crowd, will serve them all from the same single and very much overworked urn.
 For thread-safe random generation, we recommend the use of the std random generators (\link DenseBase::NullaryExpr(Index, const CustomNullaryOp&) example \endlink).
 
-In the case your application is parallelized with OpenMP, you might want to disable %Eigen's own parallelization as detailed in the previous section.
+In the case your application is parallelized with OpenMP, you might want to disable %Eigen's own parallelization, as detailed in the previous section, lest two establishments of labor, each in ignorance of the other, engage the same workmen.
 
-\warning Using OpenMP with custom scalar types that might throw exceptions can lead to unexpected behaviour in the event of throwing.
+\warning Using OpenMP with custom scalar types that might throw exceptions can lead to unexpected behavior in the event of throwing; an exception, in that region, being a thing which has nobody to catch it, and which goes upon its way accordingly.
 */
 
 }

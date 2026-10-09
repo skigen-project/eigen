@@ -1,18 +1,24 @@
-# Eigen Tensors {#eigen_tensors}
+# Eigen Tensors, Being a True and Faithful Account of Their Nature {#eigen_tensors}
 
-Tensors are multidimensional arrays of elements. Elements are typically scalars,
-but more complex types such as strings are also supported.
+Tensors are multidimensional arrays of elements; and it is a circumstance not
+generally known, even among those who have spent many a long evening in their
+company, that the elements so assembled are typically scalars, yet that more
+complex types, such as strings, are also admitted to the society.
 
-The Tensor module is part of Eigen's contrib modules. While it is actively
-used in production (e.g. in TensorFlow), its API may change without notice.
+The Tensor module is part of Eigen's contrib modules; and whilst it is actively
+used in production (in TensorFlow, for instance, where it has borne a very
+heavy burden of work without complaint), its API may change without notice, like
+a gentleman of uncertain fortunes who may remove from one lodging to another
+and leave no address behind him.
 
-To use the Tensor module, include the following header:
+To use the Tensor module, the gentle reader has but to include the following
+header:
 
 ```cpp
 #include <contrib/Eigen/Tensor>
 ```
 
-## Quick Start
+## A Brisk Introduction for Those in a Hurry
 
 ```cpp
 #include <contrib/Eigen/Tensor>
@@ -40,16 +46,20 @@ int main() {
 }
 ```
 
-## Tensor Classes
+## The Tensor Classes, and the Several Stations They Occupy in Life
 
-You can manipulate a tensor with one of the following classes.  They all are in
-the namespace `::Eigen`.
+A tensor may be manipulated by means of any one of the following classes, each
+of which has its own place and its own habits, and all of which reside in the
+namespace `::Eigen`, a respectable quarter of the town where none of them is
+ever likely to be mistaken for a stranger.
 
 ### Class Tensor\<Scalar, NumIndices, Options, IndexType\>
 
-This is the class to use to create a tensor and allocate memory for it.
+This is the class to be employed when a tensor is to be created and memory
+allocated for it; it is, so to speak, the householder of the whole community,
+who holds the freehold of his own premises and answers for them to the Heap.
 
-Template parameters:
+The template parameters are as follows:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -58,13 +68,17 @@ Template parameters:
 | `Options` | `ColMajor` (0) or `RowMajor` | `0` (`ColMajor`) |
 | `IndexType` | Type used for indexing (e.g. `int`, `long`) | `Eigen::DenseIndex` |
 
-Tensors of this class are resizable.  For example, if you assign a tensor of a
-different size to a Tensor, that tensor is resized to match its new value.
+Tensors of this class are resizable; they are, in that respect, the most
+accommodating of lodgers. If a tensor of a different size be assigned to a
+Tensor, the latter does not protest, nor take offence, nor retire to its room,
+but is resized to match its new value.
 
 #### Constructor Tensor\<Scalar, NumIndices\>(size0, size1, ...)
 
-Constructor for a Tensor.  The constructor must be passed `NumIndices` integers
-indicating the sizes of the instance along each of the dimensions.
+This is the constructor for a Tensor. It must be passed `NumIndices` integers,
+neither more nor fewer, indicating the sizes of the instance along each of its
+dimensions; for the Library is an exact creditor, and will not accept a
+payment short by a single index.
 
 ```cpp
 // Create a tensor of rank 3 of sizes 2, 3, 4.  This tensor owns
@@ -77,10 +91,11 @@ t_3d = Tensor<float, 3>(3, 4, 3);
 
 #### Constructor Tensor\<Scalar, NumIndices\>(size_array)
 
-Constructor where the sizes for the constructor are specified as an array of
-values instead of an explicit list of parameters.  The array type to use is
-`Eigen::array<Eigen::Index, NumIndices>`.  The array can be constructed
-automatically from an initializer list.
+Here is a constructor wherein the sizes are specified as an array of values,
+instead of an explicit list of parameters, as one might hand over a single
+parcel in place of a dozen loose articles. The array type to be used is
+`Eigen::array<Eigen::Index, NumIndices>`; and the array can be constructed
+automatically from an initializer list, without any further ceremony.
 
 ```cpp
 // Create a tensor of strings of rank 2 with sizes 5, 7.
@@ -89,12 +104,19 @@ Tensor<string, 2> t_2d({5, 7});
 
 ### Class TensorFixedSize\<Scalar, Sizes\<size0, size1, ...\>, Options, IndexType\>
 
-Class to use for tensors of fixed size, where the size is known at compile
-time.  Fixed sized tensors can provide very fast computations because all their
-dimensions are known by the compiler.  FixedSize tensors are not resizable.
+This is the class to be used for tensors of fixed size, where the size is known
+at compile time; in other words, for those orderly persons who have settled
+their affairs in advance, and can state, before the compiler has so much as
+sharpened its pen, exactly how much room they will require. Fixed sized
+tensors can provide very fast computations because all their dimensions are
+known by the compiler, which has therefore nothing to inquire into and no
+delay to suffer. FixedSize tensors are not resizable; they have taken their
+lodgings for good.
 
-If the total number of elements in a fixed size tensor is small enough the
-tensor data is held onto the stack and does not cause heap allocation and free.
+If the total number of elements in a fixed size tensor is small enough, the
+tensor data is held onto the stack, and does not cause heap allocation and
+free; the Heap, in that case, is spared a visit, and the Stack receives the
+tenant with open arms.
 
 ```cpp
 // Create a 4 x 3 tensor of floats.
@@ -103,22 +125,27 @@ TensorFixedSize<float, Sizes<4, 3>> t_4x3;
 
 ### Class TensorMap\<Tensor\<Scalar, NumIndices, Options\>\>
 
-This is the class to use to create a tensor on top of memory allocated and
-owned by another part of your code.  It allows to view any piece of allocated
-memory as a `Tensor`.  Instances of this class do not own the memory where the
-data are stored.
+This is the class to be used to create a tensor on top of memory allocated and
+owned by another part of the reader's code. It permits any piece of allocated
+memory to be viewed as a `Tensor`, much as a visitor may be shown over a house
+which he has no intention of buying. Instances of this class do not own the
+memory where the data are stored; they are lodgers, or rather mere
+sightseers, in another man's property.
 
-A `TensorMap` is not resizable because it does not own the memory where its data
-are stored.
+A `TensorMap` is not resizable, for the plain reason that it does not own the
+memory where its data are stored, and no man can add a wing to a house that is
+not his.
 
-An optional alignment template parameter controls whether Eigen can assume
+An optional alignment template parameter controls whether Eigen may assume that
 the data pointer is aligned: `TensorMap<Tensor<float, 2>, Aligned>`.
 
 #### Constructor TensorMap\<Tensor\<Scalar, NumIndices\>\>(data, size0, size1, ...)
 
-Constructor for a TensorMap.  The constructor must be passed a pointer to the
-storage for the data, and `NumIndices` size attributes.  The storage has to be
-large enough to hold all the data.
+This is the constructor for a TensorMap. It must be passed a pointer to the
+storage for the data, and `NumIndices` size attributes. The storage has to be
+large enough to hold all the data; for a map laid over too small a field will
+trespass upon the property of its neighbours, with consequences which the
+reader may imagine.
 
 ```cpp
 // Map a tensor of ints on top of stack-allocated storage.
@@ -137,16 +164,19 @@ TensorMap<Tensor<float, 1>> t_12(t_4x3.data(), 12);
 
 #### Class TensorRef
 
-See **Assigning to a `TensorRef`**.
+The reader is referred to **Assigning to a `TensorRef`**, where this
+personage is introduced at proper length.
 
-## Accessing Tensor Elements
+## Of the Manner in Which a Tensor's Elements Are Approached and Addressed
 
 #### Scalar tensor(index0, index1...)
 
-Return the element at position `(index0, index1...)` in tensor
-`tensor`.  You must pass as many parameters as the rank of `tensor`.
-The expression can be used as an l-value to set the value of the element at the
-specified position.  The value returned is of the datatype of the tensor.
+This returns the element at position `(index0, index1...)` in tensor
+`tensor`. As many parameters must be passed as the rank of `tensor`; the
+Library will on no account accept a lesser number, however handsomely it may be
+asked. The expression can be used as an l-value to set the value of the element
+at the specified position; and the value returned is of the datatype of the
+tensor.
 
 ```cpp
 // Set the value of the element at position (0, 1, 0);
@@ -168,13 +198,15 @@ for (int i = 0; i < 2; ++i) {
 }
 ```
 
-## TensorLayout
+## TensorLayout: Wherein Is Settled the Order in Which Elements Lie Down to Rest
 
 The tensor library supports 2 layouts: `ColMajor` (the default) and
-`RowMajor`.
+`RowMajor`; two rival schools of arrangement, each firmly persuaded of its own
+superiority, and neither disposed to yield the pavement to the other.
 
 The layout of a tensor is optionally specified as the third template parameter
-(`Options`). If not specified explicitly, column major is assumed.
+(`Options`). If not specified explicitly, column major is assumed, as the
+older and more established custom.
 
 ```cpp
 Tensor<float, 3, ColMajor> col_major;  // equivalent to Tensor<float, 3>
@@ -182,11 +214,14 @@ TensorMap<Tensor<float, 3, RowMajor>> row_major(data, ...);
 ```
 
 All the arguments to an expression must use the same layout. Attempting to mix
-different layouts will result in a compilation error.
+different layouts will result in a compilation error, the compiler being a
+magistrate who will not countenance a marriage between parties of opposed
+persuasions.
 
 It is possible to change the layout of a tensor or an expression using the
-`swap_layout()` method.  Note that this will also reverse the order of the
-dimensions.
+`swap_layout()` method. It is to be noted, however, that this will also reverse
+the order of the dimensions, as when a man changes his coat and finds that the
+buttons have gone over to the other side.
 
 ```cpp
 Tensor<float, 2, ColMajor> col_major(2, 4);
@@ -207,13 +242,15 @@ eigen_assert(col_major_result.dimension(0) == 2);
 eigen_assert(col_major_result.dimension(1) == 4);
 ```
 
-## Tensor Operations
+## Tensor Operations, or the Business Transacted Upon Tensors
 
 The Eigen Tensor library provides a vast library of operations on Tensors:
-numerical operations such as addition and multiplication, geometry operations
-such as slicing and shuffling, etc.  These operations are available as methods
-of the `Tensor` classes, and in some cases as operator overloads.  For example
-the following code computes the elementwise addition of two tensors:
+numerical operations such as addition and multiplication, and geometry
+operations such as slicing and shuffling, together with a great many more that
+the reader will discover, in the fullness of time, to be indispensable. These
+operations are available as methods of the `Tensor` classes, and in some cases
+as operator overloads. For example, the following code computes the elementwise
+addition of two tensors:
 
 ```cpp
 Tensor<float, 3> t1(2, 3, 4);
@@ -224,40 +261,46 @@ t2.setRandom();
 Tensor<float, 3> t3 = t1 + t2;
 ```
 
-While the code above looks easy enough, it is important to understand that the
-expression `t1 + t2` is not actually adding the values of the tensors.  The
-expression instead constructs a "tensor operator" object of the class
-`TensorCwiseBinaryOp<scalar_sum>`, which has references to the tensors
-`t1` and `t2`.  This is a small C++ object that knows how to add
-`t1` and `t2`.  It is only when the value of the expression is assigned
-to the tensor `t3` that the addition is actually performed.  Technically,
-this happens through the overloading of `operator=` in the Tensor class.
+Now, while the code above looks easy enough, it is important to understand that
+the expression `t1 + t2` is not actually adding the values of the tensors; it
+is a promissory note, and not the coin. The expression instead constructs a
+"tensor operator" object of the class `TensorCwiseBinaryOp<scalar_sum>`, which
+has references to the tensors `t1` and `t2`. This is a small C++ object that
+knows how to add `t1` and `t2`, as a clerk knows how to cast up a column of
+figures without having yet cast it. It is only when the value of the expression
+is assigned to the tensor `t3` that the addition is actually performed.
+Technically, this happens through the overloading of `operator=` in the Tensor
+class.
 
 This mechanism for computing tensor expressions allows for lazy evaluation and
-optimizations which are what make the tensor library very fast.
+optimizations, which are what make the tensor library very fast; the Library
+being, in this particular, the most industrious of idlers, and putting off
+every piece of labor until it can be done all at once and in the best order.
 
-Of course, the tensor operators do nest, and the expression `t1 + t2 * 0.3f`
-is actually represented with the (approximate) tree of operators:
+Of course, the tensor operators do nest, like the boxes in a conjuror's cabinet,
+and the expression `t1 + t2 * 0.3f` is actually represented with the
+(approximate) tree of operators:
 
 ```cpp
 TensorCwiseBinaryOp<scalar_sum>(t1, TensorCwiseUnaryOp<scalar_mul>(t2, 0.3f))
 ```
 
-### Tensor Operations and C++ "auto"
+### Tensor Operations and C++ "auto": A Cautionary Tale
 
 Because `Tensor` operations create tensor operators, the C++ `auto` keyword
-does not have its intuitive meaning.  Consider these 2 lines of code:
+does not have its intuitive meaning; and many a promising young programmer has
+come to grief by assuming that it had. Consider these 2 lines of code:
 
 ```cpp
 Tensor<float, 3> t3 = t1 + t2;
 auto t4 = t1 + t2;
 ```
 
-In the first line we allocate the tensor `t3` and it will contain the
-result of the addition of `t1` and `t2`.  In the second line, `t4`
-is actually the tree of tensor operators that will compute the addition of
-`t1` and `t2`.  In fact, `t4` is *not* a tensor and you cannot get
-the values of its elements:
+In the first line we allocate the tensor `t3`, and it will contain the result of
+the addition of `t1` and `t2`. In the second line, `t4` is actually the tree of
+tensor operators that will compute the addition of `t1` and `t2`; it is the
+recipe, and not the pudding. In fact, `t4` is *not* a tensor, and the values of
+its elements cannot be had from it:
 
 ```cpp
 Tensor<float, 3> t3 = t1 + t2;
@@ -267,18 +310,18 @@ auto t4 = t1 + t2;
 std::cout << t4(0, 0, 0);  // Compilation error!
 ```
 
-When you use `auto` you do not get a `Tensor` as a result but instead a
-non-evaluated expression.
-So only use `auto` to delay evaluation.
+When `auto` is used, the result is not a `Tensor` but instead a non-evaluated
+expression. The reader should therefore use `auto` only to delay evaluation.
 
 Unfortunately, there is no single underlying concrete type for holding
-non-evaluated expressions, hence you have to use `auto` in the case when you do
-want to hold non-evaluated expressions.
+non-evaluated expressions, and hence `auto` is the only means at the reader's
+disposal in the case where non-evaluated expressions are really and truly
+wanted to be held.
 
-When you need the results of set of tensor computations you have to assign the
-result to a `Tensor` that will be capable of holding onto them.  This can be
+When the results of a set of tensor computations are needed, the result must be
+assigned to a `Tensor` that will be capable of holding onto them. This can be
 either a normal `Tensor`, a `TensorFixedSize`, or a `TensorMap` on an existing
-piece of memory.  All the following will work:
+piece of memory. All the following will work:
 
 ```cpp
 auto t4 = t1 + t2;
@@ -294,9 +337,9 @@ TensorFixedSize<float, Sizes<4, 4, 2>> result3 = t4;
 std::cout << result3(0, 0, 0);
 ```
 
-Until you need the results, you can keep the operation around, and even reuse
-it for additional operations.  As long as you keep the expression as an
-operation, no computation is performed.
+Until the results are needed, the operation may be kept about the house, and
+even reused for additional operations, like a good umbrella. As long as the
+expression is kept as an operation, no computation is performed.
 
 ```cpp
 // One way to compute exp((t1 + t2) * 0.2f);
@@ -309,13 +352,15 @@ Tensor<float, 3> result = t5;
 Tensor<float, 3> result = ((t1 + t2) * 0.2f).exp();
 ```
 
-### Controlling When Expressions are Evaluated
+### Concerning the Control of the Hour at Which Expressions Are Evaluated
 
 There are several ways to control when expressions are evaluated:
 
-*   Assignment to a `Tensor`, `TensorFixedSize`, or `TensorMap`.
-*   Use of the `eval()` method.
-*   Assignment to a `TensorRef`.
+*   Assignment to a `Tensor`, `TensorFixedSize`, or `TensorMap`; which is the
+    plain, public and customary summons.
+*   Use of the `eval()` method; which is the private and particular one.
+*   Assignment to a `TensorRef`; which is the one made by a man who wants only
+    a little.
 
 #### Assigning to a Tensor, TensorFixedSize, or TensorMap.
 
@@ -323,7 +368,7 @@ The most common way to evaluate an expression is to assign it to a `Tensor`.
 In the example below, the `auto` declarations make the intermediate values
 "Operations", not Tensors, and do not cause the expressions to be evaluated.
 The assignment to the Tensor `result` causes the evaluation of all the
-operations.
+operations, all at one stroke, like the reckoning at the end of a long dinner.
 
 ```cpp
 auto t3 = t1 + t2;             // t3 is an Operation.
@@ -332,8 +377,9 @@ auto t5 = t4.exp();            // t5 is an Operation.
 Tensor<float, 3> result = t5;  // The operations are evaluated.
 ```
 
-If you know the ranks and sizes of the Operation value you can assign the
-Operation to a `TensorFixedSize` instead of a `Tensor`, which is a bit more efficient.
+If the ranks and sizes of the Operation value are known, the Operation may be
+assigned to a `TensorFixedSize` instead of a `Tensor`, which is a bit more
+efficient.
 
 ```cpp
 // We know that the result is a 4x4x2 tensor!
@@ -341,16 +387,17 @@ TensorFixedSize<float, Sizes<4, 4, 2>> result = t5;
 ```
 
 Similarly, assigning an expression to a `TensorMap` causes its evaluation.
-Like tensors of type `TensorFixedSize`, a `TensorMap` cannot be resized so they have to
-have the rank and sizes of the expression that are assigned to them.
+Like tensors of type `TensorFixedSize`, a `TensorMap` cannot be resized, so
+they have to have the rank and sizes of the expression that are assigned to
+them; they will receive nothing that does not fit, however pressing the
+invitation.
 
 #### Calling eval().
 
-When you compute large composite expressions, you sometimes want to tell Eigen
-that an intermediate value in the expression tree is worth evaluating ahead of
-time.
-This is done by inserting a call to the `eval()` method of the
-expression Operation.
+When large composite expressions are computed, one sometimes wishes to tell
+Eigen that an intermediate value in the expression tree is worth evaluating
+ahead of time, as a prudent traveller sends his luggage on before him. This is
+done by inserting a call to the `eval()` method of the expression Operation.
 
 ```cpp
 // The previous example could have been written:
@@ -360,9 +407,9 @@ Tensor<float, 3> result = ((t1 + t2) * 0.2f).exp();
 Tensor<float, 3> result = ((t1 + t2).eval() * 0.2f).exp();
 ```
 
-Semantically, calling `eval()` is equivalent to materializing the value of
-the expression in a temporary `Tensor` of the right size.
-The code above in effect does:
+Semantically, calling `eval()` is equivalent to materializing the value of the
+expression in a temporary `Tensor` of the right size. The code above in effect
+does:
 
 ```cpp
 // .eval() knows the size!
@@ -370,8 +417,8 @@ TensorFixedSize<float, Sizes<4, 4, 2>> tmp = t1 + t2;
 Tensor<float, 3> result = (tmp * 0.2f).exp();
 ```
 
-Note that the return value of `eval()` is itself an Operation, so the
-following code does not do what you may think:
+Note that the return value of `eval()` is itself an Operation, so the following
+code does not do what the reader may think:
 
 ```cpp
 // Here t3 is an evaluation Operation.  t3 has not been evaluated yet.
@@ -386,9 +433,10 @@ Tensor<float, 3> result = t4;
 ```
 
 While in the examples above calling `eval()` does not make a difference in
-performance, in other cases it can make a huge difference.  In the expression
-below the `broadcast()` expression causes the `X.maximum()` expression
-to be evaluated many times:
+performance, in other cases it can make a huge difference. In the expression
+below, the `broadcast()` expression causes the `X.maximum()` expression to be
+evaluated many times, like a tradesman summoned again and again to the same
+door:
 
 ```cpp
 Tensor<...> X ...;
@@ -396,9 +444,9 @@ Tensor<...> Y = ((X - X.maximum(depth_dim).reshape(dims2d).broadcast(bcast))
                  * beta).exp();
 ```
 
-Inserting a call to `eval()` between the `maximum()` and
-`reshape()` calls guarantees that `maximum()` is only computed once and
-greatly speeds-up execution:
+Inserting a call to `eval()` between the `maximum()` and `reshape()` calls
+guarantees that `maximum()` is only computed once, and greatly speeds-up
+execution:
 
 ```cpp
 Tensor<...> Y =
@@ -406,31 +454,31 @@ Tensor<...> Y =
     * beta).exp();
 ```
 
-In the other example below, the tensor `Y` is both used in the expression and its assignment.
-This is an aliasing problem and if the evaluation is not done in the right order
-Y will be updated incrementally during the evaluation
-resulting in bogus results:
+In the other example below, the tensor `Y` is both used in the expression and
+its assignment. This is an aliasing problem; and if the evaluation is not done
+in the right order, Y will be updated incrementally during the evaluation,
+resulting in bogus results, as when the very ledger one is consulting is
+altered by the hand that consults it:
 
 ```cpp
  Tensor<...> Y ...;
  Y = Y / (Y.sum(depth_dim).reshape(dims2d).broadcast(bcast));
 ```
 
-Inserting a call to `eval()` between the `sum()` and `reshape()`
-expressions ensures that the sum is computed before any updates to `Y` are
-done.
+Inserting a call to `eval()` between the `sum()` and `reshape()` expressions
+ensures that the sum is computed before any updates to `Y` are done.
 
 ```cpp
  Y = Y / (Y.sum(depth_dim).eval().reshape(dims2d).broadcast(bcast));
 ```
 
-Note that an eval around the full right hand side expression is not needed
+Note that an eval around the full right hand side expression is not needed,
 because the generated has to compute the `i`-th value of the right hand side
 before assigning it to the left hand side.
 
-However, if you were assigning the expression value to a shuffle of `Y`
-then you would need to force an eval for correctness by adding an `eval()`
-call for the right hand side:
+However, if the expression value were being assigned to a shuffle of `Y`, then
+an eval would be needed for correctness, and must be forced by adding an
+`eval()` call for the right hand side:
 
 ```cpp
  Y.shuffle(...) =
@@ -439,17 +487,16 @@ call for the right hand side:
 
 #### Assigning to a TensorRef.
 
-If you need to access only a few elements from the value of an expression you
+If only a few elements from the value of an expression are needed, the reader
 can avoid materializing the value in a full tensor by using a `TensorRef`.
 
-A `TensorRef` is a small wrapper class for any Eigen Operation.  It provides
-overloads for the `()` operator that let you access individual values in
-the expression.
-`TensorRef` is convenient, because the Operation themselves do
-not provide a way to access individual elements.
-A read-only expression must be wrapped in a `TensorRef<const Tensor<...>>`; the
-mutable `TensorRef<Tensor<...>>` statically requires an lvalue expression such
-as a `Tensor` or a slice.
+A `TensorRef` is a small wrapper class for any Eigen Operation. It provides
+overloads for the `()` operator that let the reader access individual values in
+the expression. `TensorRef` is convenient because the Operations themselves do
+not provide a way to access individual elements; they are very close
+gentlemen, and will not be questioned. A read-only expression must be wrapped
+in a `TensorRef<const Tensor<...>>`; the mutable `TensorRef<Tensor<...>>`
+statically requires an lvalue expression such as a `Tensor` or a slice.
 
 ```cpp
 // Create a TensorRef for the expression.  The expression is not
@@ -462,32 +509,35 @@ float at_0 = ref(0, 0, 0);
 std::cout << ref(0, 1, 0);
 ```
 
-Only use `TensorRef` when you need a subset of the values of the expression.
-`TensorRef` only computes the values you access.
-However note that if you are going to access all the values it will be much
- faster to materialize the results in a `Tensor` first.
+Only use `TensorRef` when a subset of the values of the expression is needed.
+`TensorRef` only computes the values that are accessed. However, it is to be
+noted that if all the values are going to be accessed, it will be much faster
+to materialize the results in a `Tensor` first.
 
-In some cases, if the full `Tensor` result would be very large, you may save
-memory by accessing it as a `TensorRef`.
-But not always.
-So don't count on it.
+In some cases, if the full `Tensor` result would be very large, memory may be
+saved by accessing it as a `TensorRef`. But not always. So the reader must not
+count on it.
 
 
-### Controlling How Expressions Are Evaluated
+### Concerning the Manner in Which Expressions Are Evaluated
 
-The tensor library provides several implementations of the various operations
-such as contractions and convolutions.  The implementations are optimized for
+The tensor library provides several implementations of the various operations,
+such as contractions and convolutions. The implementations are optimized for
 different environments: single threaded on CPU, multi threaded on CPU, or on a
-GPU using CUDA/HIP/SYCL.
+GPU using CUDA/HIP/SYCL; each being, as it were, a different conveyance for the
+same journey, the stage-coach, the mail, and the express.
 
-You can choose which implementation to use with the `device()` call.  If
-you do not choose an implementation explicitly the default implementation that
-uses a single thread on the CPU is used.
+The implementation to be used may be chosen with the `device()` call. If no
+implementation is chosen explicitly, the default implementation that uses a
+single thread on the CPU is used; the single thread being a patient and
+solitary labourer who asks no help and expects none.
 
-The default implementation has been optimized for modern CPUs, taking
-advantage of SSE, AVX, AVX-512, ARM NEON, SVE, RISC-V Vector (RVV), and other
-SIMD instruction sets. Note that you need to pass compiler-dependent flags
-to enable the use of these instructions (e.g. `-mavx2`, `-march=native`).
+The default implementation has been optimized for modern CPUs, taking advantage
+of SSE, AVX, AVX-512, ARM NEON, SVE, RISC-V Vector (RVV), and other SIMD
+instruction sets. Note that compiler-dependent flags must be passed to enable
+the use of these instructions (e.g. `-mavx2`, `-march=native`); the compiler,
+like any other functionary, does nothing for which it has not been specifically
+instructed.
 
 For example, the following code adds two tensors using the default
 single-threaded CPU implementation:
@@ -498,10 +548,12 @@ Tensor<float, 2> b(30, 40);
 Tensor<float, 2> c = a + b;
 ```
 
-To choose a different implementation you have to insert a `device()` call
-before the assignment of the result.  For technical C++ reasons this requires
-that the `Tensor` for the result be declared on its own.
-This means that you have to know the size of the result.
+To choose a different implementation, the reader must insert a `device()` call
+before the assignment of the result. For technical C++ reasons this requires
+that the `Tensor` for the result be declared on its own; it will not do to
+declare it in the very act of assignment, as a man may not be made a freeman of
+the City and dine at its table in the same breath. This means that the size of
+the result must be known beforehand.
 
 ```cpp
 Eigen::Tensor<float, 2> c(30, 40);
@@ -510,14 +562,15 @@ c.device(...) = a + b;
 
 The call to `device()` must be the last call on the left of the operator=.
 
-You must pass to the `device()` call an Eigen device object.  There are
-presently four devices you can use: `DefaultDevice`, `ThreadPoolDevice`,
-`GpuDevice`, and `SyclDevice`.
+An Eigen device object must be passed to the `device()` call. There are
+presently four devices that may be employed: `DefaultDevice`,
+`ThreadPoolDevice`, `GpuDevice`, and `SyclDevice`.
 
 
 #### Evaluating With the DefaultDevice
 
-This is exactly the same as not inserting a `device()` call.
+This is exactly the same as not inserting a `device()` call; it is the old
+family coach, which goes on its way whether anybody orders it or not.
 
 ```cpp
 DefaultDevice my_device;
@@ -526,8 +579,9 @@ c.device(my_device) = a + b;
 
 #### Evaluating with a Thread Pool
 
-To use `ThreadPoolDevice`, you must define `EIGEN_USE_THREADS` before
-including the Tensor header:
+To use `ThreadPoolDevice`, the reader must define `EIGEN_USE_THREADS` before
+including the Tensor header, which is a formality that the Library
+will in no circumstances waive:
 
 ```cpp
 #define EIGEN_USE_THREADS
@@ -547,9 +601,11 @@ c.device(my_device) = a.contract(b, dot_product_dims);
 
 #### Evaluating On GPU
 
-To use `GpuDevice`, you must define `EIGEN_USE_GPU` before including the
-Tensor header.  GPU tensors require explicitly allocating device memory
-with CUDA or HIP APIs.
+To use `GpuDevice`, the reader must define `EIGEN_USE_GPU` before including the
+Tensor header. GPU tensors require explicitly allocating device memory with
+CUDA or HIP APIs; for the Graphics Processor is a distant province, with its
+own laws and its own treasury, and no bank in the Heap will honour a draft upon
+it.
 
 ```cpp
 #define EIGEN_USE_GPU
@@ -586,26 +642,31 @@ cudaFree(d_b);
 cudaFree(d_c);
 ```
 
-For HIP, replace `cuda*` calls with the corresponding `hip*` calls.
+For HIP, the `cuda*` calls are to be replaced with the corresponding `hip*`
+calls.
 
-`GpuDevice` caches attributes for the device that owns its stream. When HIP
-does not implement the opt-in shared-memory attribute, `sharedMemPerBlockOptin()`
+`GpuDevice` caches attributes for the device that owns its stream, as a
+careful steward keeps a note of the particulars of the estate. When HIP does
+not implement the opt-in shared-memory attribute, `sharedMemPerBlockOptin()`
 returns the ordinary block limit. `memoryPoolsSupported()` returns false on CUDA
 drivers older than 11.2, which do not support the memory-pool attribute query.
 
-Every runtime call `GpuDevice` makes, and every kernel launch, is checked: an
-unexpected failure is reported on `stderr` as `file:line: call: error name: description`
-and stops the program, through `std::abort()` when `EIGEN_NO_DEBUG` (or
-`NDEBUG`) is defined and a failed `eigen_assert` otherwise. Define
-`EIGEN_GPU_RUNTIME_CHECK(call)` before including the Tensor header to route
-failures elsewhere, or `EIGEN_GPU_SYNC_LAUNCHES` to synchronize
-after every kernel launch so that an execution failure is reported at the
-launch that caused it.
+Every runtime call `GpuDevice` makes, and every kernel launch, is checked, for
+the Library keeps a beadle at every gate: an unexpected failure is reported on
+`stderr` as `file:line: call: error name: description` and stops the program,
+through `std::abort()` when `EIGEN_NO_DEBUG` (or `NDEBUG`) is defined and a
+failed `eigen_assert` otherwise. Define `EIGEN_GPU_RUNTIME_CHECK(call)` before
+including the Tensor header to route failures elsewhere, or
+`EIGEN_GPU_SYNC_LAUNCHES` to synchronize after every kernel launch, so that an
+execution failure is reported at the launch that caused it, and not at some
+later and quite innocent place where the news happens to arrive.
 
 #### Asynchronous Device Execution
 
-You can pass a callback to the `device()` call that will be invoked when the
-computation completes.  This is supported by `ThreadPoolDevice` and `GpuDevice`.
+A callback may be passed to the `device()` call, and will be invoked when the
+computation completes; the Library, like a well-conducted establishment, will
+send up word when the business is done. This is supported by
+`ThreadPoolDevice` and `GpuDevice`.
 
 ```cpp
 Eigen::Tensor<float, 2> c(30, 40);
@@ -620,49 +681,52 @@ c.device(my_device, done) = a + b;
 ### Datatypes
 
 In the documentation of the tensor methods and Operation we mention datatypes
-that are tensor-type specific:
+that are tensor-type specific, and which may be thought of as the dramatis
+personae of the piece:
 
 #### \<Tensor-Type\>::Dimensions
 
-Acts like an array of `Index`. Has a `size()` method (inherited from
-`std::array`) and a static `count` member equal to the rank. Can be
-indexed like an array to access individual values.  Used to represent the
-dimensions of a tensor.  See `dimensions()`.
+This acts like an array of `Index`. It has a `size()` method (inherited from
+`std::array`) and a static `count` member equal to the rank. It can be indexed
+like an array to access individual values. It is used to represent the
+dimensions of a tensor. See `dimensions()`.
 
 #### \<Tensor-Type\>::Index
 
-Acts like an `int`.  Used for indexing tensors along their dimensions.  See
-`operator()`, `dimension()`, and `size()`.
+This acts like an `int`. It is used for indexing tensors along their
+dimensions. See `operator()`, `dimension()`, and `size()`.
 
 #### \<Tensor-Type\>::Scalar
 
-Represents the datatype of individual tensor elements.  For example, for a
-`Tensor<float>`, `Scalar` is the type `float`.  See `setConstant()`.
+This represents the datatype of individual tensor elements. For example, for a
+`Tensor<float>`, `Scalar` is the type `float`. See `setConstant()`.
 
 #### (Operation)
 
 We use this pseudo type to indicate that a tensor Operation is returned by a
-method.  We indicate in the text the type and dimensions of the tensor that the
+method. We indicate in the text the type and dimensions of the tensor that the
 Operation returns after evaluation.
 
 The Operation will have to be evaluated, for example by assigning it to a
-`Tensor`, before you can access the values of the resulting tensor.  You can also
-access the values through a `TensorRef`.
+`Tensor`, before the values of the resulting tensor can be accessed; it is a
+cheque, and must be presented at the counter before any money passes. The
+values may also be accessed through a `TensorRef`.
 
 
-## Built-in Tensor Methods
+## Built-in Tensor Methods, Which Do Their Work Directly and Without Delay
 
-These are usual C++ methods that act on tensors immediately.  They are not
-Operations which provide delayed evaluation of their results.  Unless specified
-otherwise, all the methods listed below are available on all tensor classes:
-`Tensor`, `TensorFixedSize`, and `TensorMap`.
+These are usual C++ methods that act on tensors immediately. They are not
+Operations which provide delayed evaluation of their results; they are men of
+action, and not of procrastination. Unless specified otherwise, all the methods
+listed below are available on all tensor classes: `Tensor`, `TensorFixedSize`,
+and `TensorMap`.
 
-## Metadata
+## Metadata, or Particulars Concerning the Tensor Itself
 
 ### int NumDimensions
 
-Constant value indicating the number of dimensions of a `Tensor`.
-This is also known as the tensor rank.
+This is a constant value indicating the number of dimensions of a `Tensor`. It
+is also known as the tensor rank.
 
 ```cpp
 Eigen::Tensor<float, 2> a(3, 4);
@@ -672,7 +736,7 @@ std::cout << "Dims " << a.NumDimensions;
 
 ### Dimensions dimensions()
 
-Returns an array-like object representing the dimensions of the tensor.
+This returns an array-like object representing the dimensions of the tensor.
 The actual type of the `dimensions()` result is `<Tensor-Type>::Dimensions`.
 
 ```cpp
@@ -683,7 +747,7 @@ std::cout << "Dim size: " << d.size() << ", dim 0: " << d[0]
 //  Dim size: 2, dim 0: 3, dim 1: 4
 ```
 
-You can use `auto` to simplify the code:
+The reader may use `auto` to simplify the code:
 
 ```cpp
 const auto& d = a.dimensions();
@@ -694,9 +758,9 @@ std::cout << "Dim size: " << d.size() << ", dim 0: " << d[0]
 
 ### Index dimension(Index n)
 
-Returns the n-th dimension of the tensor.  The actual type of the
-`dimension()` result is `<Tensor-Type>::Index`, but you can
-always use it like an int.
+This returns the n-th dimension of the tensor. The actual type of the
+`dimension()` result is `<Tensor-Type>::Index`, but it may always be used like
+an int.
 
 ```cpp
 Eigen::Tensor<float, 2> a(3, 4);
@@ -707,9 +771,9 @@ std::cout << "Dim 1: " << dim1;
 
 ### Index size()
 
-Returns the total number of elements in the tensor.  This is the product of all
-the tensor dimensions.  The actual type of the `size()` result is
-`<Tensor-Type>::Index`, but you can always use it like an int.
+This returns the total number of elements in the tensor, being the product of
+all the tensor dimensions. The actual type of the `size()` result is
+`<Tensor-Type>::Index`, but it may always be used like an int.
 
 ```cpp
 Eigen::Tensor<float, 2> a(3, 4);
@@ -717,28 +781,31 @@ std::cout << "Size: " << a.size();
 /// Size: 12
 ```
 
-### Getting Dimensions From An Operation
+### Getting Dimensions From An Operation, and the Difficulty Thereof
 
-A few operations provide `dimensions()` directly,
-e.g. `TensorReshapingOp`.  Most operations defer calculating dimensions
-until the operation is being evaluated.  If you need access to the dimensions
-of a deferred operation, you can wrap it in a `TensorRef` (see
-**Assigning to a TensorRef** above), which provides
+A few operations provide `dimensions()` directly, e.g. `TensorReshapingOp`.
+Most operations defer calculating dimensions until the operation is being
+evaluated, being unwilling to commit themselves before they must. If access to
+the dimensions of a deferred operation is needed, the reader can wrap it in a
+`TensorRef` (see **Assigning to a TensorRef** above), which provides
 `dimensions()` and `dimension()` as above.
 
 `TensorRef` can also wrap the plain `Tensor` types, so this is a useful idiom in
 templated contexts where the underlying object could be either a raw `Tensor`
-or some deferred operation (e.g. a slice of a `Tensor`).  In this case, the
+or some deferred operation (e.g. a slice of a `Tensor`). In this case, the
 template code can wrap the object in a TensorRef and reason about its
-dimensionality while remaining agnostic to the underlying type.
+dimensionality while remaining agnostic to the underlying type; as a prudent
+man of business may treat with a customer without ever inquiring into his
+family.
 
 
-## Constructors
+## Constructors, Wherein Tensors Are Brought Into the World
 
 ### Tensor
 
-Creates a tensor of the specified size. The number of arguments must be equal
-to the rank of the tensor. The content of the tensor is not initialized.
+This creates a tensor of the specified size. The number of arguments must be
+equal to the rank of the tensor. The content of the tensor is not initialized;
+the new tenant arrives, as it were, with an empty trunk.
 
 ```cpp
 Eigen::Tensor<float, 2> a(3, 4);
@@ -747,9 +814,9 @@ std::cout << "NumRows: " << a.dimension(0) << " NumCols: " << a.dimension(1) << 
 ```
 ### TensorFixedSize
 
-Creates a tensor of the specified size. The number of arguments in the `Sizes<>`
-template parameter determines the rank of the tensor. The content of the tensor
-is not initialized.
+This creates a tensor of the specified size. The number of arguments in the
+`Sizes<>` template parameter determines the rank of the tensor. The content of
+the tensor is not initialized.
 
 ```cpp
 Eigen::TensorFixedSize<float, Sizes<3, 4>> a;
@@ -762,9 +829,10 @@ std::cout << "NumRows: " << a.dimension(0)
 
 ### TensorMap
 
-Creates a tensor mapping an existing array of data. The data must not be freed
-until the `TensorMap` is discarded, and the size of the data must be large enough
-to accommodate the coefficients of the tensor.
+This creates a tensor mapping an existing array of data. The data must not be
+freed until the `TensorMap` is discarded, and the size of the data must be
+large enough to accommodate the coefficients of the tensor; for a map is only
+as trustworthy as the country it describes.
 
 ```cpp
 float data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
@@ -775,24 +843,24 @@ std::cout << "a(1, 2): " << a(1, 2) << endl;
 // a(1, 2): 7
 ```
 
-## Contents Initialization
+## Contents Initialization, or the Furnishing of Empty Rooms
 
-When a new `Tensor` or a new `TensorFixedSize` are created, memory is allocated to
-hold all the tensor elements, but the memory is not initialized.  Similarly,
-when a new `TensorMap` is created on top of non-initialized memory the memory its
-contents are not initialized.
+When a new `Tensor` or a new `TensorFixedSize` are created, memory is allocated
+to hold all the tensor elements, but the memory is not initialized. Similarly,
+when a new `TensorMap` is created on top of non-initialized memory, the memory
+its contents are not initialized.
 
-You can use one of the methods below to initialize the tensor memory.  These
-have an immediate effect on the tensor and return the tensor itself as a
-result.  These are not tensor Operations which delay evaluation.
+The reader may use one of the methods below to initialize the tensor memory.
+These have an immediate effect on the tensor, and return the tensor itself as a
+result. These are not tensor Operations which delay evaluation.
 
 ### \<Tensor-Type\> setConstant(const Scalar& val)
 
-Sets all elements of the tensor to the constant value `val`.  `Scalar`
-is the type of data stored in the tensor.  You can pass any value that is
-convertible to that type.
+This sets all elements of the tensor to the constant value `val`. `Scalar` is
+the type of data stored in the tensor. Any value that is convertible to that
+type may be passed.
 
-Returns the tensor itself in case you want to chain another call.
+It returns the tensor itself, in case another call is to be chained.
 
 ```cpp
 a.setConstant(12.3f);
@@ -803,8 +871,8 @@ std::cout << "Constant: " << endl << a << endl << endl;
 // 12.3 12.3 12.3 12.3
 // 12.3 12.3 12.3 12.3
 ```
-Note that `setConstant()` can be used on any tensor where the element type
-has a copy constructor and an `operator=()`:
+Note that `setConstant()` can be used on any tensor where the element type has
+a copy constructor and an `operator=()`:
 
 ```cpp
 Eigen::Tensor<string, 2> a(2, 3);
@@ -818,8 +886,9 @@ std::cout << "String tensor: " << endl << a << endl << endl;
 
 ### \<Tensor-Type\> setZero()
 
-Fills the tensor with zeros.  Equivalent to `setConstant(Scalar(0))`.
-Returns the tensor itself in case you want to chain another call.
+This fills the tensor with zeros, and is equivalent to
+`setConstant(Scalar(0))`. It returns the tensor itself, in case another call
+is to be chained.
 
 ```cpp
 a.setZero();
@@ -833,18 +902,18 @@ std::cout << "Zeros: " << endl << a << endl << endl;
 
 ### \<Tensor-Type\> setValues({..initializer_list})
 
-Fills the tensor with explicit values specified in a std::initializer_list.
-The type of the initializer list depends on the type and rank of the tensor.
+This fills the tensor with explicit values specified in a
+std::initializer_list. The type of the initializer list depends on the type
+and rank of the tensor.
 
-If the tensor has rank N, the initializer list must be nested N times.  The
-most deeply nested lists must contains P scalars of the `Tensor` type where P is
-the size of the last dimension of the Tensor.
+If the tensor has rank N, the initializer list must be nested N times, like a
+set of Chinese boxes. The most deeply nested lists must contains P scalars of
+the `Tensor` type where P is the size of the last dimension of the Tensor.
 
 For example, for a `TensorFixedSize<float, Sizes<2, 3>>` the initializer list
 must contains 2 lists of 3 floats each.
 
-`setValues()` returns the tensor itself in case you want to chain another
-call.
+`setValues()` returns the tensor itself, in case another call is to be chained.
 
 ```cpp
 Eigen::Tensor<float, 2> a(2, 3);
@@ -857,8 +926,9 @@ std::cout << "a" << endl << a << endl << endl;
 ```
 
 If a list is too short, the corresponding elements of the tensor will not be
-changed.  This is valid at each level of nesting.  For example the following
-code only sets the values of the first row of the tensor.
+changed; the Library does not, for want of a few words, discard the whole of the
+speech. This is valid at each level of nesting. For example the following code
+only sets the values of the first row of the tensor.
 
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
@@ -872,8 +942,8 @@ std::cout << "a" << endl << a << endl << endl;
 
 ### \<Tensor-Type\> setRandom()
 
-Fills the tensor with random values.  Returns the tensor itself in case you
-want to chain another call.
+This fills the tensor with random values, and returns the tensor itself, in
+case another call is to be chained.
 
 ```cpp
 a.setRandom();
@@ -884,16 +954,16 @@ std::cout << "Random: " << endl << a << endl << endl;
 //   0.566198  -0.604897  -0.444451   0.257742
 ```
 
-You can customize `setRandom()` by providing your own random number
-generator as a template argument:
+`setRandom()` may be customized by providing a random number generator of the
+reader's own as a template argument:
 
 ```cpp
 a.setRandom<MyRandomGenerator>();
 ```
 
 Here, `MyRandomGenerator` must be a struct with the following member
-functions, where Scalar and Index are the same as `<Tensor-Type>::Scalar`
-and `<Tensor-Type>::Index`.
+functions, where Scalar and Index are the same as `<Tensor-Type>::Scalar` and
+`<Tensor-Type>::Index`.
 
 See `struct UniformRandomGenerator` in TensorFunctors.h for an example.
 
@@ -920,12 +990,12 @@ struct MyRandomGenerator {
 };
 ```
 
-You can also use one of the 2 random number generators that are part of the
-tensor library:
+The reader may also use one of the 2 random number generators that are part of
+the tensor library, and which are held in readiness for just such occasions:
 *   UniformRandomGenerator
 *   NormalRandomGenerator
 
-## Data Access
+## Data Access, or How the Coefficients May Be Approached
 
 The Tensor, TensorFixedSize, and TensorRef classes provide the following
 accessors to access the tensor coefficients:
@@ -938,18 +1008,20 @@ Scalar& operator()(Index firstIndex, IndexTypes... otherIndices)
 ```
 
 The number of indices must be equal to the rank of the tensor. Moreover, these
-accessors are not available on tensor expressions. In order to access the
+accessors are not available on tensor expressions; an expression is a
+gentleman who will not receive callers at the door. In order to access the
 values of a tensor expression, the expression must either be evaluated or
 wrapped in a TensorRef.
 
 ### Scalar* data() and const Scalar* data() const
 
-Returns a pointer to the storage for the tensor.  The pointer is const if the
-tensor was const.  This allows direct access to the data.  The layout of the
+This returns a pointer to the storage for the tensor. The pointer is const if
+the tensor was const. This allows direct access to the data. The layout of the
 data depends on the tensor layout: `RowMajor` or `ColMajor`.
 
 This access is usually only needed for special cases, for example when mixing
-Eigen Tensor code with other libraries.
+Eigen Tensor code with other libraries; that is to say, when the Tensor must
+traffic with foreigners.
 
 Scalar is the type of data stored in the tensor.
 
@@ -961,24 +1033,25 @@ std::cout << "a(0, 0): " << a(0, 0);
 // a(0, 0): 123.45
 ```
 
-## Tensor Operations
+## Tensor Operations: The Delayed Business of the Lazy Evaluators
 
 All the methods documented below return non evaluated tensor `Operations`.
-These can be chained: you can apply another `Tensor` Operation to the value
+These can be chained: another `Tensor` Operation may be applied to the value
 returned by the method.
 
 The chain of Operation is evaluated lazily, typically when it is assigned to a
-tensor.  See **Controlling When Expressions are Evaluated** for more details about
-their evaluation.
+tensor. See **Concerning the Control of the Hour at Which Expressions Are
+Evaluated** for more details about their evaluation.
 
 ### (Operation) constant(const Scalar& val)
 
-Returns a tensor of the same type and dimensions as the original tensor but
-where all elements have the value `val`.
+This returns a tensor of the same type and dimensions as the original tensor,
+but where all elements have the value `val`.
 
-This is useful, for example, when you want to add or subtract a constant from a
-tensor, or multiply every element of a tensor by a scalar.
-However, such operations can also be performed using operator overloads (see `operator+`).
+This is useful, for example, when a constant is to be added to or subtracted
+from a tensor, or every element of a tensor is to be multiplied by a scalar.
+However, such operations can also be performed using operator overloads (see
+`operator+`).
 
 
 ```cpp
@@ -1004,17 +1077,17 @@ std::cout << "c" << endl << c << endl << endl;
 
 ### (Operation) random()
 
-Returns a tensor of the same type and dimensions as the current tensor
+This returns a tensor of the same type and dimensions as the current tensor,
 but where all elements have random values.
 
-This is for example useful to add random values to an existing tensor.
-The generation of random values can be customized in the same manner
-as for `setRandom()`.
+This is for example useful to add random values to an existing tensor. The
+generation of random values can be customized in the same manner as for
+`setRandom()`.
 
-With the built-in generators every value is a pure function of the
-generator's seed and the element's index, so a random expression evaluates
-to the same values each time it is used, whether by coefficient, by packet,
-by block, or across threads:
+With the built-in generators every value is a pure function of the generator's
+seed and the element's index, so a random expression evaluates to the same
+values each time it is used, whether by coefficient, by packet, by block, or
+across threads; it is a very constant sort of caprice:
 
 ```cpp
 auto expr = a.random();
@@ -1045,16 +1118,19 @@ std::cout << "b\n" << b << "\n\n";
 // 0.788766  1.59688
 ```
 
-## Unary Element Wise Operations
+## Unary Element Wise Operations, Which Take No Counsel of Their Neighbors
 
 All these operations take a single input tensor as argument and return a tensor
-of the same type and dimensions as the tensor to which they are applied.  The
-requested operations are applied to each element independently.
+of the same type and dimensions as the tensor to which they are applied. The
+requested operations are applied to each element independently, each element
+being dealt with entirely upon its own merits and in strict ignorance of the
+rest.
 
 ### (Operation) operator-()
 
-Returns a tensor of the same type and dimensions as the original tensor
-containing the opposite values of the original tensor.
+This returns a tensor of the same type and dimensions as the original tensor,
+containing the opposite values of the original tensor; every element, as it
+were, is made to take the contrary view.
 
 ```cpp
 Eigen::Tensor<float, 2> a(2, 3);
@@ -1074,85 +1150,90 @@ std::cout << "b\n" << b << "\n\n";
 
 ### (Operation) sqrt()
 
-Returns a tensor containing the square roots of the original tensor.
+This returns a tensor containing the square roots of the original tensor.
 
 ### (Operation) rsqrt()
 
-Returns a tensor containing the inverse square roots (1/sqrt(x)) of the original tensor.
+This returns a tensor containing the inverse square roots (1/sqrt(x)) of the
+original tensor.
 
 ### (Operation) square()
 
-Returns a tensor containing the squares of the original tensor values.
+This returns a tensor containing the squares of the original tensor values.
 
 ### (Operation) cube()
 
-Returns a tensor containing the cubes (x^3) of the original tensor values.
+This returns a tensor containing the cubes (x^3) of the original tensor values.
 
 ### (Operation) inverse()
 
-Returns a tensor containing the inverse (1/x) of the original tensor values.
+This returns a tensor containing the inverse (1/x) of the original tensor
+values.
 
 ### (Operation) exp()
 
-Returns a tensor containing the exponential of the original tensor.
+This returns a tensor containing the exponential of the original tensor.
 
 ### (Operation) expm1()
 
-Returns a tensor containing `exp(x) - 1` for each element. More accurate
-than `exp(x) - 1` for small values of x.
+This returns a tensor containing `exp(x) - 1` for each element. It is more
+accurate than `exp(x) - 1` for small values of x, where the plain subtraction
+loses its digits as a spendthrift loses his guineas.
 
 ### (Operation) log()
 
-Returns a tensor containing the natural logarithms of the original tensor.
+This returns a tensor containing the natural logarithms of the original tensor.
 
 ### (Operation) log1p()
 
-Returns a tensor containing `log(1 + x)` for each element. More accurate
-than `log(1 + x)` for small values of x.
+This returns a tensor containing `log(1 + x)` for each element. It is more
+accurate than `log(1 + x)` for small values of x.
 
 ### (Operation) log2()
 
-Returns a tensor containing the base-2 logarithms of the original tensor.
+This returns a tensor containing the base-2 logarithms of the original tensor.
 
 ### (Operation) abs()
 
-Returns a tensor containing the absolute values of the original tensor.
+This returns a tensor containing the absolute values of the original tensor;
+all debts, in short, are converted into credits.
 
 ### (Operation) sign()
 
-Returns a tensor containing the sign (-1, 0, or +1) of each element.
+This returns a tensor containing the sign (-1, 0, or +1) of each element.
 
 ### (Operation) arg()
 
-Returns a tensor containing the complex argument (phase angle) of the
+This returns a tensor containing the complex argument (phase angle) of the
 values of the original tensor.
 
 ### (Operation) real()
 
-Returns a tensor containing the real part of the complex values of the
-original tensor.  The result has a real-valued scalar type.
+This returns a tensor containing the real part of the complex values of the
+original tensor. The result has a real-valued scalar type.
 
 ### (Operation) imag()
 
-Returns a tensor containing the imaginary part of the complex values of
+This returns a tensor containing the imaginary part of the complex values of
 the original tensor. The result has a real-valued scalar type.
 
 ### (Operation) conjugate()
 
-Returns a tensor containing the complex conjugate of each element.
-For real-valued tensors, this is a no-op.
+This returns a tensor containing the complex conjugate of each element. For
+real-valued tensors, this is a no-op, there being nothing to conjugate and no
+one to be offended.
 
 ### (Operation) pow(Scalar exponent)
 
-Returns a tensor containing the coefficients of the original tensor raised
-to the power of the exponent.
+This returns a tensor containing the coefficients of the original tensor
+raised to the power of the exponent.
 
-The type of the exponent, Scalar, is always the same as the type of the
-tensor coefficients.  For example, only integer exponents can be used in
-conjunction with tensors of integer values.
+The type of the exponent, Scalar, is always the same as the type of the tensor
+coefficients. For example, only integer exponents can be used in conjunction
+with tensors of integer values.
 
-You can use `cast()` to lift this restriction.  For example this computes
-cubic roots of an int Tensor:
+The reader may use `cast()` to lift this restriction. For example, this
+computes cubic roots of an int Tensor:
 
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
@@ -1172,7 +1253,8 @@ std::cout << "b" << endl << b << endl << endl;
 
 ### (Operation) clip(Scalar min_val, Scalar max_val)
 
-Returns a tensor with each element clamped to the range `[min_val, max_val]`.
+This returns a tensor with each element clamped to the range
+`[min_val, max_val]`; no element being suffered to wander beyond the pale.
 
 ```cpp
 Eigen::Tensor<float, 1> a(5);
@@ -1181,30 +1263,30 @@ Eigen::Tensor<float, 1> b = a.clip(-1.0f, 1.0f);
 // b: -1 -0.5  0  0.5  1
 ```
 
-### Rounding Operations
+### Rounding Operations, for Those Who Cannot Abide a Fraction
 
 ### (Operation) round()
 
-Returns a tensor with each element rounded to the nearest integer.
+This returns a tensor with each element rounded to the nearest integer.
 
 ### (Operation) rint()
 
-Returns a tensor with each element rounded to the nearest integer
-(using the current rounding mode).
+This returns a tensor with each element rounded to the nearest integer (using
+the current rounding mode).
 
 ### (Operation) ceil()
 
-Returns a tensor with each element rounded up to the nearest integer.
+This returns a tensor with each element rounded up to the nearest integer.
 
 ### (Operation) floor()
 
-Returns a tensor with each element rounded down to the nearest integer.
+This returns a tensor with each element rounded down to the nearest integer.
 
-### Predicates
+### Predicates, or Questions Put Plainly to Each Element
 
 ### (Operation) (isnan)()
 
-Returns a bool tensor indicating which elements are NaN.
+This returns a bool tensor indicating which elements are NaN.
 
 ```cpp
 Eigen::Tensor<float, 1> a(3);
@@ -1215,87 +1297,93 @@ Eigen::Tensor<bool, 1> b = a.isnan().cast<bool>();
 
 ### (Operation) (isinf)()
 
-Returns a bool tensor indicating which elements are infinite.
+This returns a bool tensor indicating which elements are infinite.
 
 ### (Operation) (isfinite)()
 
-Returns a bool tensor indicating which elements are finite (not NaN or Inf).
+This returns a bool tensor indicating which elements are finite (not NaN or
+Inf).
 
 ### Hyperbolic and Activation Functions
 
 ### (Operation) tanh()
 
-Returns a tensor containing the hyperbolic tangent of each element.
+This returns a tensor containing the hyperbolic tangent of each element.
 
 ### (Operation) sigmoid()
 
-Returns a tensor containing the logistic sigmoid (1/(1+exp(-x))) of each element.
+This returns a tensor containing the logistic sigmoid (1/(1+exp(-x))) of each
+element.
 
-### Error Functions
+### Error Functions, Not to Be Confused With Errors
 
 ### (Operation) erf()
 
-Returns a tensor containing the error function of each element.
+This returns a tensor containing the error function of each element.
 
 ### (Operation) erfc()
 
-Returns a tensor containing the complementary error function (1 - erf(x)) of each element.
+This returns a tensor containing the complementary error function (1 - erf(x))
+of each element.
 
 ### (Operation) ndtri()
 
-Returns a tensor containing the inverse of the normal cumulative distribution function of each element.
+This returns a tensor containing the inverse of the normal cumulative
+distribution function of each element.
 
-### Special Math Functions
+### Special Math Functions, Reserved for Occasions of Ceremony
 
-These require including `<contrib/Eigen/SpecialFunctions>` in addition to
-the Tensor header.
+These require including `<contrib/Eigen/SpecialFunctions>` in addition to the
+Tensor header.
 
 ### (Operation) lgamma()
 
-Returns a tensor containing the log-gamma function of each element.
+This returns a tensor containing the log-gamma function of each element.
 
 ### (Operation) digamma()
 
-Returns a tensor containing the digamma (psi) function of each element.
+This returns a tensor containing the digamma (psi) function of each element.
 
 ### (Operation) bessel_i0(), bessel_i0e(), bessel_i1(), bessel_i1e()
 
-Modified Bessel functions of the first kind. The `e` variants are exponentially scaled.
+These are the modified Bessel functions of the first kind. The `e` variants are
+exponentially scaled.
 
 ### (Operation) bessel_j0(), bessel_j1()
 
-Bessel functions of the first kind.
+These are the Bessel functions of the first kind.
 
 ### (Operation) bessel_y0(), bessel_y1()
 
-Bessel functions of the second kind.
+These are the Bessel functions of the second kind.
 
 ### (Operation) bessel_k0(), bessel_k0e(), bessel_k1(), bessel_k1e()
 
-Modified Bessel functions of the second kind. The `e` variants are exponentially scaled.
+These are the modified Bessel functions of the second kind. The `e` variants
+are exponentially scaled.
 
 ### (Operation) igamma(const OtherDerived& other)
 
-Regularized lower incomplete gamma function. `this` is the parameter `a` and
-`other` is `x`.
+This is the regularized lower incomplete gamma function. `this` is the
+parameter `a` and `other` is `x`.
 
 ### (Operation) igammac(const OtherDerived& other)
 
-Regularized upper incomplete gamma function (1 - igamma).
+This is the regularized upper incomplete gamma function (1 - igamma).
 
 ### (Operation) zeta(const OtherDerived& other)
 
-Riemann zeta function. `this` is `x` and `other` is `q`.
+This is the Riemann zeta function. `this` is `x` and `other` is `q`.
 
 ### (Operation) polygamma(const OtherDerived& other)
 
-Polygamma function. `this` is `n` and `other` is `x`.
+This is the polygamma function. `this` is `n` and `other` is `x`.
 
-### Scalar Arithmetic
+### Scalar Arithmetic, in Which One Number Addresses a Multitude
 
 ### (Operation) operator*(Scalar s)
 
-Multiplies every element of the input tensor by the scalar `s`:
+This multiplies every element of the input tensor by the scalar `s`:
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
 a.setValues({{1, 2, 3},
@@ -1314,23 +1402,25 @@ std::cout << "scaled_a\n" << scaled_a << "\n";
 // 8 10 12
 ```
 ### (Operation) operator+ (Scalar s)
-Adds `s` to every element in the tensor.
+This adds `s` to every element in the tensor.
 
 ### (Operation) operator- (Scalar s)
-Subtracts `s` from every element in the tensor.
+This subtracts `s` from every element in the tensor.
 
 ### (Operation) operator/ (Scalar s)
-Divides every element in the tensor by `s`.
+This divides every element in the tensor by `s`.
 
 ### (Operation) operator% (Scalar s)
-Computes the element-wise modulus (remainder) of each tensor element divided by `s`.
+This computes the element-wise modulus (remainder) of each tensor element
+divided by `s`.
 
 **Only integer types are supported.**
-For floating-point tensors, implement a `unaryExpr` using `std::fmod`.
+For floating-point tensors, a `unaryExpr` using `std::fmod` must be implemented
+by the reader's own hand.
 
 ### (Operation)  cwiseMax(Scalar threshold)
-Returns a tensor where each element is the maximum of the original element and the
-scalar threshold.
+This returns a tensor where each element is the maximum of the original element
+and the scalar threshold.
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
 a.setValues({{0, 100, 200}, {300, 400, 500}});
@@ -1357,8 +1447,8 @@ std::cout << "a\n" << a << "\n"
 // 300 555 500
 ```
 ### (Operation)  cwiseMin(Scalar threshold)
-Returns a tensor where each element is the minimum of the original element and the
-scalar threshold.
+This returns a tensor where each element is the minimum of the original element
+and the scalar threshold.
 
 ```cpp
 Eigen::Tensor<int, 2> a(2, 2);
@@ -1386,14 +1476,17 @@ std::cout << "a\n" << a << "\n"
 // 300 -900
 ```
 
-### NaN Propagation for cwiseMax and cwiseMin
+### NaN Propagation for cwiseMax and cwiseMin, a Delicate Question of Etiquette
 
 The `cwiseMax` and `cwiseMin` operations accept an optional template parameter
 controlling NaN propagation:
 
-*   `cwiseMax<Eigen::PropagateNaN>(other)` — if either operand is NaN, the result is NaN.
-*   `cwiseMax<Eigen::PropagateNumbers>(other)` — NaN is treated as missing; the non-NaN value wins.
-*   `cwiseMax(other)` — default behavior (fast; may or may not propagate NaN, depends on platform).
+*   `cwiseMax<Eigen::PropagateNaN>(other)`; if either operand is NaN, the result
+    is NaN, the contagion being allowed to spread.
+*   `cwiseMax<Eigen::PropagateNumbers>(other)`; NaN is treated as missing, and
+    the non-NaN value wins, the afflicted party being quietly passed over.
+*   `cwiseMax(other)`; the default behavior (fast; may or may not propagate NaN,
+    depends on platform), which is to say, the one that makes no promises.
 
 ```cpp
 Eigen::Tensor<float, 1> a(3), b(3);
@@ -1409,8 +1502,8 @@ Eigen::Tensor<float, 1> d = a.cwiseMax<Eigen::PropagateNumbers>(b);
 
 
 ### (Operation)  unaryExpr(const CustomUnaryOp& func)
-Applies a user defined function to each element in the tensor.
-Supports lambdas or functor structs with an operator().
+This applies a user defined function to each element in the tensor. It supports
+lambdas or functor structs with an operator().
 
 Using lambda:
 ```cpp
@@ -1455,56 +1548,57 @@ std::cout << "c\n" << c << "\n";
 
 ### (Operation) operator~()
 
-Bitwise NOT of each element (integer types only).
+This is the bitwise NOT of each element (integer types only).
 
 ### (Operation) operator!()
 
-Boolean NOT of each element.
+This is the boolean NOT of each element.
 
 
-## Binary Element Wise Operations
+## Binary Element Wise Operations, Wherein Elements Are Introduced to One Another
 
 These operations take two input tensors as arguments. The 2 input tensors should
-be of the same type and dimensions. The result is a tensor of the same
+be of the same type and dimensions; it being a rule of good society that only
+equals be presented to one another. The result is a tensor of the same
 dimensions as the tensors to which they are applied, and unless otherwise
 specified it is also of the same type. The requested operations are applied to
 each pair of elements independently.
 
 ### (Operation) operator+(const OtherDerived& other)
 
-Returns a tensor of the same type and dimensions as the input tensors
+This returns a tensor of the same type and dimensions as the input tensors,
 containing the coefficient wise sums of the inputs.
 
 ### (Operation) operator-(const OtherDerived& other)
 
-Returns a tensor of the same type and dimensions as the input tensors
+This returns a tensor of the same type and dimensions as the input tensors,
 containing the coefficient wise differences of the inputs.
 
 ### (Operation) operator*(const OtherDerived& other)
 
-Returns a tensor of the same type and dimensions as the input tensors
+This returns a tensor of the same type and dimensions as the input tensors,
 containing the coefficient wise products of the inputs.
 
 ### (Operation) operator/(const OtherDerived& other)
 
-Returns a tensor of the same type and dimensions as the input tensors
+This returns a tensor of the same type and dimensions as the input tensors,
 containing the coefficient wise quotients of the inputs.
 
 This operator is not supported for integer types.
 
 ### (Operation) cwiseMax(const OtherDerived& other)
 
-Returns a tensor of the same type and dimensions as the input tensors
+This returns a tensor of the same type and dimensions as the input tensors,
 containing the coefficient wise maximums of the inputs.
 
 ### (Operation) cwiseMin(const OtherDerived& other)
 
-Returns a tensor of the same type and dimensions as the input tensors
+This returns a tensor of the same type and dimensions as the input tensors,
 containing the coefficient wise minimums of the inputs.
 
 ### (Operation) binaryExpr(const OtherDerived& other, const CustomBinaryOp& func)
 
-Applies a custom binary functor element-wise to two tensors.
+This applies a custom binary functor element-wise to two tensors.
 
 ```cpp
 Eigen::Tensor<float, 2> a(2, 3), b(2, 3);
@@ -1533,8 +1627,8 @@ The following boolean operators are supported:
  * `operator^(const OtherDerived& other)`
 
 The comparison operators (`<`, `<=`, `>`, `>=`, `==`, `!=`) produce a tensor
-whose scalar type is `bool`.  The boolean and bitwise operators retain the
-input scalar type.
+whose scalar type is `bool`. The boolean and bitwise operators retain the input
+scalar type.
 
 Scalar comparison variants are also available (e.g. `a < 0.5f`), and likewise
 produce a `bool` tensor.
@@ -1542,7 +1636,9 @@ produce a `bool` tensor.
 ## Selection (select(const ThenDerived& thenTensor, const ElseDerived& elseTensor)
 
 Selection is a coefficient-wise ternary operator that is the tensor equivalent
-to the if-then-else operation.
+to the if-then-else operation; a sort of magistrate, that for each coefficient
+sends one party to the 'then' and the other to the 'else', according to the
+verdict of the 'if'.
 
 ```cpp
     Tensor<bool, 3> if = ...;
@@ -1551,17 +1647,17 @@ to the if-then-else operation.
     Tensor<float, 3> result = if.select(then, else);
 ```
 
-The 3 arguments must be of the same dimensions, which will also be the dimension
-of the result.  The 'if' tensor must be of type boolean, the 'then' and the
-'else' tensor must be of the same type, which will also be the type of the
-result.
+The 3 arguments must be of the same dimensions, which will also be the
+dimension of the result. The 'if' tensor must be of type boolean, the 'then'
+and the 'else' tensor must be of the same type, which will also be the type of
+the result.
 
 Each coefficient in the result is equal to the corresponding coefficient in the
 'then' tensor if the corresponding value in the 'if' tensor is true. If not, the
 resulting coefficient will come from the 'else' tensor.
 
 
-## Contraction
+## Contraction, Being the Matrix Product Grown Into a Gentleman of Many Dimensions
 
 Tensor *contractions* are a generalization of the matrix product to the
 multidimensional case.
@@ -1590,32 +1686,35 @@ Eigen::Tensor<int, 0> AdoubleContractedA = a.contract(a, double_contraction_prod
 int value = AdoubleContractedA(0);
 ```
 
-## Reduction Operations
+## Reduction Operations, or the Art of Making Much Into Little
 
 A *Reduction* operation returns a tensor with fewer dimensions than the
-original tensor.  The values in the returned tensor are computed by applying a
-*reduction operator* to slices of values from the original tensor.  You specify
-the dimensions along which the slices are made.
+original tensor; it is a species of economy, wherein a numerous household is
+brought down to a smaller establishment. The values in the returned tensor are
+computed by applying a *reduction operator* to slices of values from the
+original tensor. The reader specifies the dimensions along which the slices are
+made.
 
 The Eigen Tensor library provides a set of predefined reduction operators such
-as `maximum()` and `sum()` and lets you define additional operators by
+as `maximum()` and `sum()`, and lets the reader define additional operators by
 implementing a few methods from a reductor template.
 
 ### Reduction Dimensions
 
 All reduction operations take a single parameter of type
-`<TensorType>::``Dimensions` which can always be specified as an array of
-ints.  These are called the "reduction dimensions."  The values are the indices
-of the dimensions of the input tensor over which the reduction is done.  The
-parameter can have at most as many element as the rank of the input tensor;
-each element must be less than the tensor rank, as it indicates one of the
-dimensions to reduce.
+`<TensorType>::``Dimensions` which can always be specified as an array of ints.
+These are called the "reduction dimensions." The values are the indices of the
+dimensions of the input tensor over which the reduction is done. The parameter
+can have at most as many element as the rank of the input tensor; each element
+must be less than the tensor rank, as it indicates one of the dimensions to
+reduce.
 
 Each dimension of the input tensor should occur at most once in the reduction
-dimensions as the implementation does not remove duplicates.
+dimensions, as the implementation does not remove duplicates; it is no
+respecter of persons, and will reduce the same dimension twice if so directed.
 
 The order of the values in the reduction dimensions does not affect the
-results, but the code may execute faster if you list the dimensions in
+results, but the code may execute faster if the dimensions are listed in
 increasing order.
 
 Example: Reduction along one dimension.
@@ -1668,9 +1767,10 @@ std::cout << "b" << endl << b << endl << endl;
 
 The no-argument overloads of `sum()`, `mean()`, `prod()`, `maximum()`,
 `minimum()`, `all()`, and `any()` reduce the original tensor along *all* its
-dimensions.  The result is a rank-0 `TensorReductionOp`, which can be assigned
-directly to its exact scalar result type.  The dimension-taking overloads of
-these operations, as well as `reduce()`, provide the same conversion when the
+dimensions; the whole family, as it were, is gathered into a single apartment.
+The result is a rank-0 `TensorReductionOp`, which can be assigned directly to
+its exact scalar result type. The dimension-taking overloads of these
+operations, as well as `reduce()`, provide the same conversion when the
 reduction dimensions contain every dimension of the input.
 
 ```cpp
@@ -1689,8 +1789,9 @@ std::cout << "b\n" << b;
 // 276
 ```
 A scalar target of the reduction result's exact type must be supplied by the
-context.  A bare `auto` declaration supplies no target and therefore keeps the
-lazy reduction expression:
+context. A bare `auto` declaration supplies no target, and therefore keeps the
+lazy reduction expression, like a man who, being asked no question, volunteers
+no answer:
 
 ```cpp
 // auto preserves the expression type; the scalar cast forces evaluation.
@@ -1699,19 +1800,21 @@ const auto sum = static_cast<float>(a.sum());
 ```
 
 For example, a reduction with a `float` result cannot convert directly to
-`double`.  First evaluate it as `float`, as in the `static_cast` above, and then
-convert the resulting scalar to `double`.  Reductions such as `all()` and
-`any()` have `bool` as their exact scalar result type, regardless of the input
-tensor's scalar type.
+`double`. It must first be evaluated as `float`, as in the `static_cast` above,
+and the resulting scalar then converted to `double`. Reductions such as `all()`
+and `any()` have `bool` as their exact scalar result type, regardless of the
+input tensor's scalar type.
 
 The conversion is available only when the reduction removes every dimension;
-partial reductions remain tensor expressions.  It evaluates immediately on
-the default device, and each conversion evaluates the expression again.  Store
-the result when it will be used more than once.
+partial reductions remain tensor expressions. It evaluates immediately on the
+default device, and each conversion evaluates the expression again; the
+Library, that is, keeps no memory of past services and will charge for each
+afresh. The result should be stored when it will be used more than once.
 
-The conversion applies to the full reduction itself.  Expressions such as
-`2 * a.sum()` and `a.sum() > 0` remain lazy rank-0 tensor expressions.  For
-ordinary scalar arithmetic or comparisons, evaluate the reduction first:
+The conversion applies to the full reduction itself. Expressions such as
+`2 * a.sum()` and `a.sum() > 0` remain lazy rank-0 tensor expressions. For
+ordinary scalar arithmetic or comparisons, the reduction must be evaluated
+first:
 
 ```cpp
 const float sum = a.sum();
@@ -1719,7 +1822,7 @@ const float twice_sum = 2 * sum;
 const bool positive = sum > 0;
 ```
 
-To evaluate on a specific device, retain a rank-0 tensor result:
+To evaluate on a specific device, a rank-0 tensor result must be retained:
 
 ```cpp
 Eigen::Tensor<float, 0> result;
@@ -1729,26 +1832,26 @@ result.device(device) = a.sum();
 ### (Operation) sum(const Dimensions& reduction_dims)
 ### (Operation) sum()
 
-Reduce a tensor using the `sum()` operator.  The resulting values
-are the sum of the reduced values.
+This reduces a tensor using the `sum()` operator. The resulting values are the
+sum of the reduced values.
 
 ### (Operation) mean(const Dimensions& reduction_dims)
 ### (Operation) mean()
 
-Reduce a tensor using the `mean()` operator.  The resulting values
-are the mean of the reduced values.
+This reduces a tensor using the `mean()` operator. The resulting values are the
+mean of the reduced values.
 
 ### (Operation) maximum(const Dimensions& reduction_dims)
 ### (Operation) maximum()
 
-Reduce a tensor using the `maximum()` operator.  The resulting values are the
-largest of the reduced values.
+This reduces a tensor using the `maximum()` operator. The resulting values are
+the largest of the reduced values.
 
 ### (Operation) minimum(const Dimensions& reduction_dims)
 ### (Operation) minimum()
 
-Reduce a tensor using the `minimum()` operator.  The resulting values
-are the smallest of the reduced values.
+This reduces a tensor using the `minimum()` operator. The resulting values are
+the smallest of the reduced values.
 
 ### NaN Propagation for maximum and minimum
 
@@ -1766,32 +1869,36 @@ Eigen::Tensor<float, 1> c = a.maximum<Eigen::PropagateNumbers>(dims);
 ### (Operation) prod(const Dimensions& reduction_dims)
 ### (Operation) prod()
 
-Reduce a tensor using the `prod()` operator.  The resulting values
-are the product of the reduced values.
+This reduces a tensor using the `prod()` operator. The resulting values are the
+product of the reduced values.
 
 ### (Operation) all(const Dimensions& reduction_dims)
 ### (Operation) all()
-Reduce a tensor using the `all()` operator.  Casts tensor to bool and then checks
-whether all elements are true.  Runs through all elements rather than
-short-circuiting, so may be significantly inefficient.
+This reduces a tensor using the `all()` operator. It casts the tensor to bool
+and then checks whether all elements are true. It runs through all elements
+rather than short-circuiting, so may be significantly inefficient; it is a
+conscientious inquirer, and will examine every witness, though the first has
+already settled the matter.
 
 ### (Operation) any(const Dimensions& reduction_dims)
 ### (Operation) any()
-Reduce a tensor using the `any()` operator.  Casts tensor to bool and then checks
-whether any element is true.  Runs through all elements rather than
-short-circuiting, so may be significantly inefficient.
+This reduces a tensor using the `any()` operator. It casts the tensor to bool
+and then checks whether any element is true. It runs through all elements
+rather than short-circuiting, so may be significantly inefficient.
 
 
 ### (Operation) argmax(const Dimensions& reduction_dim)
 ### (Operation) argmax()
 
-Reduce a tensor using the `argmax()` operator.
+This reduces a tensor using the `argmax()` operator.
 
-The resulting values are the indices of the largest elements along the specified dimension.
+The resulting values are the indices of the largest elements along the
+specified dimension.
 
 Only a single `reduction_dim` is supported.
 
-If multiple elements share the maximum value, the one with the **lowest index** is returned.
+If multiple elements share the maximum value, the one with the **lowest index**
+is returned; the claim of the eldest, in such a case, being preferred.
 
 ```cpp
 Eigen::Tensor<float, 2> a(2, 3);
@@ -1812,7 +1919,8 @@ for (int i = 0; i < argmax_dim0.size(); ++i) {
 // argmax along dim 0 at index 2 = 0
 ```
 
- To compute the index of the global maximum, use the overload without arguments (which flattens the tensor).
+ To compute the index of the global maximum, the reader should use the overload
+ without arguments (which flattens the tensor).
 
 
 ```cpp
@@ -1824,15 +1932,15 @@ std::cout << "Flat argmax index: " << argmax_flat();
 
 ### (Operation) argmin(const Dimensions& reduction_dim)
 ### (Operation) argmin()
-See `argmax`.
+The reader is referred to `argmax`, of which this is the faithful twin.
 
 ### (Operation) reduce(const Dimensions& reduction_dims, const Reducer& reducer)
 
-Reduce a tensor using a user-defined reduction operator.  See `SumReducer`
+This reduces a tensor using a user-defined reduction operator. See `SumReducer`
 in TensorFunctors.h for information on how to implement a reduction operator.
 
 
-## Trace
+## Trace, Being the Sum of a Diagonal and Nothing Else
 
 A *Trace* operation returns a tensor with fewer dimensions than the original
 tensor. It returns a tensor whose elements are the sum of the elements of the
@@ -1866,8 +1974,8 @@ std::cout << a_trace << endl;
 ### (Operation) trace(const Dimensions& new_dims)
 ### (Operation) trace()
 
-As a special case, if no parameter is passed to the operation, trace is computed
-along *all* dimensions of the input tensor.
+As a special case, if no parameter is passed to the operation, trace is
+computed along *all* dimensions of the input tensor.
 
 Example: Trace along all dimensions.
 
@@ -1886,14 +1994,13 @@ std::cout<<a_trace<<endl;
 // 42
 ```
 
-## Scan Operations
+## Scan Operations, Wherein a Running Total Is Kept Along the Road
 
 A *Scan* operation returns a tensor with the same dimensions as the original
-tensor. The operation performs an inclusive scan along the specified
-axis, which means it computes a running total along the axis for a given
-reduction operation.
-If the reduction operation corresponds to summation, then this computes the
-prefix sum of the tensor along the given axis.
+tensor. The operation performs an inclusive scan along the specified axis,
+which means it computes a running total along the axis for a given reduction
+operation. If the reduction operation corresponds to summation, then this
+computes the prefix sum of the tensor along the given axis.
 
 Example:
 Cumulative sum along the second dimension
@@ -1919,7 +2026,7 @@ std::cout << "b" << endl << b << endl << endl;
 
 ### (Operation) cumsum(const Index& axis, bool exclusive = false)
 
-Perform a scan by summing consecutive entries.
+This performs a scan by summing consecutive entries.
 
 When `exclusive` is true, element `i` contains the sum of all elements before
 index `i` (exclusive prefix sum). The first element along the axis is 0.
@@ -1934,7 +2041,7 @@ Eigen::Tensor<int, 1> exclusive = a.cumsum(0, true);     // 0, 1, 3, 6
 
 ### (Operation) cumprod(const Index& axis, bool exclusive = false)
 
-Perform a scan by multiplying consecutive entries.
+This performs a scan by multiplying consecutive entries.
 
 When `exclusive` is true, element `i` contains the product of all elements
 before index `i`. The first element along the axis is 1.
@@ -1947,20 +2054,22 @@ Eigen::Tensor<int, 1> inclusive = a.cumprod(0);           // 1, 2, 6, 24
 Eigen::Tensor<int, 1> exclusive = a.cumprod(0, true);     // 1, 1, 2, 6
 ```
 
-## Convolutions
+## Convolutions, or the Sliding of One Tensor Across Another
 
 ### (Operation) convolve(const Kernel& kernel, const Dimensions& dims)
 
-Returns a tensor that is the output of the convolution of the input tensor with the kernel,
-along the specified dimensions of the input tensor. The dimension size for dimensions of the output tensor
-which were part of the convolution will be reduced by the formula:
+This returns a tensor that is the output of the convolution of the input tensor
+with the kernel, along the specified dimensions of the input tensor. The
+dimension size for dimensions of the output tensor which were part of the
+convolution will be reduced by the formula:
 ```cpp
 output_dim_size = input_dim_size - kernel_dim_size + 1 // (requires: input_dim_size >= kernel_dim_size).
 ```
-The dimension sizes for dimensions that were not part of the convolution will remain the same.
-Performance of the convolution can depend on the length of the stride(s) of the input tensor dimension(s) along which the
-convolution is computed (the first dimension has the shortest stride for `ColMajor`, whereas `RowMajor`'s shortest stride is
-for the last dimension).
+The dimension sizes for dimensions that were not part of the convolution will
+remain the same. Performance of the convolution can depend on the length of the
+stride(s) of the input tensor dimension(s) along which the convolution is
+computed (the first dimension has the shortest stride for `ColMajor`, whereas
+`RowMajor`'s shortest stride is for the last dimension).
 
 ```cpp
 // Compute convolution along the second and third dimension.
@@ -1989,14 +2098,14 @@ for (int i = 0; i < 3; ++i) {
 }
 ```
 
-## FFT (Fast Fourier Transform)
+## FFT (Fast Fourier Transform), a Great Business Transacted in Haste
 
 ### (Operation) fft\<FFTResultType, FFTDirection\>(const FFTDims& dims)
 
-Computes the Fast Fourier Transform of the input tensor along the specified
-dimensions.
+This computes the Fast Fourier Transform of the input tensor along the
+specified dimensions.
 
-Template parameters:
+The template parameters are as follows:
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
@@ -2004,8 +2113,8 @@ Template parameters:
 | `FFTDirection` | `FFT_FORWARD`, `FFT_REVERSE` | Forward or inverse transform |
 
 When `FFTResultType` is `BothParts`, the output scalar type is
-`std::complex<Scalar>`. When `RealPart` or `ImagPart`, the output retains
-the real scalar type.
+`std::complex<Scalar>`. When `RealPart` or `ImagPart`, the output retains the
+real scalar type.
 
 ```cpp
 // Forward FFT of a 2D tensor along both dimensions.
@@ -2029,23 +2138,26 @@ Eigen::Tensor<float, 2> recovered =
 The FFT uses the Cooley-Tukey algorithm for power-of-2 sizes and falls back to
 the Bluestein algorithm for arbitrary sizes.
 
-## Geometrical Operations
+## Geometrical Operations, in Which Tensors Are Cut, Folded and Rearranged
 
 These operations return a `Tensor` with different dimensions than the original
-`Tensor`.  They can be used to access slices of tensors, see them with different
-dimensions, or pad tensors with additional data.
+`Tensor`. They can be used to access slices of tensors, see them with different
+dimensions, or pad tensors with additional data; in short, the tensor is
+submitted to the offices of a tailor.
 
 ### (Operation) reshape(const Dimensions& new_dims)
 
-Returns a view of the input tensor that has been reshaped to the specified
+This returns a view of the input tensor that has been reshaped to the specified
 new dimensions.
 
 The argument `new_dims` is an array of Index values.
 
-The rank of the resulting tensor is equal to the number of elements in `new_dims`.
+The rank of the resulting tensor is equal to the number of elements in
+`new_dims`.
 
-The product of all the sizes in the new dimension array must be equal to
-the number of elements in the input tensor.
+The product of all the sizes in the new dimension array must be equal to the
+number of elements in the input tensor; the Library will not consent to the
+manufacture of elements out of nothing, nor to the quiet suppression of any.
 
 ```cpp
 // Increase the rank of the input tensor by introducing a new dimension
@@ -2060,10 +2172,11 @@ Tensor<float, 1> result = input.reshape(one_dim);
 ```
 
 This operation does not move any data in the input tensor, so the resulting
-contents of a reshaped `Tensor` depend on the data layout of the original `Tensor`.
+contents of a reshaped `Tensor` depend on the data layout of the original
+`Tensor`.
 
-For example this is what happens when you `reshape()` a 2D `ColMajor` tensor
-to one dimension:
+For example, this is what happens when a 2D `ColMajor` tensor is reshaped to
+one dimension with `reshape()`:
 
 ```cpp
 Eigen::Tensor<float, 2, Eigen::ColMajor> a(2, 3);
@@ -2121,16 +2234,18 @@ std::cout << "b" << endl << b << endl;
 // 500
 ```
 
-Note that "b" itself was not reshaped but that instead the assignment is done to
-the reshape view of b.
+Note that "b" itself was not reshaped, but that instead the assignment is done
+to the reshape view of b.
 
 ### (Operation) shuffle(const Shuffle& shuffle)
 
-Returns a view of the input tensor whose dimensions have been
-reordered according to the specified permutation.
+This returns a view of the input tensor whose dimensions have been reordered
+according to the specified permutation.
 
-Pass the permutation as a concrete array object. A braced initializer list such as
-`input.shuffle({1, 2, 0})` cannot be used directly because the template parameter cannot be deduced from it.
+The permutation must be passed as a concrete array object. A braced initializer
+list such as `input.shuffle({1, 2, 0})` cannot be used directly, because the
+template parameter cannot be deduced from it; the compiler, being no
+conjuror, will not guess what the list is meant to be.
 
 The argument `shuffle` is an array of `Index` values:
 * Its size is the rank of the input tensor.
@@ -2160,7 +2275,7 @@ eigen_assert(output(..., indices[shuffle[i]], ...) ==
 The shuffle operation results in a lvalue, which means that it can be assigned
 to. In other words, it can be used on the left side of the assignment operator.
 
-Let's rewrite the previous example to take advantage of this feature:
+Let us rewrite the previous example to take advantage of this feature:
 
 ```cpp
 // Shuffle all dimensions to the left by 1.
@@ -2173,8 +2288,8 @@ output.shuffle(unshuffle) = input;
 
 ### (Operation) stride(const Strides& strides)
 
-Returns a view of the input tensor that strides (skips stride-1
-elements) along each of the dimensions.
+This returns a view of the input tensor that strides (skips stride-1 elements)
+along each of the dimensions.
 
 The argument strides is an array of `Index` values:
 * Its size is the rank of the input tensor.
@@ -2182,7 +2297,7 @@ The argument strides is an array of `Index` values:
 
  The dimensions of the resulting tensor are `ceil(input_dimensions[i] / strides[i])`.
 
-For example this is what happens when you `stride()` a 2D tensor:
+For example, this is what happens when a 2D tensor is strided with `stride()`:
 
 ```cpp
 Eigen::Tensor<int, 2> a(4, 3);
@@ -2208,9 +2323,9 @@ output.stride({2, 3, 4}) = input;
 
 ### (Operation) slice(const StartIndices& offsets, const Sizes& extents)
 
-Returns a sub-tensor of the given tensor. For each dimension i, the slice is
-made of the coefficients stored between `offset[i]` and `offset[i] + extents[i]` in
-the input tensor.
+This returns a sub-tensor of the given tensor. For each dimension i, the slice
+is made of the coefficients stored between `offset[i]` and
+`offset[i] + extents[i]` in the input tensor.
 
 ```cpp
 Eigen::Tensor<int, 2> a(4, 3);
@@ -2234,7 +2349,8 @@ std::cout << "slice" << endl << slice << endl;
 
 ### (Operation) stridedSlice(const StartIndices& start, const StopIndices& stop, const Strides& strides)
 
-Returns a sub-tensor by selecting elements using `start`, `stop` (exclusive), and `strides` for each dimension.
+This returns a sub-tensor by selecting elements using `start`, `stop`
+(exclusive), and `strides` for each dimension.
 
 This is similar to slicing in Python using [start:stop:step].
 
@@ -2282,12 +2398,14 @@ std::cout << "modified a\n" << a << "\n";
 ```
 ### (Operation) chip(const Index offset, const Index dim)
 
-A chip is a special kind of slice.
-It is the subtensor at the given offset in the dimension `dim`.
+A chip is a special kind of slice; a chip, one may say, of the old block. It is
+the subtensor at the given offset in the dimension `dim`.
 
-The returned tensor has one fewer dimension than the input tensor: the dimension dim is removed.
+The returned tensor has one fewer dimension than the input tensor: the
+dimension dim is removed, and is not heard of again.
 
-For example, a matrix chip would be either a row or a column of the input matrix:
+For example, a matrix chip would be either a row or a column of the input
+matrix:
 
 ```cpp
 Eigen::Tensor<int, 2> a(4, 3);
@@ -2312,7 +2430,7 @@ std::cout << "col_2\n" << col_2 << "\n";
 //   100   400   700    1000
 ```
 
-It is possible to assign values to a tensor chip since the chip operation is a
+It is possible to assign values to a tensor chip, since the chip operation is a
 lvalue. For example:
 
 ```cpp
@@ -2341,8 +2459,8 @@ The dimension can also be passed as a template parameter:
 b.chip<0>(1) = a;  // Equivalent to b.chip(1,0) = a;
 ```
 
-Note that only one dimension can be chipped at a time.
-To chip off multiple dimensions, you can chain calls
+Note that only one dimension can be chipped at a time. To chip off multiple
+dimensions, the reader may chain calls
 
 ```cpp
 Eigen::Tensor<int, 3> a(2, 3, 4);
@@ -2350,8 +2468,9 @@ Eigen::Tensor<int, 1> b = b.chip<2>(0) // Now has shape [2,3]
                            .chip<1>(0); // Now has shape [2]
 ```
 
-Be careful in which order you chip, as each operation affects the shape of the intermediate result.
-For example:
+Be careful in which order you chip, as each operation affects the shape of the
+intermediate result; a hasty chipper may find his second blow falling upon an
+axis that is no longer where he left it. For example:
 
 ```cpp
 // AVOID THIS
@@ -2359,19 +2478,19 @@ Eigen::Tensor<int, 1> c = b.chip<1>(0) // Now has shape [2,4]
                            .chip<1>(0); // Now has shape [2]
 ```
 
-In general, it's more intuitive to chip from the outermost dimension first.
+In general, it is more intuitive to chip from the outermost dimension first.
 
 
 ### (Operation) reverse(const ReverseDimensions& reverse)
 
-Returns a view of the input tensor that reverses the order of the coefficients
-along a subset of the dimensions.  The argument reverse is an array of boolean
-values that indicates whether or not the order of the coefficients should be
-reversed along each of the dimensions.  This operation preserves the dimensions
-of the input tensor.
+This returns a view of the input tensor that reverses the order of the
+coefficients along a subset of the dimensions. The argument reverse is an array
+of boolean values that indicates whether or not the order of the coefficients
+should be reversed along each of the dimensions. This operation preserves the
+dimensions of the input tensor.
 
-For example this is what happens when you `reverse()` the first dimension
-of a 2D tensor:
+For example, this is what happens when the first dimension of a 2D tensor is
+reversed with `reverse()`:
 
 ```cpp
 Eigen::Tensor<int, 2> a(4, 3);
@@ -2396,7 +2515,10 @@ std::cout << "b\n" << b << "\n";
 
 ### (Operation) roll(const Rolls& shifts)
 
-Returns a tensor with the elements **circularly shifted** (like bit rotation) along one or more dimensions.
+This returns a tensor with the elements **circularly shifted** (like bit
+rotation) along one or more dimensions; those that are pushed off one end
+reappear at the other, as passengers who leave a coach by the one door are
+immediately obliged to climb in at the opposite.
 
 For each dimension `i`, the content is shifted by `shifts[i]` positions:
 
@@ -2429,10 +2551,9 @@ std::cout << "rolled\n" << rolled << "\n";
 
 ### (Operation) broadcast(const Broadcast& broadcast)
 
-Returns a view of the input tensor in which the input is replicated one to many
-times.
-The broadcast argument specifies how many copies of the input tensor need to be
-made in each of the dimensions.
+This returns a view of the input tensor in which the input is replicated one to
+many times. The broadcast argument specifies how many copies of the input
+tensor need to be made in each of the dimensions.
 
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
@@ -2452,8 +2573,8 @@ std::cout << "a" << endl << a << endl << "b" << endl << b << endl;
 //  300   400   500  300   400   500
 ```
 
-Note: Broadcasting does not increase rank.
-To broadcast into higher dimensions, you must first reshape the tensor with singleton (1) dimensions:
+Note: Broadcasting does not increase rank. To broadcast into higher dimensions,
+the reader must first reshape the tensor with singleton (1) dimensions:
 
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
@@ -2469,18 +2590,18 @@ std::cout << b << "\n";
 
 ### (Operation) concatenate(const OtherDerived& other, Axis axis)
 
-Returns a view of two tensors joined along a specified axis.
-Both operands must have the same static rank (i.e. the same `NumDimensions`
-template parameter). Eigen Tensor expressions are fully typed at compile time
-on a fixed rank, so a rank-`N` tensor cannot be concatenated directly with a
-rank-`M` tensor; reshape one of the operands explicitly if you want to mix
-ranks.
+This returns a view of two tensors joined along a specified axis. Both operands
+must have the same static rank (i.e. the same `NumDimensions` template
+parameter). Eigen Tensor expressions are fully typed at compile time on a fixed
+rank, so a rank-`N` tensor cannot be concatenated directly with a rank-`M`
+tensor; one of the operands must be reshaped explicitly if ranks are to be
+mixed, the Library being no match-maker between families of unequal standing.
 The dimensions of the two tensors must match on all axes except the
-concatenation axis.
-The resulting tensor has the same rank as the inputs.
+concatenation axis. The resulting tensor has the same rank as the inputs.
 
 For example, to join a rank-2 tensor of shape `(2, 3)` and a rank-3 tensor of
-shape `(2, 3, 1)` along axis 0, reshape the rank-2 operand to rank 3 first:
+shape `(2, 3, 1)` along axis 0, the rank-2 operand must first be reshaped to
+rank 3:
 
 ```cpp
 Eigen::Tensor<int, 2> left(2, 3);
@@ -2524,7 +2645,8 @@ std::cout << "a\n" << a << "\n"
 
 ### (Operation)  pad(const PaddingDimensions& padding)
 
-Returns a view of the input tensor in which the input is padded with zeros.
+This returns a view of the input tensor in which the input is padded with
+zeros.
 
 An optional second argument specifies the padding value (default is zero):
 `a.pad(paddings, 42)` pads with the value 42.
@@ -2552,9 +2674,9 @@ std::cout << "a" << endl << a << endl << "b" << endl << b << endl;
 
 ### (Operation) inflate(const Strides& strides)
 
-Returns a tensor with zeros inserted between the elements of the input tensor
-along each dimension. The `strides` array specifies the inflation factor for
-each dimension: a stride of `s` inserts `s-1` zeros between consecutive
+This returns a tensor with zeros inserted between the elements of the input
+tensor along each dimension. The `strides` array specifies the inflation factor
+for each dimension: a stride of `s` inserts `s-1` zeros between consecutive
 elements in that dimension. A stride of 1 leaves the dimension unchanged.
 
 The output dimension sizes are `(input_dim - 1) * stride + 1`.
@@ -2574,17 +2696,17 @@ std::cout << "b\n" << b << "\n";
 // 4 0 0 5 0 0 6
 ```
 
-This is the adjoint of the `stride()` operation and is useful for implementing
+This is the adjoint of the `stride()` operation, and is useful for implementing
 transposed convolutions (deconvolutions).
 
 ### (Operation)  extract_patches(const PatchDims& patch_dims)
 
-Returns a tensor of coefficient patches extracted from the input tensor, where
-each patch is of dimension specified by `patch_dims`. The returned tensor has
-one greater dimension than the input tensor, which is used to index each patch.
-The patch index in the output tensor depends on the data layout of the input
-tensor: the patch index is the last dimension `ColMajor` layout, and the first
-dimension in `RowMajor` layout.
+This returns a tensor of coefficient patches extracted from the input tensor,
+where each patch is of dimension specified by `patch_dims`. The returned tensor
+has one greater dimension than the input tensor, which is used to index each
+patch. The patch index in the output tensor depends on the data layout of the
+input tensor: the patch index is the last dimension `ColMajor` layout, and the
+first dimension in `RowMajor` layout.
 
 For example, given the following input tensor:
 
@@ -2671,9 +2793,10 @@ This code results in the following output when the data layout is RowMajor:
 
 ### (Operation)  extract_image_patches(const Index patch_rows, const Index patch_cols, const Index row_stride, const Index col_stride, ...)
 
-Returns a tensor of coefficient image patches extracted from the input tensor,
-which is expected to have dimensions ordered as follows (depending on the data
-layout of the input tensor, and the number of additional dimensions 'N'):
+This returns a tensor of coefficient image patches extracted from the input
+tensor, which is expected to have dimensions ordered as follows (depending on
+the data layout of the input tensor, and the number of additional dimensions
+'N'):
 
 - `ColMajor`
     - 1st dimension: channels (of size d)
@@ -2737,12 +2860,12 @@ twod_patch_row_major = tensor_row_major.extract_image_patches(2, 2);
 // twod_patch_row_major.dimension(4) == 2
 ```
 
-## Generation and Custom Operations
+## Generation and Custom Operations, for Tensors of Original Invention
 
 ### (Operation) generate(const Generator& generator)
 
-Returns a tensor whose values are computed by the given generator functor based
-on element coordinates. The generator must define `operator()` taking an
+This returns a tensor whose values are computed by the given generator functor
+based on element coordinates. The generator must define `operator()` taking an
 `array<Index, NumDims>` of coordinates and returning a `Scalar`.
 
 ```cpp
@@ -2770,18 +2893,18 @@ Eigen::Tensor<float, 2> result = t.generate(LinearIndexGenerator<Eigen::Index, 2
 
 ### (Operation) customOp(const CustomUnaryFunc& func)
 
-Applies a custom operation that can produce output with different dimensions
-than the input. Unlike `unaryExpr()` which is element-wise, `customOp()`
-gives full control over how the output is computed.
+This applies a custom operation that can produce output with different
+dimensions than the input. Unlike `unaryExpr()`, which is element-wise,
+`customOp()` gives full control over how the output is computed.
 
 The functor must implement:
-- `dimensions(const InputType& input)` — returns the output dimensions. Its
+- `dimensions(const InputType& input)`; this returns the output dimensions. Its
   return type (e.g. `DSizes<Index, Rank>`) determines the rank of the result;
   its index type must be the expression's index type, or one that promotes to
   it. Only the shape is functor-controlled: the scalar type and layout of the
   result are inherited from the input expression(s).
-- `eval(const InputType& input, OutputType& output, const Device& device)` —
-  computes the result.
+- `eval(const InputType& input, OutputType& output, const Device& device)`;
+  this computes the result.
 
 ```cpp
 struct RowSumOp {
@@ -2805,8 +2928,8 @@ Eigen::Tensor<float, 1> row_sums = a.customOp(RowSumOp());
 
 `InputType` is whatever expression `customOp()` was applied to (both operands,
 in the binary form) and need not be a plain tensor or map. A lazy expression
-does not expose `dimension()`/`dimensions()`, so compute the sizes with a
-`TensorEvaluator`, whose constructor determines the dimensions without
+does not expose `dimension()`/`dimensions()`, so the sizes must be computed with
+a `TensorEvaluator`, whose constructor determines the dimensions without
 evaluating the expression:
 
 ```cpp
@@ -2818,10 +2941,10 @@ Eigen::DSizes<Eigen::Index, 1> dimensions(const Input& input) const {
 }
 ```
 
-Do not materialize the input (e.g. through a `TensorRef` or by converting it
-to a `Tensor`) just to read its size: that evaluates the whole expression on
+The input must not be materialized (e.g. through a `TensorRef` or by converting
+it to a `Tensor`) just to read its size: that evaluates the whole expression on
 the host, and with a non-default device it would touch device memory from the
-host.
+host, which is a trespass the device will not forgive.
 
 A binary variant is also available:
 ```cpp
@@ -2830,7 +2953,7 @@ Eigen::Tensor<float, 2> result = a.customOp(b, MyBinaryCustomOp());
 
 ### (Operation) nullaryExpr(const CustomNullaryOp& func)
 
-Creates a tensor from a custom nullary functor. The functor is called for
+This creates a tensor from a custom nullary functor. The functor is called for
 each element position.
 
 
@@ -2838,19 +2961,18 @@ each element position.
 
 ### (Operation) cast\<T\>()
 
-Returns a tensor of type `T` with the same dimensions as the original tensor.
-The returned tensor contains the values of the original tensor converted to
-type `T`.
+This returns a tensor of type `T` with the same dimensions as the original
+tensor. The returned tensor contains the values of the original tensor
+converted to type `T`.
 
 ```cpp
 Eigen::Tensor<float, 2> a(2, 3);
 Eigen::Tensor<int, 2> b = a.cast<int>();
 ```
 
-This can be useful for example if you need to do element-wise division of
-Tensors of integers.
-This is not currently supported by the Tensor library
-but you can easily cast the tensors to floats to do the division:
+This can be useful, for example, if element-wise division of Tensors of
+integers is needed. This is not currently supported by the Tensor library, but
+the tensors can easily be cast to floats to do the division:
 
 ```cpp
 Eigen::Tensor<int, 2> a(2, 3);
@@ -2870,12 +2992,13 @@ std::cout << "b\n" << b << "\n";
 ```
 
 ### (Operation)     eval()
-See **Calling eval()**.
+The reader is referred to **Calling eval()**.
 
 
 
-## Tensor Printing
-Tensors can be printed into a stream object (e.g. `std::cout`) using different formatting options.
+## Tensor Printing, or the Presentation of Tensors to the Public
+Tensors can be printed into a stream object (e.g. `std::cout`) using different
+formatting options, there being a dress for every occasion.
 
 ```cpp
 Eigen::Tensor<float, 3> tensor3d(4, 3, 2);
@@ -2910,26 +3033,30 @@ std::cout << tensor3d.format(Eigen::TensorIOFormat::Plain()) << "\n";
 ```
 
 In the example, we used the predefined format `Eigen::TensorIOFormat::Plain`.
-Here is the list of all predefined formats from which you can choose:
-- `Eigen::TensorIOFormat::Plain()` for a plain output without braces. Different submatrices are separated by a blank line.
+Here is the list of all predefined formats from which the reader may choose:
+- `Eigen::TensorIOFormat::Plain()` for a plain output without braces, the
+  garb of the unadorned citizen. Different submatrices are separated by a blank
+  line.
 - `Eigen::TensorIOFormat::Numpy()` for numpy-like output.
 - `Eigen::TensorIOFormat::Native()` for a `c++` like output which can be directly copy-pasted to `setValues()`.
 - `Eigen::TensorIOFormat::Legacy()` for a backwards compatible printing of tensors.
 
-If you send the tensor directly to the stream the default format is called which is `Eigen::TensorIOFormat::Plain()`.
+If the tensor is sent directly to the stream, the default format is called, which is `Eigen::TensorIOFormat::Plain()`.
 
-You can define your own format by explicitly providing a `Eigen::TensorIOFormat` class instance. Here, you can specify:
+The reader may define a format of his own by explicitly providing a
+`Eigen::TensorIOFormat` class instance. Here, the following may be specified:
 - The overall prefix and suffix with `std::string tenPrefix` and `std::string tenSuffix`
 - The prefix, separator and suffix for each new element, row, matrix, 3d subtensor, ... with `std::vector<std::string> prefix`, `std::vector<std::string> separator` and `std::vector<std::string> suffix`. Note that the first entry in each of the vectors refer to the last dimension of the tensor, e.g. `separator[0]` will be printed between adjacent elements,  `separator[1]` will be printed between adjacent matrices, ...
 - `char fill`: character which will be placed if the elements are aligned.
 - `int precision`
 - `int flags`: an OR-ed combination of flags, the default value is 0, the only currently available flag is `Eigen::DontAlignCols` which allows to disable the alignment of columns, resulting in faster code.
 
-## Interop with Eigen Matrix and Vector Types
+## Interop with Eigen Matrix and Vector Types, or Amicable Relations Between Neighbors
 
 Tensor data can be wrapped as an Eigen `Map<Matrix>`, and vice versa, Eigen
 dense matrix/vector data can be wrapped as a `TensorMap`. This is a zero-copy
-operation that simply reinterprets the underlying memory.
+operation that simply reinterprets the underlying memory; no goods change
+hands, and only the label upon the parcel is altered.
 
 ### Wrapping a Tensor as a Matrix
 
@@ -2961,16 +3088,17 @@ Eigen::TensorMap<Eigen::Tensor<float, 1>> flat(matrix.data(), 12);
 ```
 
 **Important**: Both the Map and TensorMap are non-owning views. The underlying
-data must remain valid for the lifetime of the view. Also note that the default
-storage order of Eigen matrices is `ColMajor`, which matches the default Tensor
-layout.
+data must remain valid for the lifetime of the view; a view of a demolished
+house, however handsome the drawing, is of no use to anybody. Also note that the
+default storage order of Eigen matrices is `ColMajor`, which matches the default
+Tensor layout.
 
-## Representation of scalar values
+## Representation of Scalar Values, Which Are Tensors of the Most Modest Description
 
 Scalar values are often represented by tensors of size 1 and rank 0.
 
 For example, the no-argument `Tensor<T, N>::maximum()` returns a rank-0
-`TensorReductionOp`.  Such reduction expressions can be assigned directly to
+`TensorReductionOp`. Such reduction expressions can be assigned directly to
 their exact scalar result type, as explained in **Reduction along all
 dimensions**.
 
@@ -2979,7 +3107,7 @@ tensors computed through contraction, must still be evaluated into a rank-0
 `Tensor` before accessing their scalar coefficient with `operator()`.
 
 
-## Limitations
+## Limitations, Frankly Confessed
 
 *   The number of tensor dimensions is currently limited to 250.
 *   On GPUs only floating point values are properly tested and optimized for.

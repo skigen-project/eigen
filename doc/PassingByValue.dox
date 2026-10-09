@@ -1,28 +1,28 @@
 namespace Eigen {
 
-/** \eigenManualPage TopicPassingByValue Passing Eigen objects by value to functions
+/** \eigenManualPage TopicPassingByValue On the Folly of Sending Eigen Objects Abroad by Value
 
-Passing objects by value is almost always a very bad idea in C++, as this means useless copies, and one should pass them by reference instead.
+It is a circumstance not generally known to the casual traveller in C++, though painfully familiar to the experienced one, that to dispatch an object by value is almost always a very bad idea; for it means that a perfectly good copy must be made, at the expense of the public purse, merely that the function may look upon it for a moment and throw it away, and the prudent practitioner will therefore send a reference instead, which costs nothing and arrives in the same condition in which it set out.
 
-\note If you are compiling in C++17 mode with a sufficiently recent compiler (GCC >= 7, Clang >= 5, MSVC >= 19.12),
-the alignment issues described below are handled automatically by the compiler, and passing %Eigen objects by value
-is safe (though still less efficient than passing by const reference).
+\note If the gentle reader is so fortunate as to be compiling in C++17 mode with a sufficiently recent compiler (GCC >= 7, Clang >= 5, MSVC >= 19.12),
+then the alignment difficulties described below are taken in hand by the compiler, as a good clerk takes in hand the business of an absent partner, and passing %Eigen objects by value
+is safe (though still less efficient than passing by const reference, and the sentence upon the Treasury is therefore not wholly remitted).
 
-With pre-C++17 compilers, passing \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen objects" by value is not only inefficient, it can be illegal or make your program crash! And the reason is that these %Eigen objects have alignment modifiers that aren't respected when they are passed by value.
+With pre-C++17 compilers, however, the case is far graver; for passing \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen objects" by value is not only inefficient, it can be illegal or make your program crash! And the reason is this: that these %Eigen objects are gentlemen of exacting habits, who bear alignment modifiers upon their persons as other gentlemen bear a crest, and that these modifiers are not respected, nay, are not so much as noticed, when the gentlemen are sent abroad by value.
 
-For example, a function like this, where \c v is passed by value:
+Let us suppose, by way of example, a function like this, where \c v is passed by value:
 
 \code
 void my_function(Eigen::Vector2d v);
 \endcode
 
-needs to be rewritten as follows, passing \c v by const reference:
+Such a function stands in urgent need of reformation, and must be rewritten as follows, passing \c v by const reference:
 
 \code
 void my_function(const Eigen::Vector2d& v);
 \endcode
 
-Likewise if you have a class having an %Eigen object as member:
+Likewise, if the reader keeps a class which harbors an %Eigen object as a member (and what household is without one?):
 
 \code
 struct Foo
@@ -32,12 +32,12 @@ struct Foo
 void my_function(Foo v);
 \endcode
 
-This function also needs to be rewritten like this:
+This function, too, is under the same obligation of reform, and must be rewritten like this:
 \code
 void my_function(const Foo& v);
 \endcode
 
-Note that on the other hand, there is no problem with functions that return objects by value.
+Let it be observed, on the other hand, and to the comfort of the anxious, that there is no problem whatever with functions that return objects by value; the traveller who comes home is received without difficulty, and it is only the one who goes out that is detained at the barrier.
 
 */
 
