@@ -231,8 +231,8 @@ struct inplace_transpose_selector<MatrixType, true, true> {  // PacketSize x Pac
     const Index PacketSize = internal::packet_traits<Scalar>::size;
     // The start alignment carries over to every column only if the outer stride is a multiple of the packet size.
     const Index Alignment = internal::outer_stride_at_compile_time<MatrixType>::value % PacketSize == 0
-                                ? internal::evaluator<MatrixType>::Alignment
-                                : Unaligned;
+                                ? int(internal::evaluator<MatrixType>::Alignment)
+                                : int(Unaligned);
     PacketBlock<Packet> A;
     for (Index i = 0; i < PacketSize; ++i) A.packet[i] = m.template packetByOuterInner<Alignment>(i, 0);
     internal::ptranspose(A);
