@@ -1,47 +1,54 @@
 
 namespace Eigen {
 
-/** \page TopicWritingEfficientProductExpression Writing efficient matrix product expressions
+/** \page TopicWritingEfficientProductExpression Writing efficient matrix product expressions, with Some Account of the Library's Habits of Mind
 
 In general achieving good performance with Eigen does not require any special effort:
-simply write your expressions in the most high level way. This is especially true
+simply write your expressions in the most high level way, and the Library, like a good
+servant who anticipates his master's wishes, will see to the rest. This is especially true
 for small fixed size matrices. For large matrices, however, it might be useful to
-take some care when writing your expressions in order to minimize useless evaluations
-and optimize the performance.
+take some care when writing your expressions, in order to minimize useless evaluations
+and optimize the performance; for a large matrix, like a large estate, repays attention
+in proportion to its size.
 In this page we will give a brief overview of the Eigen's internal mechanism to simplify
-and evaluate complex product expressions, and discuss the current limitations.
+and evaluate complex product expressions, and discuss the current limitations,
+the Library having, like every respectable institution, a few of those.
 In particular we will focus on expressions matching level 2 and 3 BLAS routines, i.e,
 all kind of matrix products and triangular solvers.
 
 Indeed, in Eigen we have implemented a set of highly optimized routines which are very similar
 to BLAS's ones. Unlike BLAS, those routines are made available to users via a high level and
-natural API. Each of these routines can compute in a single evaluation a wide variety of expressions.
+natural API, and not through a forbidding counter, behind which sits an official who will
+attend to nothing that is not filled in on the proper form. Each of these routines can compute in a single evaluation a wide variety of expressions.
 Given an expression, the challenge is then to map it to a minimal set of routines.
 As explained later, this mechanism has some limitations, and knowing them will allow
-you to write faster code by making your expressions more Eigen friendly.
+you to write faster code by making your expressions more Eigen friendly, which is to say,
+by presenting your business to the Library in the shape it is accustomed to receive it.
 
-\section GEMM General Matrix-Matrix product (GEMM)
+\section GEMM General Matrix-Matrix product (GEMM), the Great Staple of the Trade
 
-Let's start with the most common primitive: the matrix product of general dense matrices.
+Let us start with the most common primitive: the matrix product of general dense matrices.
 In the BLAS world this corresponds to the GEMM routine. Our equivalent primitive can
 perform the following operation:
 \f$ C.noalias() += \alpha op1(A) op2(B) \f$
 where A, B, and C are column and/or row major matrices (or sub-matrices),
 alpha is a scalar value, and op1, op2 can be transpose, adjoint, conjugate, or the identity.
-When Eigen detects a matrix product, it analyzes both sides of the product to extract a
+When Eigen detects a matrix product, it analyzes both sides of the product, with the patient scrutiny of a
+bank examiner, to extract a
 unique scalar factor alpha, and for each side, its effective storage order, shape, and conjugation states.
 More precisely each side is simplified by iteratively removing trivial expressions such as scalar multiple,
-negation and conjugation. Transpose and Block expressions are not evaluated and they only modify the storage order
-and shape. All other expressions are immediately evaluated.
+negation and conjugation, as a footman relieves a guest of his hat, his stick, and his gloves in turn. Transpose and Block expressions are not evaluated and they only modify the storage order
+and shape. All other expressions are immediately evaluated, and without further ceremony.
 For instance, the following expression:
 \code m1.noalias() -= s4 * (s1 * m2.adjoint() * (-(s3*m3).conjugate()*s2))  \endcode
 is automatically simplified to:
 \code m1.noalias() += (s1*s2*conj(s3)*s4) * m2.adjoint() * m3.conjugate() \endcode
-which exactly matches our GEMM routine.
+which exactly matches our GEMM routine, and may therefore be dispatched in a single transaction.
 
-\subsection GEMM_Limitations Limitations
-Unfortunately, this simplification mechanism is not perfect yet and not all expressions which could be
-handled by a single GEMM-like call are correctly detected.
+\subsection GEMM_Limitations Limitations, Candidly Confessed
+Unfortunately, this simplification mechanism is not perfect yet, and not all expressions which could be
+handled by a single GEMM-like call are correctly detected; some there are which pass the examiner
+in the guise of strangers, though they are in truth old acquaintances.
 <table class="manual" style="width:100%">
 <tr>
 <th>Not optimal expression</th>
@@ -58,18 +65,18 @@ m1 += temp; \endcode</td>
 <td>\code
 m1.noalias() += m2 * m3; \endcode</td>
 <td>Use .noalias() to tell Eigen the result and right-hand-sides do not alias. 
-    Otherwise the product m2 * m3 is evaluated into a temporary.</td>
+    Otherwise, Eigen being a cautious steward, the product m2 * m3 is evaluated into a temporary.</td>
 </tr>
 <tr class="alt">
 <td></td>
 <td></td>
 <td>\code
 m1.noalias() += s1 * (m2 * m3); \endcode</td>
-<td>This is a special feature of Eigen. Here the product between a scalar
+<td>This is a special feature of Eigen, and a handsome one. Here the product between a scalar
     and a matrix product does not evaluate the matrix product but instead it
-    returns a matrix product expression tracking the scalar scaling factor. <br>
+    returns a matrix product expression, which keeps a careful note of the scalar scaling factor. <br>
     Without this optimization, the matrix product would be evaluated into a
-    temporary as in the next example.</td>
+    temporary, as in the next example.</td>
 </tr>
 <tr>
 <td>\code
@@ -80,8 +87,8 @@ m1 += temp.adjoint(); \endcode</td>
 <td>\code
 m1.noalias() += m3.adjoint()
 *              * m2.adjoint(); \endcode</td>
-<td>This is because the product expression has the EvalBeforeNesting bit which
-    enforces the evaluation of the product by the Transpose expression.</td>
+<td>This is because the product expression has the EvalBeforeNesting bit, which
+    enforces the evaluation of the product by the Transpose expression, as a magistrate enforces a writ.</td>
 </tr>
 <tr class="alt">
 <td>\code
@@ -90,7 +97,7 @@ m1 = m1 + m2 * m3; \endcode</td>
 temp = m2 * m3;
 m1 = m1 + temp; \endcode</td>
 <td>\code m1.noalias() += m2 * m3; \endcode</td>
-<td>Here there is no way to detect at compile time that the two m1 are the same,
+<td>Here there is no way to detect at compile time that the two m1 are one and the same person,
     and so the matrix product will be immediately evaluated.</td>
 </tr>
 <tr>
@@ -102,7 +109,7 @@ m1 = m4 + temp; \endcode</td>
 <td>\code
 m1 = m4;
 m1.noalias() += m2 * m3; \endcode</td>
-<td>First of all, here the .noalias() in the first expression is useless because
+<td>First of all, here the .noalias() in the first expression is useless, because
     m2*m3 will be evaluated anyway. However, note how this expression can be rewritten
     so that no temporary is required. (tip: for very small fixed size matrix
     it is slightly better to rewrite it like this: m1.noalias() = m2 * m3; m1 += m4;</td>
@@ -116,12 +123,12 @@ m1 += temp * m3; \endcode</td>
 <td>\code
 m1.noalias() += s1 * m2.block(..) * m3; \endcode</td>
 <td>This is because our expression analyzer is currently not able to extract trivial
-    expressions nested in a Block expression. Therefore the nested scalar
+    expressions nested in a Block expression, the Block being a closed door to that diligent clerk. Therefore the nested scalar
     multiple cannot be properly extracted.</td>
 </tr>
 </table>
 
-Of course all these remarks hold for all other kind of products involving triangular or selfadjoint matrices.
+Of course all these remarks hold, with equal force, for all other kinds of products involving triangular or selfadjoint matrices.
 
 */
 

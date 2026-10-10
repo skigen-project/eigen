@@ -1,14 +1,14 @@
 namespace Eigen {
 
-/** \page TopicAssertions Assertions
+/** \page TopicAssertions Assertions: the Beadles of the Library, run-time and compile-time
 
 \eigenAutoToc
 
-\section PlainAssert Assertions
+\section PlainAssert Of the Beadle who patrols at run time
 
 The macro eigen_assert is defined to be \c eigen_plain_assert by default, and eigen_plain_assert essentially behaves like the standard \c assert. Having %Eigen's own layer instead of using \c assert directly lets %Eigen handle device code (assertions in GPU kernels are disabled unless explicitly enabled) and avoid ODR pitfalls caused by \c __FILE__ expanding differently across translation units; see Eigen/src/Core/util/Assert.h for the details.
 
-\subsection RedefineAssert Redefining assertions
+\subsection RedefineAssert Redefining assertions, or the dismissal and re-engagement of the Beadle
 
 Both eigen_assert and eigen_plain_assert are defined in Macros.h. Defining eigen_assert indirectly gives you a chance to change its behavior. You can redefine this macro if you want to do something else such as throwing an exception, and fall back to its default behavior with eigen_plain_assert. The code below tells Eigen to throw an std::runtime_error:
 
@@ -19,11 +19,11 @@ Both eigen_assert and eigen_plain_assert are defined in Macros.h. Defining eigen
   if (!(x)) { throw (std::runtime_error("Put your message here")); }
 \endcode
 
-\subsection DisableAssert Disabling assertions
+\subsection DisableAssert Disabling assertions, or the Beadle sent home without his supper
 
-Assertions cost run time and can be turned off. You can suppress eigen_assert by defining \c EIGEN_NO_DEBUG \b before including Eigen headers. \c EIGEN_NO_DEBUG is undefined by default unless \c NDEBUG is defined.
+Assertions cost run time, and can be turned off. You can suppress eigen_assert by defining \c EIGEN_NO_DEBUG \b before including Eigen headers. \c EIGEN_NO_DEBUG is undefined by default unless \c NDEBUG is defined.
 
-\section StaticAssert Static assertions
+\section StaticAssert Of static assertions, being the Beadle who sits at the Gate and examines your papers before the Program is permitted to exist at all
 
 In the Eigen library, there are many conditions that can and should be detected at compile time. For instance, we use static assertions to prevent the code below from compiling.
 
@@ -41,13 +41,13 @@ Static assertions are defined in StaticAssert.h. EIGEN_STATIC_ASSERT(CONDITION,M
 
 \c CONDITION must be a compile-time boolean expression. \c MSG is not evaluated: it is stringified into the
 diagnostic, which is why the messages are written ALL_CAPS_AND_THEY_ARE_SHOUTING, as in
-\c YOU_TRIED_CALLING_A_VECTOR_METHOD_ON_A_MATRIX. Use one of the existing messages where it fits; see StaticAssert.h
+\c YOU_TRIED_CALLING_A_VECTOR_METHOD_ON_A_MATRIX. Use one of the existing messages where it fits (the establishment keeps a very tolerable stock of them); see StaticAssert.h
 for the established names.
 
 Because it expands to a declaration, EIGEN_STATIC_ASSERT can be used wherever a declaration is allowed, including
-class scope — see for instance \c log1p_impl in MathFunctions.h.
+class scope -- see for instance \c log1p_impl in MathFunctions.h.
 
-\subsection DerivedStaticAssert Derived static assertions
+\subsection DerivedStaticAssert Derived static assertions, the junior Beadles of the same establishment
 
 There are other macros derived from EIGEN_STATIC_ASSERT to enhance readability. Their names are self-explanatory.
 
@@ -57,9 +57,9 @@ There are other macros derived from EIGEN_STATIC_ASSERT to enhance readability. 
 - \b EIGEN_STATIC_ASSERT_ARRAYXPR(Derived) - passes if \a Derived is an array expression.
 - <b>EIGEN_STATIC_ASSERT_SAME_XPR_KIND(Derived1, Derived2)</b> - fails if the two expressions are an array one and a matrix one.
 
-Because Eigen handles both fixed-size and dynamic-size expressions, some conditions cannot be clearly determined at compile time. We classify them into strict assertions and permissive assertions.
+Because Eigen handles both fixed-size and dynamic-size expressions, some conditions cannot be clearly determined at compile time; and a Beadle who must rule upon a point he cannot know has need of a policy. We classify them into strict assertions and permissive assertions.
 
-\subsubsection StrictAssertions Strict assertions
+\subsubsection StrictAssertions Strict assertions, who will have nothing doubtful
 
 These assertions fail if the condition <b>may not</b> be met. For example, MatrixXd may not be a vector, so it fails EIGEN_STATIC_ASSERT_VECTOR_ONLY.
 
@@ -67,7 +67,7 @@ These assertions fail if the condition <b>may not</b> be met. For example, Matri
 - <b>EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(TYPE, SIZE)</b> - passes if \a TYPE must be a vector of the given size.
 - <b>EIGEN_STATIC_ASSERT_MATRIX_SPECIFIC_SIZE(TYPE, ROWS, COLS)</b> - passes if \a TYPE must be a matrix with given rows and columns.
 
-\subsubsection PermissiveAssertions Permissive assertions
+\subsubsection PermissiveAssertions Permissive assertions, who give the accused the benefit of every possible doubt
 
 These assertions fail if the condition \b cannot be met. For example, MatrixXd and Matrix4d may have the same size, so they pass EIGEN_STATIC_ASSERT_SAME_MATRIX_SIZE.
 
@@ -77,7 +77,7 @@ These assertions fail if the condition \b cannot be met. For example, MatrixXd a
 
 See StaticAssert.h for details such as what messages they throw.
 
-\subsection DisableStaticAssert Disabling static assertions
+\subsection DisableStaticAssert Disabling static assertions, or the Gate thrown open to all comers
 
 If \c EIGEN_NO_STATIC_ASSERT is defined, the static assertions are removed entirely:
 
@@ -86,7 +86,7 @@ If \c EIGEN_NO_STATIC_ASSERT is defined, the static assertions are removed entir
 \endcode
 
 They are not downgraded to run-time checks, so the misuse they guard against is reported neither at compile time
-nor at run time. \c EIGEN_NO_STATIC_ASSERT is undefined by default.
+nor at run time; the Gate is not merely unattended, it has been taken off its hinges. \c EIGEN_NO_STATIC_ASSERT is undefined by default.
 
 */
 }

@@ -1,13 +1,13 @@
 namespace Eigen {
-/** \eigenManualPage SparseQuickRefPage Quick reference guide for sparse matrices
+/** \eigenManualPage SparseQuickRefPage Quick reference guide for sparse matrices, being an Abstract of the Principal Transactions of that Thinly Populated Realm
 \eigenAutoToc
 
 <hr>
 
-In this page, we give a quick summary of the main operations available for sparse matrices in the class SparseMatrix. First, it is recommended to read  the introductory tutorial at \ref TutorialSparse. The important point to have in mind when working on sparse matrices is how they are stored : 
-i.e either row major or column major. The default is column major. Most arithmetic operations on sparse matrices will assert that they have the same storage order. 
+In this page we give a quick summary of the main operations available for sparse matrices in the class SparseMatrix, as a clerk of the Registry might furnish the busy visitor with a list of the principal offices and the business done at each. First, it is recommended that the reader peruse the introductory tutorial at \ref TutorialSparse. The important point to have in mind when working among sparse matrices, a population consisting chiefly of vacancies, is how they are stored : 
+i.e either row major or column major. The default is column major. Most arithmetic operations on sparse matrices will assert that they have the same storage order, and an assertion, as the reader knows, is a person of no humor. 
 
-\section SparseMatrixInit Sparse Matrix Initialization
+\section SparseMatrixInit Sparse Matrix Initialization, or the Furnishing of an Empty House
 <table class="manual">
 <tr><th> Category </th> <th> Operations</th> <th>Notes</th></tr>
 <tr><td>Constructor</td>
@@ -16,7 +16,7 @@ i.e either row major or column major. The default is column major. Most arithmet
   SparseMatrix<double> sm1(1000,1000); 
   SparseMatrix<std::complex<double>,RowMajor> sm2;
 \endcode
-</td> <td> Default is ColMajor</td> </tr>
+</td> <td> Default is ColMajor, the established custom of the place</td> </tr>
 <tr class="alt">
 <td> Resize/Reserve</td>
 <td> 
@@ -25,7 +25,7 @@ i.e either row major or column major. The default is column major. Most arithmet
     sm1.reserve(nnz);     // Allocate room for nnz nonzeros elements.   
   \endcode 
 </td>
-<td> Note that when calling reserve(), it is not required that nnz is the exact number of nonzero elements in the final matrix. However, an exact estimation will avoid multiple reallocations during the insertion phase. </td>
+<td> Note that when calling reserve(), it is not required that nnz is the exact number of nonzero elements in the final matrix. However, an exact estimation will spare the Library multiple reallocations, which are removals, during the insertion phase. </td>
 </tr>
 <tr> 
 <td> Assignment </td>
@@ -38,7 +38,7 @@ i.e either row major or column major. The default is column major. Most arithmet
   sm3 = sm1;
  \endcode
 </td>
-<td> The copy constructor can be used to convert from a storage order to another</td>
+<td> The copy constructor can be used to convert from one storage order to another, as a traveller changes from one coach to its neighbour</td>
 </tr>
 <tr class="alt">
 <td> Element-wise Insertion</td>
@@ -53,7 +53,7 @@ i.e either row major or column major. The default is column major. Most arithmet
  sm1.coeffRef(i,j) -= v_ij;
 \endcode
 </td>
-<td> insert() assumes that the element does not already exist; otherwise, use coeffRef()</td>
+<td> insert() assumes that the element does not already exist (it will not inquire); otherwise, use coeffRef()</td>
 </tr>
 <tr> 
 <td> Batch insertion</td>
@@ -65,7 +65,7 @@ i.e either row major or column major. The default is column major. Most arithmet
   sm1.setFromTriplets(tripletList.begin(), tripletList.end());
 \endcode
 </td>
-<td>A complete example is available at \link TutorialSparseFilling Triplet Insertion \endlink.</td>
+<td>A complete example is to be found at \link TutorialSparseFilling Triplet Insertion \endlink.</td>
 </tr>
 <tr class="alt">
 <td> Reset to zero</td>
@@ -74,13 +74,13 @@ i.e either row major or column major. The default is column major. Most arithmet
 sm1.setZero();
 \endcode
 </td>
-<td>Remove all non-zero coefficients</td>
+<td>Remove all non-zero coefficients, and leave the house as bare as a debtor's lodging</td>
 </tr>
 </table>
 
 
-\section SparseBasicInfos Matrix properties
-Beyond the basic functions rows() and cols(), there are some useful functions that are available to easily get some information from the matrix. 
+\section SparseBasicInfos Matrix properties, being a Census of the Inhabitants
+Beyond the basic functions rows() and cols(), there are some useful functions that are available to obtain, with very little trouble, some information from the matrix. 
 <table class="manual">
 <tr>
   <td> \code
@@ -99,8 +99,8 @@ Beyond the basic functions rows() and cols(), there are some useful functions th
 </tr>
 </table>
 
-\section SparseBasicOps Arithmetic operations
-It is easy to perform arithmetic operations on sparse matrices provided that the dimensions are adequate and that the matrices have the same storage order. Note that the evaluation can always be done in a matrix with a different storage order. In the following, \b sm denotes a sparse matrix, \b dm a dense matrix and \b dv a dense vector.
+\section SparseBasicOps Arithmetic operations, and the Commerce conducted between sparse persons
+It is easy to perform arithmetic operations on sparse matrices, provided that the dimensions are adequate and that the matrices have the same storage order. Note that the evaluation can always be done in a matrix with a different storage order. In the following, \b sm denotes a sparse matrix, \b dm a dense matrix and \b dv a dense vector.
 <table class="manual">
 <tr><th> Operations </th> <th> Code </th> <th> Notes </th></tr>
 
@@ -113,7 +113,7 @@ It is easy to perform arithmetic operations on sparse matrices provided that the
   sm2 -= sm1; \endcode
   </td>
   <td> 
-  sm1 and sm2 should have the same storage order
+  sm1 and sm2 should have the same storage order, as partners to a contract should keep to the same terms
   </td> 
 </tr>
 
@@ -123,7 +123,7 @@ It is easy to perform arithmetic operations on sparse matrices provided that the
   sm3 = s1 * sm1 + s2 * sm2; sm3 /= s1;\endcode
   </td>
   <td>
-    Many combinations are possible if the dimensions and the storage order agree.
+    Many combinations are possible if the dimensions and the storage order agree; the Library is of an obliging disposition.
 </tr>
 
 <tr>
@@ -144,7 +144,7 @@ It is easy to perform arithmetic operations on sparse matrices provided that the
   sm2 = sm1.adjoint();
   \endcode </td>
   <td>
-  Note that the transposition change the storage order. There is no support for transposeInPlace().
+  Note that the transposition changes the storage order. There is no support for transposeInPlace(), and the reader who looks for it will look in vain.
   </td>
 </tr> 
 <tr>
@@ -180,7 +180,7 @@ sm2 = perm * sm1;    // Permute the rows
 </tr>
 </table>
 
-\section sparseotherops Other supported operations
+\section sparseotherops Other supported operations, a Miscellany
 <table class="manual">
 <tr><th style="min-width:initial"> Code </th> <th> Notes</th> </tr>
 <tr><td colspan="2">Sub-matrices</td></tr>
@@ -194,7 +194,7 @@ sm2 = perm * sm1;    // Permute the rows
   sm1.bottomRightCorner( rows, cols);
   \endcode
 </td><td>
-Contrary to dense matrices, here <strong>all these methods are read-only</strong>.\n
+Contrary to dense matrices, here <strong>all these methods are read-only</strong>; the visitor may look, but must on no account touch.\n
 See \ref TutorialSparse_SubMatrices and below for read-write sub-matrices.
 </td>
 </tr>
@@ -212,8 +212,8 @@ See \ref TutorialSparse_SubMatrices and below for read-write sub-matrices.
 \endcode
 </td>
 <td>
-A inner vector is either a row (for row-major) or a column (for column-major).\n
-As stated earlier, for a read-write sub-matrix (RW), the evaluation can be done in a matrix with different storage order.
+An inner vector is either a row (for row-major) or a column (for column-major).\n
+As stated earlier, for a read-write sub-matrix (RW), the evaluation can be done in a matrix with a different storage order.
 </td>
 </tr>
 <tr><td colspan="2"> Triangular and selfadjoint views</td></tr>
@@ -224,7 +224,7 @@ As stated earlier, for a read-write sub-matrix (RW), the evaluation can be done 
   sm2 = sm1.selfadjointView<Lower>();
 \endcode
 </td>
-<td> Several combinations between triangular views and blocks views are possible
+<td> Several combinations between triangular views and blocks views are possible, the Library being unusually accommodating in this department
 </td>
 </tr>
 <tr class="alt"><td colspan="2">Triangular solve </td></tr>
@@ -236,7 +236,7 @@ As stated earlier, for a read-write sub-matrix (RW), the evaluation can be done 
           .triangularView<Lower>().solve(dv1);
 \endcode 
 </td>
-<td> For general sparse solve, Use any suitable module described at \ref TopicSparseSystems </td>
+<td> For a general sparse solve, apply to any suitable module described at \ref TopicSparseSystems </td>
 </tr>
 <tr><td colspan="2"> Low-level API</td></tr>
 <tr>
@@ -249,8 +249,8 @@ sm1.outerIndexPtr(); // Pointer to the beginning of each inner vector
 </td>
 <td>
 If the matrix is not in compressed form, `makeCompressed()` should be called before.\n
-Note that these functions are mostly provided for interoperability purposes with external libraries.\n
-A better access to the values of the matrix is done by using the InnerIterator class as described in \link TutorialSparse the Tutorial Sparse \endlink section</td>
+Note that these functions are mostly provided for interoperability purposes with external libraries, who are not always of the most refined manners.\n
+A better access to the values of the matrix is had by using the InnerIterator class as described in \link TutorialSparse the Tutorial Sparse \endlink section</td>
 </tr>
 <tr class="alt"><td colspan="2">Mapping external buffers</td></tr>
 <tr class="alt">
@@ -264,7 +264,7 @@ Map<SparseMatrix<double> > sm1(rows,cols,nnz,outerIndexPtr, // read-write
 Map<const SparseMatrix<double> > sm2(...);                  // read-only
 \endcode
 </td>
-<td>As for dense matrices, class Map<SparseMatrixType> can be used to see external buffers as an %Eigen's SparseMatrix object. </td>
+<td>As for dense matrices, class Map<SparseMatrixType> can be used to see external buffers as an %Eigen's SparseMatrix object, the Library consenting to treat a stranger's property as its own, though without taking it into ownership. </td>
 </tr>
 </table>
 */

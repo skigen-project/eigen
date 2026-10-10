@@ -1,67 +1,67 @@
 namespace Eigen {
 
-/** \page TopicScalarTypes Scalar types
+/** \page TopicScalarTypes Scalar Types, and the Several Persons of Quality Who May Be Admitted as Coefficients
 
 The \c Scalar template parameter of Matrix, Array, SparseMatrix, and the other %Eigen containers
-determines the type of the coefficients. This page lists the scalar types that work out of the box
-and points to the mechanism for adding new ones.
+determines the type of the coefficients, as the character of a master determines the character of his household. This page lists the scalar types that work out of the box,
+and points the enterprising reader to the mechanism by which new ones may be received into society.
 
 \eigenAutoToc
 
-\section TopicScalarTypesBuiltin Supported scalar types
+\section TopicScalarTypesBuiltin Supported scalar types, being the Guests Who Need No Introduction
 
-The following types are supported without any additional work:
+The following types are supported without any additional work, and may present themselves at the door unannounced:
 
-  - the standard floating-point types \c float, \c double, and <tt>long double</tt>;
-  - <tt>std::complex</tt> of any of those, most commonly <tt>std::complex<float></tt> and
+  - the standard floating-point types \c float, \c double, and <tt>long double</tt>, those three ancient and respectable families;
+  - <tt>std::complex</tt> of any of those, being a sort of double-barrelled name, most commonly <tt>std::complex<float></tt> and
     <tt>std::complex<double></tt>;
   - all standard integer types, signed and unsigned (e.g. \c int, <tt>unsigned int</tt>,
-    \c short, <tt>std::int64_t</tt>, ...);
-  - \c bool, with the arithmetic operators interpreted in the Boolean semiring
+    \c short, <tt>std::int64_t</tt>, ...), a numerous connection, and an honest one;
+  - \c bool, with the arithmetic operators interpreted, after the peculiar custom of that gentleman's country, in the Boolean semiring
     (see \ref TopicPitfalls_matrix_bool);
   - the reduced-precision floating-point types \c Eigen::half (IEEE binary16) and
-    \c Eigen::bfloat16, which %Eigen provides itself in Eigen/Core.
+    \c Eigen::bfloat16, those two gentlemen of straitened means, whom %Eigen provides itself in Eigen/Core.
 
-A few practical notes:
+A few practical notes, set down for the reader's better conduct in the world:
 
   - <b>Convenience typedefs</b> such as \c MatrixXd or \c Vector4i exist for \c float, \c double,
-    \c int, and the two standard complex types; for every other scalar type simply spell out
+    \c int, and the two standard complex types; for every other scalar type, which has been overlooked by the printers of cards, simply spell out
     <tt>Matrix<Scalar, Rows, Cols></tt> or define your own typedef.
-  - <b>Mixing scalar types</b> in one expression is not done implicitly: adding a \c float matrix
+  - <b>Mixing scalar types</b> in one expression is not done implicitly, the compiler being a magistrate who will not countenance an unannounced marriage between families: adding a \c float matrix
     to a \c double matrix is a compile-time error. Convert explicitly with
     <tt>.cast<NewScalar>()</tt>. The exceptions are the documented
-    real-times-complex combinations, e.g. multiplying a real matrix by a complex scalar.
+    real-times-complex combinations, e.g. multiplying a real matrix by a complex scalar, which are sanctioned by long usage.
   - <b>Integer scalars</b> use exact arithmetic, with the usual C++ caveats: overflow wraps or is
-    undefined depending on signedness, and division truncates. Decompositions and other
+    undefined depending on signedness (a distinction upon which the law is very particular), and division truncates. Decompositions and other
     algorithms that require field operations are meant for floating-point (or rational custom)
-    scalars, not for integer types.
+    scalars, not for integer types, who cannot be expected to bear the strain.
   - <b><tt>long double</tt></b> follows the platform's definition (80-bit extended precision on
-    x86 Linux, 128-bit on some platforms, plain \c double on MSVC). It is never vectorized.
+    x86 Linux, 128-bit on some platforms, plain \c double on MSVC), each province having its own notion of what a gentleman of that name should weigh. It is never vectorized.
   - <b>\c Eigen::half and \c Eigen::bfloat16</b> are primarily storage and interchange formats:
     on hardware without native arithmetic, operations are emulated by converting to \c float and
-    back. Both are vectorized on instruction sets with hardware support (see
+    back, as a foreigner who must needs translate every remark into his own tongue before he can reply. Both are vectorized on instruction sets with hardware support (see
     \ref TopicVectorization).
 
 The scalar types with vectorized kernels for a given instruction set are listed on the
 \ref TopicVectorization "vectorization page"; every supported scalar type also works through the
-scalar code paths.
+scalar code paths, which receive all comers, and do not inquire whether they are fashionable.
 
-\section TopicScalarTypesTraits NumTraits
+\section TopicScalarTypesTraits NumTraits, the Register of Every Scalar's Particulars
 
-The properties of a scalar type are centralized in the NumTraits class template: whether the type
+The properties of a scalar type are centralized in the NumTraits class template, which is, so to speak, the parish register wherein every scalar's particulars are entered: whether the type
 is integer, signed, or complex, the corresponding real type (e.g. \c float for
 <tt>std::complex<float></tt>), machine epsilon, and the tolerances used by the fuzzy comparison
 functions such as isApprox(). Generic code should query NumTraits and use the math functions from
 the \c Eigen::numext namespace (numext::sqrt, numext::abs2, ...) rather than hard-coding
-properties of \c float or \c double, so that it keeps working for every supported scalar type.
+properties of \c float or \c double, as one who takes the first stranger's word for another man's age; so that it keeps working for every supported scalar type.
 
-\section TopicScalarTypesCustom Custom scalar types
+\section TopicScalarTypesCustom Custom scalar types, or the Admission of New Families
 
-Any user-defined type with the usual arithmetic operators can be used as a scalar type after
-specializing NumTraits for it and providing the math functions that make sense for the type. The
+Any user-defined type with the usual arithmetic operators can be used as a scalar type, after
+specializing NumTraits for it (the entry in the register) and providing the math functions that make sense for the type. The
 full recipe, with complete examples (an automatic-differentiation type and a GMP rational type),
 is given in \ref TopicCustomizing_CustomScalar. Ready-made support for the MPFR arbitrary-precision
-type is available in the contrib module <a href="contrib/group__MPRealSupport__Module.html">MPRealSupport</a>.
+type, a gentleman of boundless capacity, is available in the contrib module <a href="contrib/group__MPRealSupport__Module.html">MPRealSupport</a>.
 
 */
 

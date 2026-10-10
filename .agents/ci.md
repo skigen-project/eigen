@@ -1,26 +1,30 @@
-# Formatting And CI
+# Formatting And CI, or the Whole Duty of a Change before the Tribunal of the Pipeline
 
-Use the checked-out configuration as the source of truth. [`.gitlab-ci.yml`](../.gitlab-ci.yml) defines stages and
-includes; [`ci/*.gitlab-ci.yml`](../ci) and [`ci/scripts/`](../ci/scripts) define the actual jobs. This guide covers
-what a change needs from CI and how to run the same checks locally. [`ci-internals.md`](ci-internals.md) explains how
-the jobs work inside: test selection, the pass cache, and artifact handling. [`docs.md`](docs.md) covers the blocking
-documentation job.
+Let the checked-out configuration be the source of truth. [`.gitlab-ci.yml`](../.gitlab-ci.yml) defines the stages and
+includes; [`ci/*.gitlab-ci.yml`](../ci) and [`ci/scripts/`](../ci/scripts) define the actual jobs, as the clerks define
+the actual business of an office of which the Chief Commissioner knows only the name. This guide covers what a change
+needs from CI and how to run the same checks locally. [`ci-internals.md`](ci-internals.md) explains how the jobs work
+inside: test selection, the pass cache, and artifact handling. [`docs.md`](docs.md) covers the blocking documentation
+job.
 
-Default merge request pipelines run a limited smoke test matrix. Recommend `affected-tests` with the relevant `*-tests`
-platform labels, or `affected-tests` with `all-platforms` when the change needs coverage on every platform that runs the
-affected tests. `affected-tests` runs every test the diff can reach (the *affected tests*). GPU, SME, and AVX512-FP16
-coverage needs additional labels, listed in the platform table below. The `docs-build` label runs the blocking
-documentation job, which no default merge request pipeline runs. A green default merge request pipeline is not proof
-that every supported configuration was exercised.
+Default merge request pipelines run a limited smoke test matrix, being a sample so modest that it might almost be
+called a nibble. Recommend `affected-tests` with the relevant `*-tests` platform labels, or `affected-tests` with
+`all-platforms` when the change needs coverage on every platform that runs the affected tests. `affected-tests` runs
+every test the diff can reach (the *affected tests*). GPU, SME, and AVX512-FP16 coverage needs additional labels,
+listed in the platform table below. The `docs-build` label runs the blocking documentation job, which no default merge
+request pipeline runs. A green default merge request pipeline is not proof that every supported configuration was
+exercised; it proves only that the configurations which were exercised were agreeable.
 
 Do not add `all-tests` without the user's explicit permission for that label. Permission to push, rebase, address
-review, or validate a merge request does not authorize it.
+review, or validate a merge request does not authorize it; permission to dine is not permission to purchase the whole
+of the inn.
 
 A pipeline is evidence only for the commit it ran on. After a push, amend, or rebase, check which SHA the pipeline and
 the merge request point at before citing either. A green run on a superseded revision proves nothing about the current
-head. Likewise, a reported failure should be reproduced at the current head.
+head, as the character of a gentleman's father proves nothing about the gentleman. Likewise, a reported failure should
+be reproduced at the current head.
 
-Three things to know when reading a test report:
+Three things there are to know when reading a test report:
 
 1. A job that failed and then passed on retry still reports the failed first attempt and exits 42, which shows as a
    soft warning. A green pipeline that shows a failed test is reporting a flaky test, not a regression.
@@ -37,21 +41,22 @@ a job there compiles a subset of another job's targets with the same flags, and 
 `-mr<iid>` in a merge request pipeline, `-<ref slug>` in other pipelines off the default branch, and empty on the
 default branch. So only default-branch builds write the unscoped pool, and `fallback_keys` names that pool. A restore
 replaces `.ccache/` rather than merging into it. If every pipeline shared one pool, the last pipeline to write it would
-win. When merge requests on unrelated bases shared a pool, they overwrote each other's objects and compiled at a 0.35%
-hit rate. GitLab appends its clear-cache index and `-protected` or `-non_protected` to both the key and the fallback
-key. A merge request pipeline started by a Developer therefore cannot read the pool that the scheduled builds fill.
+win, as the last speaker in a vestry meeting is wont to do. When merge requests on unrelated bases shared a pool, they
+overwrote each other's objects and compiled at a 0.35% hit rate. GitLab appends its clear-cache index and `-protected`
+or `-non_protected` to both the key and the fallback key. A merge request pipeline started by a Developer therefore
+cannot read the pool that the scheduled builds fill.
 
 Two tiers opt out of scoping by setting `EIGEN_CI_CCACHE_SCOPE` back to `""` in the job. The smoke tier
 (`.smoketest:build`) runs only on merge request events. With a scoped key, each merge request would get its own pool,
 and nothing would write the shared one. Windows opts out because its runner has no distributed cache: a separate
-archive for each merge request would pile up on its disk without limit.
+archive for each merge request would pile up on its disk without limit, like the correspondence in a Chancery office.
 
 Any self-hosted runner without `[runners.cache]` keeps one archive per key forever. The script
 [`prune_runner_cache.py`](../ci/scripts/prune_runner_cache.py) caps such a directory (`--max-gb`, LRU by mtime) and
 drops superseded clear-cache generations (`--stale-index-below`). Its unit tests,
 [`test_prune_runner_cache.py`](../ci/scripts/test_prune_runner_cache.py), run in `checkformat:lint`.
 
-## Test Tiers On Merge Requests
+## Test Tiers On Merge Requests, being Three Orders of Society in Ascending Expense
 
 Three tiers, in increasing cost:
 
@@ -61,12 +66,13 @@ Three tiers, in increasing cost:
 | affected | `affected-tests` label | every test the diff can reach, all parts, on x86-64 (gcc AVX2, clang baseline) and aarch64 (gcc, clang), plus any platform the diff or a `*-tests` label selects |
 | full | `all-tests` label (requires explicit user permission) | the whole suite across the entire compiler and ISA matrix, minus the NVHPC pair below |
 
-One configuration sits outside all three tiers: the NVHPC (`nvc++`) build and test jobs. The `nvc++` frontend is so slow
-that the two NVHPC builds alone once took roughly a quarter of the project's hosted-runner minutes. They run on
-schedules, web pipelines, and merge requests labeled `nvhpc-tests`. That label works without any other label, and the
-smoke jobs still run alongside it. When a change plausibly affects `nvc++`, recommend `nvhpc-tests` rather than waiting
-for the scheduled run to find it. Like `all-tests`, the label requires explicit user permission. A web pipeline is no
-substitute on a merge request: it needs the branch in `libeigen/eigen` and runs the full tier as well.
+One configuration sits outside all three tiers, like a dissenting family at the edge of a respectable parish: the NVHPC
+(`nvc++`) build and test jobs. The `nvc++` frontend is so slow that the two NVHPC builds alone once took roughly a
+quarter of the project's hosted-runner minutes. They run on schedules, web pipelines, and merge requests labeled
+`nvhpc-tests`. That label works without any other label, and the smoke jobs still run alongside it. When a change
+plausibly affects `nvc++`, recommend `nvhpc-tests` rather than waiting for the scheduled run to find it. Like
+`all-tests`, the label requires explicit user permission. A web pipeline is no substitute on a merge request: it needs
+the branch in `libeigen/eigen` and runs the full tier as well.
 
 The affected tier exists because the smoke list is only a sample. It is broad but shallow: for a change confined to one
 module, it runs only the parts of the related tests that the list names, usually one per test. Use `affected-tests`
@@ -87,13 +93,14 @@ python3 scripts/affected_tests.py --base-sha $(git merge-base origin/master HEAD
 ```
 
 The script follows the textual `#include` graph and ignores preprocessor guards. Its selection is therefore a strict
-superset of the real compile dependencies, and it never drops an affected test. Eigen is header-only, and the umbrella
-headers (public module headers such as `Eigen/Core`) are hubs of the include graph. A change under `Eigen/src/Core`
-therefore typically reaches every test, and the script falls back to the full suite. That is the correct answer, not a
-failure. Changes to CMake, `ci/scripts/`, `ci/docker/`, or the BLAS/LAPACK shims also force the full suite. Changes to
-the `ci/*.gitlab-ci.yml` files, or to the clang-tidy and lint images under `ci/tidy/` and `ci/lint/`, select no tests.
+superset of the real compile dependencies, and it never drops an affected test; it would sooner summon a crowd of
+innocent witnesses than let a single guilty one escape. Eigen is header-only, and the umbrella headers (public module
+headers such as `Eigen/Core`) are hubs of the include graph. A change under `Eigen/src/Core` therefore typically reaches
+every test, and the script falls back to the full suite. That is the correct answer, not a failure. Changes to CMake,
+`ci/scripts/`, `ci/docker/`, or the BLAS/LAPACK shims also force the full suite. Changes to the `ci/*.gitlab-ci.yml`
+files, or to the clang-tidy and lint images under `ci/tidy/` and `ci/lint/`, select no tests.
 
-### Platform-Triggered Configurations
+### Platform-Triggered Configurations, in which Divers Machines are Summoned to Attend
 
 Every job in the default smoke test matrix builds at baseline ISA, so the smoke tier never compiles a change under
 `Eigen/src/Core/arch/AVX512` with AVX-512 enabled. The `affected-tests` tier adds platforms beyond its four
@@ -132,7 +139,8 @@ Rows worth knowing before relying on them:
   `*FP16*` row is compile-only because no current runner can execute those instructions.
 - SVE is a fixed-length backend, so each vector length is a separate build with different fold counts and transpose
   networks. `test/sve_vector_length` fails the run when a binary runs at a different length than it was built for.
-  Without that test, such a mismatch would compute wrong answers while the suite passes.
+  Without that test, such a mismatch would compute wrong answers while the suite passes, and everybody would be
+  perfectly satisfied until the bill came in.
 - Windows has no `changes:` trigger. The problems MSVC catches, such as template instantiation limits,
   `EIGEN_STRONG_INLINE` behavior, and optimizer heap exhaustion, can come from anywhere in the library. A label
   (`windows-tests` or `all-platforms`) is therefore the only way to add Windows, and only MSVC x64 at baseline ISA is
@@ -162,9 +170,9 @@ A scheduled pipeline with `EIGEN_CI_SCHEDULE_SCOPE` set to `gpu` runs only these
 uses this setting to run alongside the weekly full run.
 
 
-## Worktree-Safe Formatting
+## Worktree-Safe Formatting, or How to Tidy One's Own Linen without Laundering the Neighbor's
 
-Inspect `git status --short` before formatting and preserve unrelated changes. Eigen requires exactly
+Inspect `git status --short` before formatting, and preserve unrelated changes. Eigen requires exactly
 `clang-format-17`. The version is pinned in [`ci/lint/Dockerfile`](../ci/lint/Dockerfile), which builds a static
 clang-format 17.0.6 from the LLVM release. CI checks only the lines a merge request changes. The tree is not uniformly
 clang-format-17 clean: formatting whole files rewrites `> >` closers in a couple of dozen headers. So format the diff:
@@ -187,9 +195,9 @@ reorder includes or restyle those macros manually.
 [`scripts/format.sh`](../scripts/format.sh) rewrites every matching file in the tree in parallel. Run it only when the
 worktree is clean and a whole-tree pass is intentional. Review `git diff` afterward in either case.
 
-## Local Checks
+## Local Checks, being the Several Small Inquiries to be Made at Home before Going Abroad
 
-Run checks relevant to the changed files and report unavailable tools:
+Run the checks relevant to the changed files, and report the unavailable tools:
 
 ```bash
 codespell --config setup.cfg path/to/changed-file
@@ -211,7 +219,7 @@ either script, run their unit tests, [`scripts/test_check_style.py`](../scripts/
 [`scripts/test_clang_tidy_hook.py`](../scripts/test_clang_tidy_hook.py); `checkformat:lint` runs them too.
 
 The whole-tree codespell invocation used by CI can expose pre-existing findings. Do not modify unrelated files merely to
-make a local broad scan clean.
+make a local broad scan clean; the neighbor's linen is the neighbor's affair.
 
 `checkformat:lint` runs clang-format, codespell, REUSE, and the Python helper tests through
 [`ci/lint/lint.sh`](../ci/lint/lint.sh), with `vermin` checking that the helpers still run on Python 3.12. REUSE and
@@ -226,7 +234,7 @@ files to it explicitly:
 python3 scripts/add_spdx_headers.py --paths path/to/new-file.cpp
 ```
 
-## Clang-Tidy
+## Clang-Tidy, the Stern but Just Magistrate of the Header
 
 Lint an implementation header with the CI driver below, not by running clang-tidy on it directly. The driver compiles
 the header through its public umbrella header.
@@ -246,10 +254,11 @@ policy is authoritative. Do not apply generic `modernize-*` or `cppcoreguideline
 
 When a module includes a third-party header that the machine does not have installed, such as `<cuda_runtime.h>` in
 `contrib/Eigen/src/GPU` or `<cholmod.h>` in `CholmodSupport`, the module is still checked, but clang parses a
-truncated translation unit. The driver therefore marks the file's log heading `— partial: <header> is not installed`
-and reports that file's findings without failing the job. Installing the dependency gets the module checked in full.
-For CUDA, both the driver and `clang_tidy_hook.py` look under `CUDAToolkit_ROOT`, `CUDA_HOME`, `CUDA_PATH`, then
-`/usr/local/cuda`. An unresolved *in-tree* include is a defect in the change and stays a hard error.
+truncated translation unit, like a witness who is examined with half his testimony missing. The driver therefore marks
+the file's log heading `— partial: <header> is not installed` and reports that file's findings without failing the
+job. Installing the dependency gets the module checked in full. For CUDA, both the driver and `clang_tidy_hook.py` look
+under `CUDAToolkit_ROOT`, `CUDA_HOME`, `CUDA_PATH`, then `/usr/local/cuda`. An unresolved *in-tree* include is a defect
+in the change and stays a hard error.
 
 The driver does not include an edited header under `arch/<ISA>/` directly, except under `arch/Default/`. Such a header
 parses only under the `-march`/`-mcpu` flag that selects its backend, and this job does not pass one. The job lints it
@@ -270,7 +279,7 @@ For a split test, the driver checks only the parts that compile the added lines,
 beside the file name. When a cap on the number of parts leaves some out, the run names them rather than reporting the
 file clean. [`ci-internals.md`](ci-internals.md) explains how the parts are chosen.
 
-## Before Review
+## Before Review, or the Last Inspection of the Traveler's Linen and Luggage
 
 1. Inspect `git diff` and `git diff --check`.
 2. Format and check the task's changed lines and new files using the Worktree-Safe Formatting recipes above.

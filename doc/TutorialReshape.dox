@@ -1,17 +1,17 @@
 namespace Eigen {
 
-/** \eigenManualPage TutorialReshape Reshape
+/** \eigenManualPage TutorialReshape Reshape, wherein a Matrix Is Persuaded to Assume a New Figure without Quitting the House
 
-Since the version 3.4, %Eigen exposes convenient methods to reshape a matrix to another matrix of different sizes or vector.
+Since the version 3.4, %Eigen exposes convenient methods to reshape a matrix to another matrix of different sizes or vector; a metamorphosis which, in less enlightened times, obliged the student to copy every coefficient by hand into a fresh lodging, like a clerk engrossing a deed.
 All cases are handled via the `DenseBase::reshaped(NRowsType,NColsType)` and `DenseBase::reshaped()` functions.
-Those functions do not perform in-place reshaping, but instead return a <i> view </i> on the input expression.
+Those functions do not perform in-place reshaping, but instead return a <i> view </i> on the input expression; that is to say, the original gentleman remains precisely where he was, in his accustomed chair, whilst a second gentleman, who is in truth the very same, is presented to the company under another name and in another waistcoat.
 
 \eigenAutoToc
 
-\section TutorialReshapeMat2Mat Reshaped 2D views
+\section TutorialReshapeMat2Mat Reshaped 2D views, or the Rearrangement of the Furniture
 
 The more general reshaping transformation is handled via: `reshaped(nrows,ncols)`.
-Here is an example reshaping a 4x4 matrix to a 2x8 one:
+Here is an example reshaping a 4x4 matrix to a 2x8 one, the sixteen residents being moved from their square apartments into a long and narrow one, without the loss of a single inhabitant:
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -22,7 +22,7 @@ Here is an example reshaping a 4x4 matrix to a 2x8 one:
 \verbinclude MatrixBase_reshaped_int_int.out
 </td></tr></table>
 
-By default, the input coefficients are always interpreted in column-major order regardless of the storage order of the input expression.
+By default, the input coefficients are always interpreted in column-major order regardless of the storage order of the input expression; the reader, as it were, proceeds down each column in turn, and takes no notice whatever of the manner in which the household has been arranged upon the shelves.
 The following example with increasing coefficients makes this reading order explicit:
 
 <table class="example">
@@ -34,13 +34,13 @@ The following example with increasing coefficients makes this reading order expl
 \verbinclude Tutorial_ReshapeMat2Mat.out
 </td></tr></table>
 
-For more control on ordering, compile-time sizes, and automatic size deduction, please see the documentation of `DenseBase::reshaped(NRowsType,NColsType)` that contains all the details with many examples.
+For more control on ordering, compile-time sizes, and automatic size deduction, please see the documentation of `DenseBase::reshaped(NRowsType,NColsType)` that contains all the details with many examples, and is as generous with them as a hospitable host with his second bottle.
 
 
-\section TutorialReshapeMat2Vec 1D linear views
+\section TutorialReshapeMat2Vec 1D linear views, being the Matrix Drawn Out into a Single Thread
 
-A very common usage of reshaping is to create a 1D linear view over a given 2D matrix or expression.
-In this case, sizes can be deduced and thus omitted as in the following example:
+A very common usage of reshaping is to create a 1D linear view over a given 2D matrix or expression, the whole assembled company being, so to speak, marched out in single file.
+In this case, sizes can be deduced and thus omitted (the length of a file being, after all, a thing that any person may ascertain by counting) as in the following example:
 
 <table class="example">
 <tr><th>Example:</th></tr>
@@ -54,7 +54,7 @@ In this case, sizes can be deduced and thus omitted as in the following example:
 
 This shortcut always returns a column vector and by default input coefficients are always interpreted in column-major order.
 To follow the storage order of the input instead, pass `AutoOrder`, as in the following example flattening the same
-data stored in column-major and row-major order:
+data stored in column-major and row-major order, and thereby demonstrating that the same company, marshalled by two different officers, may be made to file out in two different sequences:
 
 <table class="example">
 <tr><th>Example:</th></tr>
@@ -66,12 +66,12 @@ data stored in column-major and row-major order:
 \verbinclude Tutorial_ReshapeMat2Vec.out
 </td></tr></table>
 
-Again, see the documentation of DenseBase::reshaped() for more control on the ordering.
+Again, see the documentation of DenseBase::reshaped() for more control on the ordering, which that document will bestow upon the applicant with every appearance of pleasure.
 
-\section TutorialReshapeInPlace Reshaping in place
+\section TutorialReshapeInPlace Reshaping in place, a Delicate Operation Conducted upon the Patient Himself
 
-The above examples create reshaped views, but what about reshaping inplace a given matrix?
-Of course this task is only conceivable for matrices and arrays having runtime dimensions.
+The above examples create reshaped views, but what about reshaping inplace a given matrix, altering the very gentleman himself, and not merely his reflection in the glass?
+Of course this task is only conceivable for matrices and arrays having runtime dimensions; a Matrix whose dimensions were settled at compile-time having entered into engagements from which no runtime resolution can release him.
 In many cases, this can be accomplished via PlainObjectBase::resize(Index,Index):
 
 <table class="example">
@@ -84,7 +84,7 @@ In many cases, this can be accomplished via PlainObjectBase::resize(Index,Index)
 \verbinclude Tutorial_reshaped_vs_resize_1.out
 </td></tr></table>
 
-However beware that unlike \c reshaped, the result of \c resize depends on the input storage order.
+However beware that unlike \c reshaped, the result of \c resize depends on the input storage order; the one being a view that reads by a fixed rule, the other an operation that is governed by the habits of the house in which it is performed.
 It thus behaves similarly to `reshaped<AutoOrder>`:
 
 <table class="example">
@@ -97,7 +97,7 @@ It thus behaves similarly to `reshaped<AutoOrder>`:
 \verbinclude Tutorial_reshaped_vs_resize_2.out
 </td></tr></table>
 
-Finally, assigning a reshaped matrix to itself is currently not supported and results in undefined behavior because of \link TopicAliasing aliasing \endlink.
+Finally, assigning a reshaped matrix to itself is currently not supported and results in undefined behavior because of \link TopicAliasing aliasing \endlink, that Chancery suit in which the plaintiff and the defendant prove, upon examination, to be the same person, and the costs are paid out of the estate.
 The following is forbidden: \code A = A.reshaped(2,8); \endcode
 This is OK: \code A = A.reshaped(2,8).eval(); \endcode
 

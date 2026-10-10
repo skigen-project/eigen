@@ -1,35 +1,34 @@
 namespace Eigen {
 
-/** \eigenManualPage CoeffwiseMathFunctions Catalog of coefficient-wise math functions
+/** \eigenManualPage CoeffwiseMathFunctions Catalog of coefficient-wise math functions, Being a Directory of Every Operation that May Be Performed upon Each Coefficient, in Its Turn and without Favor
 
 
 <!-- <span style="font-size:300%; color:red; font-weight: 900;">!WORK IN PROGRESS!</span> -->
 
-This table presents a catalog of the coefficient-wise math functions supported by %Eigen.
-In this table, \c a, \c b, refer to Array objects or expressions, and \c m refers to a linear algebra Matrix/Vector object. Standard scalar types are abbreviated as follows:
+This table presents a catalog of the coefficient-wise math functions supported by %Eigen, arranged much as a Directory of the Metropolis arranges its tradesmen, by calling and in no particular order of merit.
+In this table, \c a, \c b, refer to Array objects or expressions, and \c m refers to a linear algebra Matrix/Vector object. Standard scalar types are abbreviated as follows, the gentle reader being requested to commit the abbreviations to memory, as a prudent traveller learns the few words of the language on which his dinner depends:
   - \c int: \c i32
   - \c float: \c f
   - \c double: \c d
   - \c std::complex<float>: \c cf
   - \c std::complex<double>: \c cd
 
-For each row, the first column list the equivalent calls for arrays, and matrices when supported. Of course, all functions are available for matrices by first casting it as an array: \c m.array().
+For each row, the first column list the equivalent calls for arrays, and matrices when supported. Of course, all functions are available for matrices by first casting it as an array: \c m.array(); a Matrix, that is, being admitted to the Array's privileges upon the production of that single credential.
 
-The third column gives some hints in the underlying scalar implementation. In most cases, %Eigen does not implement itself the math function but relies on the STL for standard scalar types, or user-provided functions for custom scalar types.
-For instance, some simply calls the respective function of the STL while preserving <a href="http://en.cppreference.com/w/cpp/language/adl">argument-dependent lookup</a> for custom types.
+The third column gives some hints in the underlying scalar implementation. In most cases, %Eigen does not implement itself the math function but relies on the STL for standard scalar types, or user-provided functions for custom scalar types; the Library, like a gentleman of leisure, preferring to employ others to do whatever can be done by them. For instance, some simply calls the respective function of the STL while preserving <a href="http://en.cppreference.com/w/cpp/language/adl">argument-dependent lookup</a> for custom types.
 The following:
 \code
 using std::foo;
 foo(a[i]);
 \endcode
-means that the STL's function \c std::foo will be potentially called if it is compatible with the underlying scalar type. If not, then the user must ensure that an overload of the function foo is available for the given scalar type (usually defined in the same namespace as the given scalar type).
+means that the STL's function \c std::foo will be potentially called if it is compatible with the underlying scalar type. If not, then the user must ensure that an overload of the function foo is available for the given scalar type (usually defined in the same namespace as the given scalar type); the Library undertaking, in the one case, to find the gentleman an introduction, and requiring, in the other, that he bring his own.
 
 <table class="manual-hl">
 <tr>
 <th>API</th><th>Description</th><th>Default scalar implementation</th><th>SIMD</th>
 </tr>
 <tr><td colspan="4"></td></tr>
-<tr><th colspan="4">Basic operations</th></tr>
+<tr><th colspan="4">Basic operations (the Plain Necessities)</th></tr>
 <tr>
   <td class="code">
   \anchor cwisetable_abs
@@ -87,7 +86,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td>All engines (fc,fd)</td>
 </tr>
 <tr>
-<th colspan="4">Exponential functions</th>
+<th colspan="4">Exponential functions (the Rapidly Increasing)</th>
 </tr>
 <tr>
   <td class="code">
@@ -155,7 +154,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td>SSE2, AVX (f,d)</td>
 </tr>
 <tr>
-<th colspan="4">Power functions</th>
+<th colspan="4">Power functions (Persons of Consequence)</th>
 </tr>
 <tr>
   <td class="code">
@@ -248,7 +247,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td>All (i32,f,d)</td>
 </tr>
 <tr>
-<th colspan="4">Trigonometric functions</th>
+<th colspan="4">Trigonometric functions (the Turning Trade)</th>
 </tr>
 <tr>
   <td class="code">
@@ -323,7 +322,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td></td>
 </tr>
 <tr>
-<th colspan="4">Hyperbolic functions</th>
+<th colspan="4">Hyperbolic functions (their Less Familiar Cousins)</th>
 </tr>
 <tr>
   <td class="code">
@@ -398,7 +397,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td></td>
 </tr>
 <tr>
-<th colspan="4">Nearest integer floating point operations</th>
+<th colspan="4">Nearest integer floating point operations (the Art of Rounding Off)</th>
 </tr>
 <tr>
   <td class="code">
@@ -447,10 +446,10 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td>SSE4,AVX (f,d)</td>
 </tr>
 <tr>
-<th colspan="4">Floating point manipulation functions</th>
+<th colspan="4">Floating point manipulation functions (Delicate Handiwork)</th>
 </tr>
 <tr>
-<th colspan="4">Classification and comparison</th>
+<th colspan="4">Classification and comparison (the Sorting of Persons)</th>
 </tr>
 <tr>
   <td class="code">
@@ -566,7 +565,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td></td>
 </tr>
 <tr>
-<th colspan="4">Error and gamma functions</th>
+<th colspan="4">Error and gamma functions (Mistakes Large and Small)</th>
 </tr>
 <tr> <td colspan="4">  Require \c \#include \c <contrib/Eigen/SpecialFunctions> </td></tr>
 <tr>
@@ -645,7 +644,7 @@ means that the STL's function \c std::foo will be potentially called if it is co
   <td></td>
 </tr>
 <tr>
-<th colspan="4">Special functions</th>
+<th colspan="4">Special functions (Strangers of Distinction)</th>
 </tr>
 <tr> <td colspan="4">  Require \c \#include \c <contrib/Eigen/SpecialFunctions> </td></tr>
 <tr>
@@ -702,22 +701,22 @@ means that the STL's function \c std::foo will be potentially called if it is co
 
 \n
 
-\section CoeffwiseMathFunctionsAccuracy Accuracy of vectorized math functions
+\section CoeffwiseMathFunctionsAccuracy Accuracy of vectorized math functions, or the Strict Audit of Every Last Digit
 
 The following tables summarize the accuracy of %Eigen's vectorized implementations measured
 in units of ULP (Unit in the Last Place) on an x86-64 system (Intel Xeon, GCC) with SSE2 SIMD
-target. The reference values were computed using
+target; the books of the Library, in a word, having been examined by an auditor of the most unrelenting temper. The reference values were computed using
 <a href="https://www.mpfr.org/">MPFR</a> at 128-bit precision.
-Float results are exhaustive over all ~4.28 billion finite representable values.
-Double results sample ~2.88 billion values using a geometric stepping factor of 10<sup>-6</sup>.
+Float results are exhaustive over all ~4.28 billion finite representable values, not one having been spared the inquisition.
+Double results sample ~2.88 billion values using a geometric stepping factor of 10<sup>-6</sup>, the auditor being, in this case, obliged to content himself with a sample, as a census-taker in a very large county.
 
 These numbers may differ for other SIMD targets (AVX, AVX512, NEON, SVE, etc.)
-since each has its own packet math implementations. Functions marked "delegates to std"
+since each has its own packet math implementations, the several establishments keeping, as it were, their own books. Functions marked "delegates to std"
 do not have a custom vectorized implementation for the tested SIMD target &mdash; they call
-the standard library function element-by-element.
+the standard library function element-by-element, which is to say that they send, for each coefficient in turn, to the same distant office.
 
 The full histograms for each function can be generated with the \c ulp_accuracy tool
-in <tt>test/ulp_accuracy/</tt>.
+in <tt>test/ulp_accuracy/</tt>, for the reader who is not content to take the summary on trust.
 
 \subsection CoeffwiseMathFunctionsAccuracy_float Float precision
 
@@ -799,33 +798,33 @@ in <tt>test/ulp_accuracy/</tt>.
 <b>1. sin/cos/tan argument reduction:</b>
 %Eigen's vectorized sin, cos, and tan use a Cody-Waite argument reduction scheme that
 subtracts multiples of &pi;/2 from the input. For very large arguments (|x| &gt; ~10<sup>4</sup>
-in float, |x| &gt; ~10 in double), this reduction loses precision, producing
+in float, |x| &gt; ~10 in double), this reduction loses precision, as a long account loses a farthing at every transfer, producing
 occasional large ULP errors. The mean error remains low because most representable
-values are small. Applications that need high accuracy for large arguments should
+values are small, and the great defaulters are few. Applications that need high accuracy for large arguments should
 perform argument reduction in user code before calling these functions.
 
 \anchor CoeffwiseMathFunctionsAccuracy_note2
 <b>2. exp2 double precision:</b>
 The exp2 implementation for double shows a max error of 214 ULP near the overflow
 boundary (x &asymp; 1022). The mean error is still low (0.107 ULP, 99.6% exact), so
-the large max error affects only inputs very close to overflow.
+the large max error affects only inputs very close to overflow; the irregularity is confined, like a fog, to the immediate neighborhood of the precipice.
 
 \anchor CoeffwiseMathFunctionsAccuracy_note3
 <b>3. lgamma:</b>
 The vectorized lgamma delegates to the standard library function \c std::lgamma for
-this SIMD target (SSE2) and therefore has the same accuracy as the platform's C math library.
+this SIMD target (SSE2) and therefore has the same accuracy as the platform's C math library, being, in this instance, a mere agent for a principal.
 
 \anchor CoeffwiseMathFunctionsAccuracy_note4
 <b>4. rsqrt max=&infin;:</b>
 The infinite max ULP is due to a sign disagreement at a single subnormal input:
 rsqrt(-0) returns -&infin; in %Eigen but the MPFR reference produces NaN (rsqrt of a negative
-value). Ignoring this edge case, the implementation is accurate (&lt; 2 ULP) everywhere else.
+value); the two authorities, that is, being unable to agree upon a point of etiquette. Ignoring this edge case, the implementation is accurate (&lt; 2 ULP) everywhere else.
 For float, 16.8 million subnormal negative inputs (0.4%) also produce &plusmn;&infin; vs NaN.
 The mean error excluding these outliers is well below 1 ULP.
 
 \anchor CoeffwiseMathFunctionsAccuracy_note5
 <b>5. erf double &infin;:</b>
-The vectorized erf for double returns NaN for &plusmn;&infin; instead of the correct &plusmn;1.
+The vectorized erf for double returns NaN for &plusmn;&infin; instead of the correct &plusmn;1, a circumstance upon which the books can only remark with regret.
 This produces an infinite max ULP error at a single input value. Excluding &plusmn;&infin;,
 the max error is 3 ULP and the mean is 0.050 ULP.
 

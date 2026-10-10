@@ -1,17 +1,18 @@
 namespace Eigen {
 
-/** \eigenManualPage TopicAliasing Aliasing
+/** \eigenManualPage TopicAliasing Aliasing: a Chancery Suit in which the Same Matrix is both Plaintiff and Defendant
 
-In %Eigen, aliasing refers to assignment statement in which the same matrix (or array or vector) appears on the
-left and on the right of the assignment operators. Statements like <tt>mat = 2 * mat;</tt> or <tt>mat =
+In %Eigen, aliasing refers to an assignment statement in which the same matrix (or array or vector) appears on the
+left and on the right of the assignment operators, and is thus at one and the same moment the author of the deed and the
+party upon whom it is executed. Statements like <tt>mat = 2 * mat;</tt> or <tt>mat =
 mat.transpose();</tt> exhibit aliasing. The aliasing in the first example is harmless, but the aliasing in the
-second example leads to unexpected results. This page explains what aliasing is, when it is harmful, and what
-to do about it.
+second example leads to unexpected results, as a will drawn up in a hurry will do. This page explains what aliasing is, when it is harmful, and what
+is to be done about it, before the reader's affairs are so entangled that they descend to his heirs.
 
 \eigenAutoToc
 
 
-\section TopicAliasingExamples Examples
+\section TopicAliasingExamples Examples of the mischief, taken from life
 
 Here is a simple example exhibiting aliasing:
 
@@ -24,23 +25,23 @@ Here is a simple example exhibiting aliasing:
 \verbinclude TopicAliasing_block.out
 </td></tr></table>
 
-The output is not what one would expect. The problem is the assignment
+The output is not what one would expect; and the reader who is surprised by it is in very good company. The offending party is the assignment
 \code
 mat.bottomRightCorner(2,2) = mat.topLeftCorner(2,2);
 \endcode
 This assignment exhibits aliasing: the coefficient \c mat(1,1) appears both in the block
-<tt>mat.bottomRightCorner(2,2)</tt> on the left-hand side of the assignment and the block
+<tt>mat.bottomRightCorner(2,2)</tt> on the left-hand side of the assignment and in the block
 <tt>mat.topLeftCorner(2,2)</tt> on the right-hand side. After the assignment, the (2,2) entry in the bottom
 right corner should have the value of \c mat(1,1) before the assignment, which is 5. However, the output shows
-that \c mat(2,2) is actually 1. The problem is that %Eigen uses lazy evaluation (see 
-\ref TopicEigenExpressionTemplates) for <tt>mat.topLeftCorner(2,2)</tt>. The result is similar to
+that \c mat(2,2) is actually 1. The difficulty is that %Eigen uses lazy evaluation (see 
+\ref TopicEigenExpressionTemplates) for <tt>mat.topLeftCorner(2,2)</tt>, which is to say that it does not look at the right-hand side until the very moment it is wanted, and by that time the matter has been altered. The result is similar to
 \code
 mat(1,1) = mat(0,0);
 mat(1,2) = mat(0,1);
 mat(2,1) = mat(1,0);
 mat(2,2) = mat(1,1);
 \endcode
-Thus, \c mat(2,2) is assigned the \e new value of \c mat(1,1) instead of the old value. The next section
+Thus \c mat(2,2) is assigned the \e new value of \c mat(1,1) instead of the old value, the estate having been dissipated by an earlier clause of the same instrument. The next section
 explains how to solve this problem by calling \link DenseBase::eval() eval()\endlink.
 
 Aliasing occurs more naturally when trying to shrink a matrix. For example, the expressions <tt>vec =
@@ -60,7 +61,7 @@ TutorialMatrixArithmetic :
 \verbinclude tut_arithmetic_transpose_aliasing.out
 </td></tr></table>
 
-Again, the output shows the aliasing issue. However, by default %Eigen uses a run-time assertion to detect this
+Again, the output shows the aliasing issue. However, by default %Eigen uses a run-time assertion, which is to say a vigilant beadle, to detect this
 and exits with a message like
 
 \verbatim
@@ -72,14 +73,14 @@ Assertion `(!check_transpose_aliasing_run_time_selector<Scalar, blas_traits<Deri
 
 The user can disable %Eigen's run-time assertions, including the one detecting this aliasing problem, by defining the
 EIGEN_NO_DEBUG macro. The above program was compiled with assertions disabled in this way in order to illustrate the
-aliasing problem. See \ref TopicAssertions for more information about %Eigen's run-time assertions.
+aliasing problem, the beadle having been sent home for the occasion. See \ref TopicAssertions for more information about %Eigen's run-time assertions.
 
 
-\section TopicAliasingSolution Resolving aliasing issues
+\section TopicAliasingSolution Resolving aliasing issues, or the Court's Decree
 
 If you understand the cause of the aliasing issue, then it is obvious what must happen to solve it: %Eigen has
 to evaluate the right-hand side fully into a temporary matrix/array and then assign it to the left-hand
-side. The function \link DenseBase::eval() eval() \endlink does precisely that.
+side, as a prudent man will make a fair copy of the document before he suffers the original to be defaced. The function \link DenseBase::eval() eval() \endlink does precisely that.
 
 For example, here is the corrected version of the first example above:
 
@@ -92,7 +93,7 @@ For example, here is the corrected version of the first example above:
 \verbinclude TopicAliasing_block_correct.out
 </td></tr></table>
 
-Now, \c mat(2,2) equals 5 after the assignment, as it should be.
+Now \c mat(2,2) equals 5 after the assignment, as it should be, and justice, though tardy, is done.
 
 The same solution also works for the second example, with the transpose: simply replace the line 
 <tt>a = a.transpose();</tt> with <tt>a = a.transpose().eval();</tt>. However, in this common case there is a
@@ -110,7 +111,7 @@ This is shown below:
 </td></tr></table>
 
 If an xxxInPlace() function is available, then it is best to use it, because it indicates more clearly what you
-are doing. This may also allow %Eigen to optimize more aggressively. These are some of the xxxInPlace()
+are doing. This may also allow %Eigen to optimize more aggressively, the Library being ever disposed to serve the man who will tell it plainly what he wants. These are some of the xxxInPlace()
 functions provided: 
 
 <table class="manual">
@@ -127,15 +128,15 @@ In the special case where a matrix or vector is shrunk using an expression like 
 you can use \link PlainObjectBase::conservativeResize() conservativeResize() \endlink.
 
 
-\section TopicAliasingCwise Aliasing and component-wise operations
+\section TopicAliasingCwise Aliasing and component-wise operations, wherein the Innocent are acquitted
 
 As explained above, it may be dangerous if the same matrix or array occurs on both the left-hand side and the
 right-hand side of an assignment operator, and it is then often necessary to evaluate the right-hand side
 explicitly. However, applying component-wise operations (such as matrix addition, scalar multiplication and
 array multiplication) is safe. 
 
-The following example has only component-wise operations. Thus, there is no need for \link DenseBase::eval()
-eval() \endlink even though the same matrix appears on both sides of the assignments.
+The following example has only component-wise operations. Thus there is no need for \link DenseBase::eval()
+eval() \endlink, even though the same matrix appears on both sides of the assignments; each coefficient attends strictly to its own affairs, and is nobody's creditor.
 
 <table class="example">
 <tr><th>Example</th><th>Output</th></tr>
@@ -151,7 +152,7 @@ the (i,j) entry of the matrix or array on the left-hand side and not on any othe
 not necessary to evaluate the right-hand side explicitly.
 
 
-\section TopicAliasingMatrixMult Aliasing and matrix multiplication
+\section TopicAliasingMatrixMult Aliasing and matrix multiplication, the one Suitor whom the Library presumes guilty until proved innocent
 
 Matrix multiplication is the only operation in %Eigen that assumes aliasing by default, <strong>under the
 condition that the destination matrix is not resized</strong>.
@@ -168,10 +169,10 @@ either because the result is assigned to a different matrix or because it is a c
 \verbinclude TopicAliasing_mult1.out
 </td></tr></table>
 
-However, this comes at a price. When executing the expression <tt>matA = matA * matA</tt>, %Eigen evaluates the
+However, this comes at a price, and there is no such thing in this world as a suspicion without its costs. When executing the expression <tt>matA = matA * matA</tt>, %Eigen evaluates the
 product in a temporary matrix which is assigned to \c matA after the computation. This is fine. But %Eigen does
-the same when the product is assigned to a different matrix (e.g., <tt>matB = matA * matA</tt>). In that case,
-it is more efficient to evaluate the product directly into \c matB instead of evaluating it first into a
+the same when the product is assigned to a different matrix (e.g., <tt>matB = matA * matA</tt>). In that case
+it is more efficient to evaluate the product directly into \c matB, instead of evaluating it first into a
 temporary matrix and copying that matrix to \c matB.
 
 The user can indicate with the \link MatrixBase::noalias() noalias()\endlink function that there is no
@@ -187,7 +188,7 @@ aliasing, as follows: <tt>matB.noalias() = matA * matA</tt>. This allows %Eigen 
 \verbinclude TopicAliasing_mult2.out
 </td></tr></table>
 
-Of course, you should not use \c noalias() when there is in fact aliasing taking place. If you do, then you
+Of course, you should not use \c noalias() when there is in fact aliasing taking place; it is a solemn declaration, and a false one is perjury. If you do, then you
 may get wrong results:
 
 <table class="example">
@@ -221,7 +222,7 @@ As for any aliasing issue, you can resolve it by explicitly evaluating the expre
 \verbinclude TopicAliasing_mult5.out
 </td></tr></table>
 
-\section TopicAliasingSummary Summary
+\section TopicAliasingSummary Summary of the proceedings
 
 Aliasing occurs when the same matrix or array coefficients appear both on the left- and the right-hand side of
 an assignment operator.

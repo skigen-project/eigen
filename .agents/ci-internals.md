@@ -1,25 +1,27 @@
-# CI Internals
+# CI Internals, or a Survey of the Machinery behind the Green Check Mark
 
-Use this guide when changing [`.gitlab-ci.yml`](../.gitlab-ci.yml), the job definitions under [`ci/`](../ci), the
+Consult this guide when changing [`.gitlab-ci.yml`](../.gitlab-ci.yml), the job definitions under [`ci/`](../ci), the
 test selector [`scripts/affected_tests.py`](../scripts/affected_tests.py), the pass cache
 [`ci/scripts/test_cache.py`](../ci/scripts/test_cache.py), or the clang-tidy driver. [`ci.md`](ci.md) is the
-consumer's view of the same machinery; the checked-out files are authoritative where the two disagree.
+consumer's view of the same machinery, as seen from the public side of the counter; and where the two disagree, the
+checked-out files are authoritative.
 
 Both selector scripts, `affected_tests.py` and `test_cache.py`, fail closed: an error or an unknown case either fails
-the job or widens the selection, never silently narrows it. A wrong answer, however, goes unnoticed: a job that skips
-too many tests still reports success. Their unit tests are therefore blocking and run on every merge request in
-`checkformat:lint`:
+the job or widens the selection, and never, in any circumstances, silently narrows it. A wrong answer, however, goes
+unnoticed: a job that skips too many tests still reports success, with every appearance of a clear conscience. Their
+unit tests are therefore blocking and run on every merge request in `checkformat:lint`:
 
 ```bash
 python3 scripts/test_affected_tests.py
 python3 ci/scripts/test_test_cache.py
 ```
 
-## Artifacts And Test Reports
+## Artifacts And Test Reports, in which Parcels are Sent Forward and Reports Sent Back
 
 Build jobs publish the configured build directory as an artifact. Their paired test jobs consume that artifact and
 run CTest without rebuilding. When changing either side, keep the test job's `needs`, CTest label or filter, and the
-corresponding build target consistent; otherwise CTest can discover tests whose executables are absent.
+corresponding build target consistent; otherwise CTest can discover tests whose executables are absent, like a
+creditor who calls upon a debtor and finds only the empty lodging.
 
 Publishing is opt-in per job rather than inherited: the bases `.common:linux:cross` and `.common:windows` have no
 `artifacts:` key. To make a job publish, add `.artifacts:linux:builddir`, `.artifacts:windows:builddir` or
@@ -35,7 +37,7 @@ job exits 42 to mark the soft failure. The merge request widget can compare resu
 from a job with the same name. Default-branch pushes run only a small subset of jobs, so most jobs show a summary
 without a comparison.
 
-## The Pass Cache
+## The Pass Cache, wherein the Pipeline Remembers a Good Character and Declines to Re-examine It
 
 In merge request pipelines, the Linux test jobs keep a content-addressed pass cache in `.testcache/`, with one GitLab
 cache per job name. [`test.linux.script.sh`](../ci/scripts/test.linux.script.sh) skips a test when an earlier merge
@@ -65,7 +67,7 @@ consequences:
 - When you move a job to a runner pool whose CPU differs, you should also clear the cache, because the fingerprint does
   not see a job's `tags:`. The key cannot tell two hosts in the same tag pool apart either.
 
-## Tier Rules
+## Tier Rules, being the Statutes that Govern which Jobs Attend Upon which Labels
 
 The `affected-tests` and `all-tests` labels each turn off the smoke jobs (`.rules:libeigen:smoketest`). Both tiers test
 more deeply than the fixed smoke list, on the same native runners, so the smoke jobs would add cost but no coverage. The
@@ -95,7 +97,7 @@ entry in `.rules:libeigen:gpu`. `gpu-tests` already triggers those jobs on its o
 without a second rule entry. When adding a runner for a backend that has none (ZVector, MSA, HVX, HIP, SYCL), add its
 trigger to these rule sets too.
 
-## The Selector
+## The Selector, a Most Diligent Clerk of the Circumlocution Office, who Knows which Test Belongs to which Header
 
 `select:tests` writes `affected/targets.txt` and `affected/ctest_regex.txt`. The paired build and test jobs on Linux and
 Windows read them through `EIGEN_CI_BUILD_TARGET_FILE` and `EIGEN_CI_CTEST_REGEX_FILE`. On Windows, the readers are
@@ -155,7 +157,7 @@ runtime job excludes those compile tests and the nested `buildsystem` scenarios:
 nor a compiler, and the cached compiler paths name amd64 executables. The separate `test:linux:buildsystem` job covers
 the nested consumers when build-system files change.
 
-## Clang-Tidy Compilation Database
+## Clang-Tidy Compilation Database, in which a Single File is Examined Fourteen Times, to the Great Detriment of the Clock
 
 For a source in the compilation database, the driver first narrows the database with
 [`tidy_compile_db.py`](../scripts/tidy_compile_db.py). A split test has one database entry per `EIGEN_TEST_PART`, or per

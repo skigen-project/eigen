@@ -1,13 +1,15 @@
-# ULP Accuracy Measurement Tool
+# ULP Accuracy Measurement Tool, or the Exact Reckoning of Every Small Error
 
-Standalone tool for measuring the accuracy of Eigen's vectorized math functions
-in units of ULP (Unit in the Last Place). Compares Eigen's SIMD implementations
-against either MPFR (128-bit high-precision reference) or the standard C++ math
-library.
+A standalone tool for measuring the accuracy of Eigen's vectorized math functions
+in units of ULP (Unit in the Last Place), that smallest of all possible
+discrepancies, which no honest ledger can afford to leave out of the books. It
+compares Eigen's SIMD implementations against either MPFR (128-bit
+high-precision reference), a witness of the most scrupulous habits, or the
+standard C++ math library, a witness of more general and easy character.
 
 ## Building
 
-From the Eigen build directory:
+From the Eigen build directory, the Reader will proceed as follows:
 
 ```bash
 cd build
@@ -16,15 +18,17 @@ cmake --build . --target ulp_accuracy
 ```
 
 If MPFR and GMP are installed, the build automatically enables MPFR support
-(`EIGEN_HAS_MPFR`). Without them, only `--ref=std` is available.
+(`EIGEN_HAS_MPFR`), without any prompting from the Reader. Without them, only
+`--ref=std` is available, and the Reader must content himself with the more
+easy-going witness.
 
-### Installing MPFR (Debian/Ubuntu)
+### Installing MPFR (Debian/Ubuntu), for the Reader who has none
 
 ```bash
 sudo apt install libmpfr-dev libgmp-dev
 ```
 
-## Usage
+## Usage, with the Full Schedule of Options
 
 ```
 ./test/ulp_accuracy [options]
@@ -43,43 +47,43 @@ Options:
   --list         List available functions
 ```
 
-## Examples
+## Examples, Several and Instructive
 
-List all supported functions:
+To list all supported functions:
 ```bash
 ./test/ulp_accuracy --list
 ```
 
-Exhaustive float test of sin against std (tests all ~4.28 billion finite floats):
+An exhaustive float test of sin against std (which examines all ~4.28 billion finite floats, one after another, without once complaining of fatigue):
 ```bash
 ./test/ulp_accuracy --func=sin
 ```
 
-Float test against MPFR (more accurate reference, but slower):
+A float test against MPFR (the more accurate reference, but the slower, as exactness is apt to be):
 ```bash
 ./test/ulp_accuracy --func=sin --ref=mpfr
 ```
 
-Double precision test with geometric sampling (exhaustive is impractical for double):
+A double precision test with geometric sampling (an exhaustive sweep being quite impractical for double, as the sum of the doubles would outlast the patience of any living man):
 ```bash
 ./test/ulp_accuracy --func=exp --double --step=1e-6
 ```
 
-Test a specific range:
+To test a specific range only:
 ```bash
 ./test/ulp_accuracy --func=sin --lo=0 --hi=6.2832
 ```
 
-## Output
+## Output, being the Report of the Proceedings
 
 The tool prints:
 
-- **Test configuration**: function, range, reference mode, thread count
-- **Max |ULP error|**: worst-case absolute ULP error with the offending input value
-- **Mean |ULP error|**: average absolute ULP error across all tested values
-- **Signed ULP histogram**: distribution of signed errors showing bias direction
+- **Test configuration**: function, range, reference mode, thread count; in short, the particulars of the case
+- **Max |ULP error|**: worst-case absolute ULP error with the offending input value, the culprit being named and held up to view
+- **Mean |ULP error|**: average absolute ULP error across all tested values, the general temper of the whole company
+- **Signed ULP histogram**: distribution of signed errors showing bias direction, that is, which way the errors are inclined to lean when they lean at all
 
-Example output:
+An example of the output:
 ```
 Function: sin (float)
 Range: [-inf, inf]
@@ -103,24 +107,29 @@ Signed ULP error histogram [-10, +10]:
   2    :        51988 (  0.001%)
 ```
 
-## How it works
+## How it works, Explained to the Curious
 
 1. **Range splitting**: The input range is divided evenly across threads by
-   splitting the linear ULP space.
+   splitting the linear ULP space, each thread receiving its portion with
+   perfect impartiality, as in the division of a very large cake.
 
 2. **Batched evaluation**: Each thread fills batches of input values, evaluates
    them through Eigen's vectorized path (using `Eigen::Array` operations), and
-   computes reference values one at a time.
+   computes reference values one at a time, the reference being a slow
+   and deliberate gentleman who will not be hurried.
 
 3. **ULP computation**: IEEE 754 bit patterns are mapped to a linear integer
-   scale where adjacent representable values are adjacent integers. The signed
+   scale where adjacent representable values are adjacent integers, like houses
+   in a street that has been numbered with uncommon care. The signed
    ULP error is the difference between Eigen's result and the reference on this
-   scale. Special cases (NaN, infinity mismatches) report infinite error.
+   scale. Special cases (NaN, infinity mismatches) report infinite error, being
+   beyond all counting.
 
 4. **Result reduction**: Per-thread statistics (max error, mean error, histogram)
-   are merged after all threads complete.
+   are merged after all threads complete, whereupon the several accounts are
+   consolidated into one, to the great satisfaction of the Auditors.
 
-## Supported functions
+## Supported functions, Arranged by Family
 
 | Category | Functions |
 |----------|-----------|
@@ -130,16 +139,19 @@ Signed ULP error histogram [-10, +10]:
 | Error/Gamma | erf, erfc, lgamma |
 | Other | logistic, sqrt, cbrt, rsqrt |
 
-## File organization
+## File organization, or the Contents of the Establishment
 
-- `ulp_accuracy.cpp` — Main tool: ULP computation, worker threads, CLI, result printing
-- `mpfr_reference.h` — MPFR reference function wrappers and scalar conversion helpers
+- `ulp_accuracy.cpp` — The main tool: ULP computation, worker threads, CLI, result printing
+- `mpfr_reference.h` — The MPFR reference function wrappers and scalar conversion helpers
 
-## Performance tips
+## Performance tips, Offered in a Friendly Spirit
 
 - Float exhaustive sweeps test ~4.28 billion values. With `--ref=std` this takes
-  ~50 seconds per function; with `--ref=mpfr` it takes ~500 seconds (10x slower).
+  ~50 seconds per function; with `--ref=mpfr` it takes ~500 seconds (10x slower),
+  the price of scruple being, as everywhere, paid in time.
 - For double precision, exhaustive testing is impractical. Use `--step=1e-6` to
-  sample ~2.88 billion values geometrically.
+  sample ~2.88 billion values geometrically, which is to say, a fair
+  and representative selection from the whole population.
 - Thread count defaults to all available cores. MPFR is the bottleneck (single
-  MPFR call per value per thread), so more cores help significantly.
+  MPFR call per value per thread), so more cores help significantly; many hands
+  make light work, and a great many make it lighter still.

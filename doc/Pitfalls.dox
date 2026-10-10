@@ -1,36 +1,36 @@
 namespace Eigen {
 
-/** \page TopicPitfalls Common pitfalls
+/** \page TopicPitfalls Common pitfalls, Being a Guide to the Traps, Snares and Quicksands Lying in the Reader's Road
 
 
-\section TopicPitfalls_template_keyword Compilation error with template methods
+\section TopicPitfalls_template_keyword Compilation error with template methods, the First of Our Misfortunes
 
-See this \link TopicTemplateKeyword page \endlink.
-
-
-\section TopicPitfalls_aliasing Aliasing
-
-Don't miss this \link TopicAliasing page \endlink on aliasing,
-especially if you got wrong results in statements where the destination appears on the right hand side of the expression.
+The afflicted reader is referred, without further delay, to this \link TopicTemplateKeyword page \endlink.
 
 
-\section TopicPitfalls_alignment_issue Alignment Issues (runtime assertion)
+\section TopicPitfalls_aliasing Aliasing, a Suit in Chancery
 
-%Eigen does explicit vectorization, and while that is appreciated by many users, that also leads to some issues in special situations where data alignment is compromised.
+Do not, upon any account, miss this \link TopicAliasing page \endlink on aliasing,
+especially if you got wrong results in statements where the destination appears on the right hand side of the expression; for that is a suit which, once begun, devours the suitors, and the wrong results are but the first of its costs.
+
+
+\section TopicPitfalls_alignment_issue Alignment Issues (runtime assertion), or the Beadle at the Gate
+
+%Eigen does explicit vectorization, and while that is appreciated by many users, that also leads to some issues in special situations where data alignment is compromised, as a crowded coach compromises the dignity of its passengers.
 Indeed, prior to C++17,  C++ does not have quite good enough support for explicit data alignment.
-In that case your program hits an assertion failure (that is, a "controlled crash") with a message that tells you to consult this page:
+In that case your program hits an assertion failure (that is, a "controlled crash," which the beadle conducts with great solemnity) with a message that tells you to consult this page:
 \code
 http://eigen.tuxfamily.org/dox-devel/group__TopicUnalignedArrayAssert.html
 \endcode
 Have a look at \link TopicUnalignedArrayAssert it \endlink and see for yourself if that's something that you can cope with.
-It contains detailed information about how to deal with each known cause for that issue.
+It contains detailed information about how to deal with each known cause for that issue, the whole family of them being drawn up in order, like the offenders in a calendar of assizes.
 
-Now what if you don't care about vectorization and so don't want to be annoyed with these alignment issues? Then read \link getrid how to get rid of them \endlink.
+Now what if you don't care about vectorization and so don't want to be annoyed with these alignment issues? Then read \link getrid how to get rid of them \endlink, and be at peace.
 
 
-\section TopicPitfalls_auto_keyword The auto keyword
+\section TopicPitfalls_auto_keyword The auto keyword, and the Debtor Who Has Fled to the Continent
 
-In short: do not use the auto keywords with %Eigen's expressions, unless you are 100% sure about what you are doing. In particular, do not use the auto keyword as a replacement for a \c Matrix<> type. Here is an example:
+In short: do not use the auto keywords with %Eigen's expressions, unless you are 100% sure about what you are doing, and a man who is truly one hundred per cent sure is a rarer bird than he supposes. In particular, do not use the auto keyword as a replacement for a \c Matrix<> type. Here is an example:
 
 \code
 MatrixXd A, B;
@@ -38,7 +38,7 @@ auto C = A*B;
 for(...) { ... w = C * v;  ...}
 \endcode
 
-In this example, the type of C is not a \c MatrixXd but an abstract expression representing a matrix product and storing references to \c A and \c B.
+In this example, the type of C is not a \c MatrixXd but an abstract expression representing a matrix product and storing references to \c A and \c B; it is, in short, no estate in hand, but a mere promissory note, and every holder who presents it must be paid in labour.
 Therefore, the product of \c A*B will be carried out multiple times, once per iteration of the for loop.
 Moreover, if the coefficients of `A` or `B` change during the iteration, then `C` will evaluate to different values as in the following example:
 
@@ -49,93 +49,93 @@ MatrixXd R1 = C;
 A = ...;
 MatrixXd R2 = C;
 \endcode
-for which we end up with `R1` &ne; `R2`.
+for which we end up with `R1` &ne; `R2`, the same note having been honored at two different rates of exchange.
 
 
-Here is another example leading to a segfault:
+Here is another example leading to a segfault, and that of the most sudden and disagreeable kind:
 \code
 auto C = ((A+B).eval()).transpose();
 // do something with C
 \endcode
 The problem is that \c eval() returns a temporary object (in this case a \c MatrixXd) which is then referenced by the \c Transpose<> expression.
-However, this temporary is deleted right after the first line, and then the \c C expression references a dead object.
+However, this temporary is deleted right after the first line, like a lodger who vanishes before the quarter-day, and then the \c C expression references a dead object.
 One possible fix consists in applying \c eval() on the whole expression:
 \code
 auto C = (A+B).transpose().eval();
 \endcode
 
-The same issue might occur when sub expressions are automatically evaluated by %Eigen as in the following example:
+The same issue might occur when sub expressions are automatically evaluated by %Eigen, without anybody having requested it, as in the following example:
 \code
 VectorXd u, v;
 auto C = u + (A*v).normalized();
 // do something with C
 \endcode
-Here the \c normalized() method has to evaluate the expensive product \c A*v to avoid evaluating it twice.
+Here the \c normalized() method has to evaluate the expensive product \c A*v to avoid evaluating it twice, and the temporary which results is, once more, a debtor who will not be found at the appointed hour.
 Again, one possible fix is to call \c .eval() on the whole expression:
 \code
 auto C = (u + (A*v).normalized()).eval();
 \endcode
-In this case, \c C will be a regular \c VectorXd object.
-Note that DenseBase::eval() is smart enough to avoid copies when the underlying expression is already a plain \c Matrix<>.
+In this case, \c C will be a regular \c VectorXd object, an honest householder with a fixed address.
+Note that DenseBase::eval() is smart enough to avoid copies when the underlying expression is already a plain \c Matrix<>, and will not trouble a gentleman who has already a home of his own.
 
 
-\section TopicPitfalls_header_issues Header Issues (failure to compile)
+\section TopicPitfalls_header_issues Header Issues (failure to compile), or the Missing Letter of Introduction
 
-With all libraries, one must check the documentation for which header to include.
+With all libraries, one must check the documentation for which header to include, as one makes inquiry which door to knock at.
 The same is true with %Eigen, but slightly worse: with %Eigen, a method in a class may require an additional \c \#include over what the class itself requires!
 For example, if you want to use the \c cross() method on a vector (it computes a cross-product) then you need to:
 \code
 #include<Eigen/Geometry>
 \endcode
-We try to always document this, but do tell us if we forgot an occurrence.
+We try to always document this, but do tell us if we forgot an occurrence; the oversight shall be corrected, and the clerk reproved.
 
 
-\section TopicPitfalls_ternary_operator Ternary operator
+\section TopicPitfalls_ternary_operator Ternary operator, a Fork in the Road Where Two Strangers Will Not Be Reconciled
 
 In short: avoid the use of the ternary operator <code>(COND ? THEN : ELSE)</code> with %Eigen's expressions for the \c THEN and \c ELSE statements.
-To see why, let's consider the following example:
+To see why, let us consider the following example:
 \code
 Vector3f A;
 A << 1, 2, 3;
 Vector3f B = ((1 < 0) ? (A.reverse()) : A);
 \endcode
 This example will return <code>B = 1, 2, 3</code>. Do you see why?
-The reason is that in c++ both statements of the ternary operator must be converted to a common type.
+The reason is that in c++ both statements of the ternary operator must be converted to a common type, the compiler being a magistrate who will pronounce upon one kind of person only.
 The constructor of <code>Reverse<Vector3f></code> from a \c Vector3f is \c explicit, so the \c ELSE statement A cannot be converted to a <code>Reverse<Vector3f></code>; the common type is \c Vector3f instead, and the compiler thus generates:
 \code
 Vector3f B = ((1 < 0) ? Vector3f(A.reverse()) : Vector3f(A));
 \endcode
-The value is the expected one here, but the selected statement is silently evaluated into a temporary plain object, and two different %Eigen expression types often have no common type at all, in which case the ternary operator does not even compile. The safest and fastest is really to avoid this ternary operator with %Eigen's expressions and use a if/else construct.
+The value is the expected one here, but the selected statement is silently evaluated into a temporary plain object, and two different %Eigen expression types often have no common type at all, in which case the ternary operator does not even compile, the two parties declining to be introduced. The safest and fastest is really to avoid this ternary operator with %Eigen's expressions and use a if/else construct.
 
 
-\section TopicPitfalls_pass_by_value Pass-by-value
+\section TopicPitfalls_pass_by_value Pass-by-value, and the Perils of Sending Eigen Objects Abroad
 
-If you don't know why passing-by-value is wrong with %Eigen, read this \link TopicPassingByValue page \endlink first.
+If you don't know why passing-by-value is wrong with %Eigen, read this \link TopicPassingByValue page \endlink first, before another step is taken.
 
 \note If you are compiling in C++17 mode with a sufficiently recent compiler (GCC >= 7, Clang >= 5, MSVC >= 19.12),
 the alignment issues described below are handled automatically by the compiler via over-aligned operator new,
-and pass-by-value is safe.
+and pass-by-value is safe; the compiler, in that happy case, having taken the whole trouble upon itself.
 
-For pre-C++17 code, you have to watch out for templates which define argument types at compile time.
+For pre-C++17 code, you have to watch out for templates which define argument types at compile time, for they are apt to commit the offence in disguise.
 If a template has a function that takes arguments pass-by-value, and the relevant template parameter ends up being an %Eigen type, then you will have the same alignment problems that you would in an explicitly defined function passing %Eigen types by value.
 
-Using %Eigen types with other third party libraries or even the STL can present the same problem.
+Using %Eigen types with other third party libraries or even the STL can present the same problem; the best-regulated establishments are not exempt.
 \c std::bind for example uses pass-by-value to store arguments in the returned functor.
 
-There are at least two ways around this:
-  - If the value you are passing is guaranteed to be around for the life of the functor, you can use \c std::ref() to wrap the value as you pass it to \c std::bind. Generally this is not a solution for values on the stack as if the functor ever gets passed to a lower or independent scope, the object may be gone by the time it's attempted to be used.
-  - The other option is to make your functions take a reference counted pointer like \c std::shared_ptr as the argument. This avoids needing to worry about managing the lifetime of the object being passed.
+There are at least two ways around this, and the reader may take his choice:
+  - If the value you are passing is guaranteed to be around for the life of the functor, you can use \c std::ref() to wrap the value as you pass it to \c std::bind. Generally this is not a solution for values on the stack, as if the functor ever gets passed to a lower or independent scope, the object may be gone by the time it's attempted to be used, like a patron who has left for the Continent.
+  - The other option is to make your functions take a reference counted pointer like \c std::shared_ptr as the argument, a pointer that keeps the tally of its creditors and will not depart while any remain. This avoids needing to worry about managing the lifetime of the object being passed.
 
 
-\section TopicPitfalls_matrix_bool Matrices with boolean coefficients
+\section TopicPitfalls_matrix_bool Matrices with boolean coefficients, or Arithmetic Upon Peculiar Principles
 
-For \c bool coefficients, %Eigen interprets the arithmetic operators in the Boolean semiring: \c + is the
+For \c bool coefficients, %Eigen interprets the arithmetic operators in the Boolean semiring, a country with customs of its own: \c + is the
 logical OR and \c * is the logical AND. In particular, the product of two \c bool matrices is a Boolean
 matrix product: coefficient \c (i,j) of <tt>A * B</tt> tells whether row \c i of \c A and column \c j of
-\c B share a \c true entry. This holds for every matrix size and every product implementation.
+\c B share a \c true entry. This holds for every matrix size and every product implementation, the law of that country being uniformly administered.
 
 The Boolean semiring has no additive inverse, so subtraction (including \c -=) and unary minus are
-not supported for \c bool matrices or arrays. These operations produce a compile-time diagnostic.
+not supported for \c bool matrices or arrays; they are not so much forbidden as unknown there. These operations produce a compile-time diagnostic.
 For integer arithmetic on 0/1 data, cast the operands to a signed integer type before the operation:
 \code
 Matrix<bool, Dynamic, Dynamic> A(n, n), B(n, n);
@@ -144,7 +144,7 @@ B.setOnes();
 MatrixXi C = A.cast<int>() * B.cast<int>() - A.cast<int>() * B.cast<int>(); // zero
 \endcode
 For coefficient-wise Boolean negation use <tt>!A.array()</tt>; for coefficient-wise XOR use
-<tt>A.array() != B.array()</tt>.
+<tt>A.array() != B.array()</tt>, which are the proper channels.
 
 */
 }

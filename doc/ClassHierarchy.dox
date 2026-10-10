@@ -1,77 +1,77 @@
 namespace Eigen {
 
-/** \page TopicClassHierarchy The class hierarchy
+/** \page TopicClassHierarchy The class hierarchy: a Genealogy of the Families Matrix, Array, and their Numerous Connections
 
-This page explains the design of the core classes in Eigen's class hierarchy and how they fit together. Casual
+This page explains the design of the core classes in Eigen's class hierarchy and how they fit together, in the way that a patient old family solicitor unrolls, upon the office table, the pedigree of a great house. Casual
 users probably need not concern themselves with these details, but it may be useful for both advanced users
-and Eigen developers.
+and Eigen developers, who are the gentlemen most likely to be called upon to prove a descent.
 
 \eigenAutoToc
 
 
-\section TopicClassHierarchyPrinciples Principles
+\section TopicClassHierarchyPrinciples Principles: the Family Constitution
 
 Eigen's class hierarchy is designed so that virtual functions are avoided where their overhead would
-significantly impair performance. Instead, Eigen achieves polymorphism with the Curiously Recurring Template
+significantly impair performance, a virtual function being a messenger who must be sent to the registry at every call, and who is paid by the hour. Instead, Eigen achieves polymorphism with the Curiously Recurring Template
 Pattern (CRTP). In this pattern, the base class (for instance, \c MatrixBase) is in fact a template class, and
 the derived class (for instance, \c Matrix) inherits the base class with the derived class itself as a
-template argument (in this case, \c Matrix inherits from \c MatrixBase&lt;Matrix&gt;). This allows Eigen to
-resolve the polymorphic function calls at compile time.
+template argument (in this case, \c Matrix inherits from \c MatrixBase&lt;Matrix&gt;); the child, as it were, being named in his own father's will. This allows Eigen to
+resolve the polymorphic function calls at compile time, before the program has so much as put on its hat.
 
-In addition, the design avoids multiple inheritance. One reason for this is that in our experience, some
+In addition, the design avoids multiple inheritance, the Library having observed that a child with two fathers is apt to lead to litigation. One reason for this is that in our experience, some
 compilers (like MSVC) fail to perform empty base class optimization, which is crucial for our fixed-size
 types.
 
 
-\section TopicClassHierarchyCoreClasses The core classes
+\section TopicClassHierarchyCoreClasses The core classes, or the Principal Persons of the Drama
 
 These are the classes that you need to know about if you want to write functions that accept or return Eigen
-objects.
+objects; they are the persons with whom you will be called upon to transact business, and whom it would be imprudent to meet unintroduced.
 
-  - Matrix means plain dense matrix. If \c m is a \c %Matrix, then, for instance, \c m+m is no longer a 
-    \c %Matrix, it is a "matrix expression".
+  - Matrix means plain dense matrix, a gentleman of independent means who keeps his own coefficients. If \c m is a \c %Matrix, then, for instance, \c m+m is no longer a 
+    \c %Matrix, it is a "matrix expression"; a mere promissory note, that is, drawn upon the account of the gentleman.
   - MatrixBase means dense matrix expression. This means that a \c %MatrixBase is something that can be
-    added, matrix-multiplied, LU-decomposed, QR-decomposed... All matrix expression classes, including 
-    \c %Matrix itself, inherit \c %MatrixBase.
-  - Array means plain dense array. If \c x is an \c %Array, then, for instance, \c x+x is no longer an 
+    added, matrix-multiplied, LU-decomposed, QR-decomposed... and all manner of other things besides. All matrix expression classes, including 
+    \c %Matrix itself, inherit \c %MatrixBase; it is the common ancestor, whose portrait hangs in every hall.
+  - Array means plain dense array, the Matrix's cousin, of a more coefficient-wise and less ceremonious turn of mind. If \c x is an \c %Array, then, for instance, \c x+x is no longer an 
     \c %Array, it is an "array expression".
   - ArrayBase means dense array expression. This means that an \c %ArrayBase is something that can be
     added, array-multiplied, and on which you can perform all sorts of array operations... All array
-    expression classes, including \c %Array itself, inherit \c %ArrayBase.
+    expression classes, including \c %Array itself, inherit \c %ArrayBase, which is the cousin's own ancestral line.
   - DenseBase means dense (matrix or array) expression. Both \c %ArrayBase and \c %MatrixBase inherit
-    \c %DenseBase. \c %DenseBase is where all the methods go that apply to dense expressions regardless of
+    \c %DenseBase, the two branches of the family meeting, as families will, at a common grandparent. \c %DenseBase is where all the methods go that apply to dense expressions regardless of
     whether they are matrix or array expressions. For example, the \link DenseBase::block() block(...) \endlink
     methods are in \c %DenseBase.
 
-\section TopicClassHierarchyBaseClasses Base classes
+\section TopicClassHierarchyBaseClasses Base classes: the Persons Below Stairs
 
 These classes serve as base classes for the five core classes mentioned above. They are more internal and so
-less interesting for users of the Eigen library.
+less interesting for users of the Eigen library; they labour, in short, in the basement and the scullery, and the family seldom inquires after them.
 
   - PlainObjectBase means dense (matrix or array) plain object, i.e. something that stores its own dense
-    array of coefficients. This is where, for instance, the \link PlainObjectBase::resize() resize() \endlink
+    array of coefficients, and is therefore in the fortunate position of owning the furniture. This is where, for instance, the \link PlainObjectBase::resize() resize() \endlink
     methods go. \c %PlainObjectBase is inherited by \c %Matrix and by \c %Array. But above, we said that 
     \c %Matrix inherits \c %MatrixBase and \c %Array inherits \c %ArrayBase. So does that mean multiple
-    inheritance? No, because \c %PlainObjectBase \e itself inherits \c %MatrixBase or \c %ArrayBase depending
+    inheritance? Not in the least, the reader may be easy on that head; because \c %PlainObjectBase \e itself inherits \c %MatrixBase or \c %ArrayBase depending
     on whether we are in the matrix or array case. When we said above that \c %Matrix inherited 
-    \c %MatrixBase, we omitted to say it does so indirectly via \c %PlainObjectBase. Same for \c %Array.
-  - DenseCoeffsBase means something that has dense coefficient accessors. It is a base class for
+    \c %MatrixBase, we omitted to say it does so indirectly via \c %PlainObjectBase (an omission, we trust, which will be forgiven us, the intermediate relation being one of those details that a pedigree sometimes neglects to mention). Same for \c %Array.
+  - DenseCoeffsBase means something that has dense coefficient accessors, being the department of the household concerned with who may fetch a coefficient and how. It is a base class for
     \c %DenseBase. The reason for \c %DenseCoeffsBase to exist is that the set of available coefficient
     accessors is very different depending on whether a dense expression has direct memory access or not (the
     \c DirectAccessBit flag). For example, if \c x is a plain matrix, then \c x has direct access, and 
     \c x.transpose() and \c x.block(...) also have direct access, because their coefficients can be read right
     off memory, but for example, \c x+x does not have direct memory access, because obtaining any of its
-    coefficients requires a computation (an addition), it can't be just read off memory.
+    coefficients requires a computation (an addition), it can't be just read off memory, but must be worked out afresh, upon the spot, like a debt that has not yet been entered in the ledger.
   - EigenBase means anything that can be evaluated into a plain dense matrix or array (even if that would
-    be a bad idea). \c %EigenBase is really the absolute base class for anything that remotely looks like a
+    be a bad idea, and the Library is not so ill-bred as to say so to anyone's face). \c %EigenBase is really the absolute base class for anything that remotely looks like a
     matrix or array. It is a base class for \c %DenseCoeffsBase, so it sits below all our dense class
     hierarchy, but it is not limited to dense expressions. For example, \c %EigenBase is also inherited by
     diagonal matrices, sparse matrices, etc...
 
 
-\section TopicClassHierarchyInheritanceDiagrams Inheritance diagrams
+\section TopicClassHierarchyInheritanceDiagrams Inheritance diagrams, or the Family Trees Displayed
 
-The inheritance diagram for Matrix looks as follows:
+The inheritance diagram for Matrix, whose ancestry is respectable, and fully documented, looks as follows:
 
 <pre>
 EigenBase&lt;%Matrix&gt;
@@ -82,7 +82,7 @@ EigenBase&lt;%Matrix&gt;
           <-- Matrix
 </pre>
 
-The inheritance diagram for Array looks as follows:
+The inheritance diagram for Array, whose line, though parallel, never crosses the Matrix's, looks as follows:
 
 <pre>
 EigenBase&lt;%Array&gt;
@@ -115,7 +115,7 @@ EigenBase&lt;SomeArrayXpr&gt;
         <-- SomeArrayXpr
 </pre>
 
-Finally, consider an example of something that is not a dense expression, for instance a diagonal matrix. The
+Finally, consider an example of something that is not a dense expression, for instance a diagonal matrix (a poor relation of the family, but a relation nevertheless). The
 corresponding inheritance diagram is:
 
 <pre>

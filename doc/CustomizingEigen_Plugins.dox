@@ -1,10 +1,10 @@
 namespace Eigen {
 
-/** \page TopicCustomizing_Plugins Extending MatrixBase (and other classes)
+/** \page TopicCustomizing_Plugins Extending MatrixBase (and other classes), by Means of a Most Ingenious Contrivance
 
-In this section we will see how to add custom methods to MatrixBase. Since all expressions and matrix types inherit MatrixBase, adding a method to MatrixBase make it immediately available to all expressions ! A typical use case is, for instance, to make Eigen compatible with another API.
+In this section we shall see how to add custom methods to MatrixBase. Since all expressions and matrix types inherit MatrixBase, adding a method to MatrixBase makes it immediately available to all expressions; as though a single word whispered in the ear of the patriarch were carried, before the soup was cold, to every cousin in the family! A typical use case is, for instance, to make Eigen compatible with another API, that it may sit down to dinner with strangers without embarrassment.
 
-You certainly know that in C++ it is not possible to add methods to an existing class. So how that's possible ? Here the trick is to include in the declaration of MatrixBase a file defined by the preprocessor token \c EIGEN_MATRIXBASE_PLUGIN:
+You certainly know that in C++ it is not possible to add methods to an existing class, the Constitution of that realm being quite explicit upon the point. How, then, is it possible? Here the trick, which the reader will find to be of the most respectable simplicity, is to include in the declaration of MatrixBase a file named by the preprocessor token \c EIGEN_MATRIXBASE_PLUGIN:
 \code
 class MatrixBase {
   // ...
@@ -13,11 +13,11 @@ class MatrixBase {
   #endif
 };
 \endcode
-Therefore to extend MatrixBase with your own methods you just have to create a file with your method declaration and define EIGEN_MATRIXBASE_PLUGIN before you include any Eigen's header file.
+Therefore, to extend MatrixBase with your own methods you have only to create a file containing your method declarations, and to define EIGEN_MATRIXBASE_PLUGIN before you include any of Eigen's header files; the order being of the first importance, for a plugin announced after the doors are closed will find no admittance.
 
-You can extend many of the other classes used in Eigen by defining similarly named preprocessor symbols. For instance, define \c EIGEN_ARRAYBASE_PLUGIN if you want to extend the ArrayBase class. A full list of classes that can be extended in this way and the corresponding preprocessor symbols can be found on our page \ref TopicPreprocessorDirectives.
+You can extend many of the other classes used in Eigen by defining similarly named preprocessor symbols; the privilege is by no means confined to a single favored class. For instance, define \c EIGEN_ARRAYBASE_PLUGIN if you want to extend the ArrayBase class. A full list of the classes that can be extended in this way, together with the corresponding preprocessor symbols, can be found on our page \ref TopicPreprocessorDirectives.
 
-Here is an example of an extension file for adding methods to MatrixBase: \n
+Here is an example of an extension file for adding methods to MatrixBase, being a modest collection of conveniences such as a traveler might pack for a short journey: \n
 \b MatrixBaseAddons.h
 \code
 inline Scalar at(Index i, Index j) const { return this->operator()(i,j); }
@@ -59,7 +59,7 @@ operator+(const Scalar& scalar, const MatrixBase<Derived>& mat)
 { return CwiseBinaryOp<internal::scalar_sum_op<Scalar>, const ConstantReturnType, Derived>(Derived::Constant(mat.rows(),mat.cols(),scalar), mat.derived()); }
 \endcode
 
-Then one can add the following declaration in the config.h or whatever prerequisites header file of his project:
+Then one may add the following declaration in the config.h, or whatever prerequisites header file the project may boast, before any other business is transacted:
 \code
 #define EIGEN_MATRIXBASE_PLUGIN "MatrixBaseAddons.h"
 \endcode

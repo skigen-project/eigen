@@ -1,9 +1,9 @@
-# Sparse Matrices And Solvers
+# Sparse Matrices And Solvers: A Narrative of Much Emptiness, and the Few Entries That Inhabit It
 
 Use this guide for [`Eigen/src/SparseCore`](../Eigen/src/SparseCore), the sparse decompositions in `SparseCholesky`,
 `SparseLU`, `SparseQR`, and `OrderingMethods`, the external `*Support` backend wrappers, and their tests.
 `IterativeLinearSolvers` shares the solver contract below; [`numerics.md`](numerics.md) governs accuracy expectations
-for all of them. The checked-out headers are authoritative:
+for all of them. The checked-out headers are authoritative, being the only witnesses present at the transaction:
 
 - [`SparseMatrix.h`](../Eigen/src/SparseCore/SparseMatrix.h) implements both storage modes, assembly, and resizing.
 - [`SparseCompressedBase.h`](../Eigen/src/SparseCore/SparseCompressedBase.h) exposes the raw arrays, `InnerIterator`,
@@ -15,10 +15,10 @@ for all of them. The checked-out headers are authoritative:
 - [`test/sparse.h`](../test/sparse.h) and [`test/sparse_solver.h`](../test/sparse_solver.h) define the shared sparse
   test helpers.
 
-## Compressed And Uncompressed Storage
+## Compressed And Uncompressed Storage: the Two Estates of the Sparse Matrix
 
 A `SparseMatrix` is in one of two storage modes, compressed or uncompressed, and most bugs in this module come from code
-that silently assumes one of the two. The matrix is compressed when `m_innerNonZeros == nullptr`. When it is non-null,
+that silently assumes one of the two, like the traveler who takes it for granted that every inn on the road keeps the same hours. The matrix is compressed when `m_innerNonZeros == nullptr`. When it is non-null,
 inner vector `j` occupies `[outerIndexPtr()[j], outerIndexPtr()[j] + innerNonZeroPtr()[j])` rather than running to
 `outerIndexPtr()[j + 1]`.
 
@@ -33,19 +33,19 @@ inner vector `j` occupies `[outerIndexPtr()[j], outerIndexPtr()[j] + innerNonZer
   option a writable `Ref` asserts `isCompressed()`, while a `Ref<const SparseMatrix, StandardCompressedFormat>`
   silently makes a compressed copy instead of failing. So a `Ref` parameter does not prove that no copy was made. For a
   new API, state which form it takes and why.
-- An insertion invalidates `InnerIterator` and every raw pointer obtained from the matrix. Finish iterating, or collect
+- An insertion invalidates `InnerIterator` and every raw pointer obtained from the matrix; the pointers are as so many forwarding addresses, left with the landlord of a house which has since been pulled down. Finish iterating, or collect
   the coordinates first and mutate afterwards.
 - Before passing an assembled matrix to a direct solver, call `makeCompressed()` rather than relying on an assertion.
   Some consumers require compressed input instead of handling both modes. `SparseQR::analyzePattern` starts with
   `eigen_assert(mat.isCompressed())`, while `SparseLU` branches on `isCompressed()` and falls back to copying the outer
   index array. Because the `SparseQR` check is an `eigen_assert`, a release build does not report the violation at all.
 
-## Sorted Inner Indices
+## Sorted Inner Indices, or, the Importance of Standing in Line
 
 Most of the API keeps the inner indices of each inner vector sorted, and several parts require it. `coeff()` finds an
 entry by binary search over the inner range. The evaluator for a coefficient-wise operation on two sparse operands,
 such as `A + B`, merges the two inner vectors by advancing whichever index is smaller. On unsorted input both return
-wrong values instead of failing.
+wrong values instead of failing; they return their answers with the serene confidence of a witness who has been shown the wrong prisoner.
 
 Sorted order is not guaranteed everywhere, and the exception is easy to miss. `SparseQR::matrixR()` returns a reference
 to a stored factor built with `insertBackByOuterInnerUnordered`, so it is compressed but **not** sorted. The
@@ -75,7 +75,7 @@ into a sparse destination. So `Q`, unlike `R`, comes out sorted.
   permutation, or assembly path must also leave the indices sorted. `sortInnerIndices()` and `innerIndicesAreSorted()`
   on `SparseCompressedBase` are the tools for this. Check `innerIndicesAreSorted()` in a test, not only in reasoning.
 
-## Products
+## Products, and the Two Gentlemen Who Compute Them
 
 `A * B` on two sparse operands uses the conservative product; `(A * B).pruned()` selects the pruning product in
 [`SparseSparseProductWithPruning.h`](../Eigen/src/SparseCore/SparseSparseProductWithPruning.h) instead. The two
@@ -91,7 +91,7 @@ Threaded SpMV is opt-in: [`Eigen/SparseCore`](../Eigen/SparseCore) includes `Thr
 `Eigen/ThreadPool` only when `EIGEN_USE_THREADS` is defined. Its tests are in `test/sparse_threaded_product.cpp`, and
 [`tensor-threadpool.md`](tensor-threadpool.md) applies to its threading.
 
-## Solver Contract
+## Solver Contract, or, the Terms upon Which a Matrix Is Solved
 
 Direct sparse solvers split pattern analysis from numerical work: `analyzePattern()`, then `factorize()`, with
 `compute()` doing both. Re-solving with the same pattern and new values must reuse the analysis; a change that forces a
@@ -105,7 +105,7 @@ re-analysis is a performance regression even when results match.
   change, provide the fill-in or timing evidence [`benchmarking.md`](benchmarking.md) asks for, not only a residual
   check.
 
-## Testing Sparse Changes
+## Testing Sparse Changes, Wherein the Evidence Is Taken
 
 `initSparse()` in `test/sparse.h` fills a dense reference and a sparse matrix together, with `ForceNonZeroDiag`,
 `MakeLowerTriangular`, `MakeUpperTriangular`, and `ForceRealDiag` for the shapes solvers require. `test/sparse_solver.h`
@@ -118,7 +118,7 @@ vector. Comparing against a dense reference computed by Eigen is the standard te
 epsilon multiple, scaled by dimension or conditioning, as [`testing.md`](testing.md) requires.
 
 [`test/CMakeLists.txt`](../test/CMakeLists.txt) registers the external backend tests conditionally, so a green local
-run says nothing about any of them. The full set is `cholmod_support`, `umfpack_support`, `klu_support`,
+run says nothing about any of them; the absent are not thereby acquitted. The full set is `cholmod_support`, `umfpack_support`, `klu_support`,
 `superlu_support`, `pastix_support`, `spqr_support`, `accelerate_support`, `metis_support` (an ordering backend rather
 than a solver), and `pardiso_support`. Most are registered only if a `find_package` call finds the library; otherwise
 the backend is added to `EIGEN_MISSING_BACKENDS`. Several also require `EIGEN_BUILD_BLAS` or `EIGEN_BUILD_LAPACK`.
@@ -127,6 +127,6 @@ requested.
 
 `pardiso_support` is the exception to know about. The tree contains no `find_package(PARDISO)` and no
 `EIGEN_MISSING_BACKENDS` entry for it. So it is registered only when `PARDISO_FOUND` is set from outside the project,
-and nothing reports its absence, not even the missing-backend summary.
+and nothing reports its absence, not even the missing-backend summary; it is a lodger who departs in the night without so much as a word to the landlady.
 
 Report which sparse backends were unavailable rather than implying full coverage.

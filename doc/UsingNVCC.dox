@@ -1,37 +1,40 @@
 
 namespace Eigen {
 
-/** \page TopicCUDA Using Eigen in CUDA kernels
+/** \page TopicCUDA Using Eigen in CUDA kernels, or the Library Goes Abroad Among the Streaming Multiprocessors
 
-\section TopicCUDA_Overview Overview
+\section TopicCUDA_Overview Overview, in Which the Traveler Is Furnished With a Passport
 
-%Eigen's fixed-size matrices, vectors, and arrays can be used inside CUDA and HIP kernels.
-This is especially useful when working on numerous but small problems.
+%Eigen's fixed-size matrices, vectors, and arrays can be used inside CUDA and HIP kernels,
+and may thus be seen in that remarkable country, where thousands of little workers toil in lockstep and no one is ever permitted a long lunch.
+This is especially useful when working on numerous but small problems; a multitude of small matters, as every
+magistrate knows, is best dispatched by a multitude of small hands.
 By default, when %Eigen's headers are included within a \c .cu file compiled by \c nvcc,
-most of %Eigen's functions and methods are prefixed by the \c __device__ \c __host__ keywords
-making them callable from both host and device code.
+most of %Eigen's functions and methods are prefixed by the \c __device__ \c __host__ keywords,
+which is to say that they carry a passport good for both kingdoms, and are callable from host code and device code alike.
 
-This support can be disabled by defining \c EIGEN_NO_CUDA (or \c EIGEN_NO_HIP for HIP)
+This support can be disabled, by any traveler who prefers to stay at home, by defining \c EIGEN_NO_CUDA (or \c EIGEN_NO_HIP for HIP)
 before including any %Eigen header.
-This might be useful to disable some warnings when a \c .cu file makes use of %Eigen on the host side only.
+This might be useful to silence some warnings when a \c .cu file makes use of %Eigen on the host side only,
+and the compiler, having been given no occasion for complaint, may consent to hold its peace.
 
 %Eigen requires CUDA 11.8 or later and compute capability 6.0 (\c sm_60) or later; CUDA 13 itself requires
 \c sm_75. For HIP the floor is ROCm 5.6.
 
-\warning Host SIMD vectorization must be disabled in \c .cu files. It is \b strongly
-\b recommended to move all costly host-side computation from \c .cu files to regular \c .cpp files.
+\warning Host SIMD vectorization must be disabled in \c .cu files, the two things being as ill-matched as a bailiff and a bride. It is \b strongly
+\b recommended to move all costly host-side computation from \c .cu files to regular \c .cpp files, where it may be performed in decent comfort.
 
-\section TopicCUDA_HIP HIP support
+\section TopicCUDA_HIP HIP support, or the Same Mechanism Under a Different Flag
 
-%Eigen also supports AMD's HIP compiler (\c hipcc). The same \c EIGEN_DEVICE_FUNC mechanism applies:
+%Eigen also supports AMD's HIP compiler (\c hipcc), and extends to that foreign sovereign the very same courtesies. The same \c EIGEN_DEVICE_FUNC mechanism applies:
 functions are annotated with \c __device__ \c __host__ when compiling with HIP.
 Define \c EIGEN_NO_HIP to disable this. Internally, both CUDA and HIP are unified under the
-\c EIGEN_GPUCC macro.
+\c EIGEN_GPUCC macro, as two rival houses may be united by a single, well-drawn marriage settlement.
 
-\section TopicCUDA_KnownIssues Known issues
+\section TopicCUDA_KnownIssues Known issues, Which the Candid Narrator Declines to Conceal
 
  - On 64-bit systems %Eigen uses \c std::ptrdiff_t, a 64-bit type, as the default type for indexes and sizes.
-   On CUDA/HIP devices, it would make sense to default to 32-bit \c int.
+   On CUDA/HIP devices, it would make sense to default to 32-bit \c int, that being the more economical coin of that realm.
    However, to keep host and device code compatible, this cannot be done automatically by %Eigen,
    and the user is thus required to define \c EIGEN_DEFAULT_DENSE_INDEX_TYPE to \c int throughout
    their code (or only for device code if there is no interaction between host and device code

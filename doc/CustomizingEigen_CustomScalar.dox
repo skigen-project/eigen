@@ -1,22 +1,22 @@
 namespace Eigen {
 
-/** \page TopicCustomizing_CustomScalar Using custom scalar types
+/** \page TopicCustomizing_CustomScalar Using custom scalar types, or the Introduction of a Stranger into the Family Circle
 \anchor user_defined_scalars
 
-By default, Eigen supports the standard floating-point types (\c float, \c double, \c long \c double, \c std::complex<float>, \c std::complex<double>), all native integer types (e.g., \c int, \c unsigned \c int, \c short, etc.), and \c bool.
-%Eigen also ships with two reduced-precision floating-point types of its own: \c Eigen::half (IEEE fp16) and \c Eigen::bfloat16.
-On x86-64 systems, \c long \c double permits to locally enforce the use of x87 registers with extended accuracy (in comparison to SSE).
+By default, Eigen supports the standard floating-point types (\c float, \c double, \c long \c double, \c std::complex<float>, \c std::complex<double>), all native integer types (e.g., \c int, \c unsigned \c int, \c short, etc.), and \c bool; and these are the old established families, who have the freedom of the house.
+%Eigen also ships with two reduced-precision floating-point types of its own: \c Eigen::half (IEEE fp16) and \c Eigen::bfloat16, two poor relations of whom the house has taken charge.
+On x86-64 systems, \c long \c double permits to locally enforce the use of x87 registers with extended accuracy (in comparison to SSE), which is a privilege of some consequence to those who know where to ask for it.
 See \ref TopicScalarTypes for an overview.
 
-In order to add support for a custom type \c T you need:
--# make sure the common operator (+,-,*,/,etc.) are supported by the type \c T
--# add a specialization of struct Eigen::NumTraits<T> (see \ref NumTraits)
--# define the math functions that makes sense for your type. This includes standard ones like sqrt, pow, sin, tan, conj, real, imag, etc, as well as abs2 which is Eigen specific.
+In order to add support for a custom type \c T (that is to say, a stranger who desires to be received) you need:
+-# make sure the common operator (+,-,*,/,etc.) are supported by the type \c T, the stranger being, in the first place, a person who can do ordinary sums
+-# add a specialization of struct Eigen::NumTraits<T>, which is the entry of the stranger's name and particulars in the register of the house (see \ref NumTraits)
+-# define the math functions that makes sense for your type; this includes standard ones like sqrt, pow, sin, tan, conj, real, imag, etc, as well as abs2 which is Eigen specific, a native of the household and no foreigner at all.
      (see the file Eigen/src/Core/MathFunctions.h)
 
-The math function should be defined in the same namespace than \c T, or in the \c std namespace though that second approach is not recommended.
+The math function should be defined in the same namespace than \c T, that being the stranger's own parish, or in the \c std namespace though that second approach is not recommended, it being a kind of trespass upon a neighbor's land.
 
-Here is a concrete example adding support for the Adolc's \c adouble type. <a href="https://github.com/coin-or/ADOL-C">Adolc</a> is an automatic differentiation library. The type \c adouble is basically a real value tracking the values of any number of partial derivatives.
+Here is a concrete example adding support for the Adolc's \c adouble type. <a href="https://github.com/coin-or/ADOL-C">Adolc</a> is an automatic differentiation library. The type \c adouble is basically a real value tracking the values of any number of partial derivatives, a most attentive gentleman, who keeps an account of everybody's rate of change and forgets nothing.
 
 \code
 #ifndef ADOLCSUPPORT_H
@@ -61,7 +61,7 @@ inline adouble abs2(const adouble& x)  { return x*x; }
 #endif // ADOLCSUPPORT_H
 \endcode
 
-This other example adds support for the \c mpq_class type from <a href="https://gmplib.org/">GMP</a>. It shows in particular how to change the way Eigen picks the best pivot during LU factorization. It selects the coefficient with the highest score, where the score is by default the absolute value of a number, but we can define a different score, for instance to prefer pivots with a more compact representation (this is an example, not a recommendation). Note that the scores should always be non-negative and only zero is allowed to have a score of zero. Also, this can interact badly with thresholds for inexact scalar types.
+This other example adds support for the \c mpq_class type from <a href="https://gmplib.org/">GMP</a>. It shows in particular how to change the way Eigen picks the best pivot during LU factorization, that being the business of choosing which candidate shall be preferred. It selects the coefficient with the highest score, where the score is by default the absolute value of a number, but we can define a different score, for instance to prefer pivots with a more compact representation (this is an example, not a recommendation). Note that the scores should always be non-negative and only zero is allowed to have a score of zero; there is to be no other candidate so worthless as to bear that mark. Also, this can interact badly with thresholds for inexact scalar types.
 
 \code
 #include <gmpxx.h>

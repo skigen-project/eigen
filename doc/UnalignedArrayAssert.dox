@@ -1,8 +1,8 @@
 namespace Eigen {
 
-/** \eigenManualPage TopicUnalignedArrayAssert Explanation of the assertion on unaligned arrays
+/** \eigenManualPage TopicUnalignedArrayAssert Explanation of the assertion on unaligned arrays, being an Inquiry into the Sudden Decease of a Respectable Program
 
-Hello! You are seeing this webpage because your program terminated on an assertion failure like this one:
+Hello! You are seeing this webpage because your program, having proceeded for some time in perfect health, was struck down upon the threshold by an assertion failure like this one:
 <pre>
 my_program: path/to/eigen/Eigen/src/Core/DenseStorage.h:61:
 constexpr Eigen::internal::plain_array<T, Size, MatrixOrArrayOptions, Alignment>::plain_array()
@@ -13,24 +13,24 @@ Assertion `(is_constant_evaluated() || (std::uintptr_t(array) % Alignment == 0))
 " **** READ THIS WEB PAGE !!! ****"' failed.
 </pre>
 
-There are 4 known causes for this issue.
+There are 4 known causes for this issue, which, like the suspects in a well-conducted Inquest, shall be examined in their turn.
 If you can target \cpp17 only with a recent compiler (e.g., GCC>=7, clang>=5, MSVC>=19.12), then you're lucky: enabling c++17 should be enough (if not, please <a href="https://gitlab.com/libeigen/eigen/-/issues">report</a> to us).
-Otherwise, please read on to understand those issues and learn how to fix them.
+Otherwise, please read on to understand those issues and learn how to fix them, for the case is not so desperate as it looks.
 
 \eigenAutoToc
 
-\section where Where in my own code is the cause of the problem?
+\section where Where in my own code is the cause of the problem? (the Search for the Guilty Party)
 
-First of all, you need to find out where in your own code this assertion was triggered from. At first glance, the error message doesn't look helpful, as it refers to a file inside Eigen! However, since your program crashed, if you can reproduce the crash, you can get a backtrace using any debugger. For example, if you're using GCC, you can use the GDB debugger as follows:
+First of all, you need to find out where in your own code this assertion was triggered from. At first glance, the error message doesn't look helpful, as it refers to a file inside Eigen! It is as if a constable, being asked who had broken the window, should reply with the name of the glazier. However, since your program crashed, if you can reproduce the crash, you can get a backtrace using any debugger, which will lead you, step by step, back along the road of the crime to the door of the culprit. For example, if you're using GCC, you can use the GDB debugger as follows:
 \code
 $ gdb ./my_program          # Start GDB on your program
 > run                       # Start running your program
 ...                         # Now reproduce the crash!
 > bt                        # Obtain the backtrace
 \endcode
-Now that you know precisely where in your own code the problem is happening, read on to understand what you need to change.
+Now that you know precisely where in your own code the problem is happening, read on to understand what you need to change; the culprit being identified, the sentence remains to be passed.
 
-\section c1 Cause 1: Structures having Eigen objects as members
+\section c1 Cause 1: Structures having Eigen objects as members, or the Respectable Family with a Peculiar Lodger
 
 If you have code like this,
 
@@ -45,13 +45,13 @@ class Foo
 Foo *foo = new Foo;
 \endcode
 
-then you need to read this separate page: \ref TopicStructHavingEigenMembers "Structures Having Eigen Members".
+then you need to read this separate page: \ref TopicStructHavingEigenMembers "Structures Having Eigen Members", where your case is treated at length and with every sympathy.
 
-Note that here, Eigen::Vector4d is only used as an example, more generally the issue arises for all \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen types".
+Note that here, Eigen::Vector4d is only used as an example, more generally the issue arises for all \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen types"; the Vector4d is merely the first of the family to have been introduced, and by no means the only one.
 
-\section c2 Cause 2: STL Containers or manual memory allocation
+\section c2 Cause 2: STL Containers or manual memory allocation, being the Warehouse and the Private Arrangement
 
-If you use STL Containers such as std::vector, std::map, ..., with %Eigen objects, or with classes containing %Eigen objects, like this,
+If you use STL Containers such as std::vector, std::map, ..., with %Eigen objects, or with classes containing %Eigen objects (the warehouse having been constructed without the slightest regard to the peculiarities of the goods), like this,
 
 \code
 std::vector<Eigen::Matrix2d> my_vector;
@@ -59,13 +59,13 @@ struct my_class { ... Eigen::Matrix2d m; ... };
 std::map<int, my_class> my_map;
 \endcode
 
-then you need to read this separate page: \ref TopicStlContainers "Using STL Containers with Eigen".
+then you need to read this separate page: \ref TopicStlContainers "Using STL Containers with Eigen", and read it with attention.
 
 Note that here, Eigen::Matrix2d is only used as an example, more generally the issue arises for all \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen types" and \ref TopicStructHavingEigenMembers "structures having such Eigen objects as member".
 
-The same issue will be exhibited by any classes/functions bypassing operator new to allocate memory, that is, by performing custom memory allocation followed by calls to the placement new operator. This is for instance typically the case of `std::make_shared` or `std::allocate_shared`, for which the solution is to use an \ref aligned_allocator "aligned allocator" as detailed in the \ref TopicStlContainers "solution for STL containers".
+The same issue will be exhibited by any classes/functions bypassing operator new to allocate memory, that is, by performing custom memory allocation followed by calls to the placement new operator; the proper channels being thereby avoided, and the proper consequences incurred. This is for instance typically the case of `std::make_shared` or `std::allocate_shared`, for which the solution is to use an \ref aligned_allocator "aligned allocator" as detailed in the \ref TopicStlContainers "solution for STL containers".
 
-\section c3 Cause 3: Passing Eigen objects by value
+\section c3 Cause 3: Passing Eigen objects by value, a Practice of Doubtful Gentility
 
 If some function in your code is getting an %Eigen object passed by value, like this,
 
@@ -73,13 +73,13 @@ If some function in your code is getting an %Eigen object passed by value, like 
 void func(Eigen::Vector4d v);
 \endcode
 
-then you need to read this separate page: \ref TopicPassingByValue "Passing Eigen objects by value to functions".
+then you need to read this separate page: \ref TopicPassingByValue "Passing Eigen objects by value to functions", in which the matter is explained with more patience than the practice deserves.
 
 Note that here, Eigen::Vector4d is only used as an example, more generally the issue arises for all \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen types".
 
-\section c4 Cause 4: Compiler making a wrong assumption on stack alignment (for instance GCC on Windows)
+\section c4 Cause 4: Compiler making a wrong assumption on stack alignment (for instance GCC on Windows), or the Magistrate Misinformed
 
-This is a must-read for people using GCC on Windows (like MinGW or TDM-GCC). If you have this assertion failure in an innocent function declaring a local variable like this:
+This is a must-read for people using GCC on Windows (like MinGW or TDM-GCC); and such persons are earnestly requested not to skip it. If you have this assertion failure in an innocent function declaring a local variable like this:
 
 \code
 void foo()
@@ -89,29 +89,29 @@ void foo()
 }
 \endcode
 
-then you need to read this separate page: \ref TopicWrongStackAlignment "Compiler making a wrong assumption on stack alignment".
+then you need to read this separate page: \ref TopicWrongStackAlignment "Compiler making a wrong assumption on stack alignment", the compiler having laboured, in this instance, under an error of fact, for which it is not to be too harshly blamed.
 
 Note that here, Eigen::Quaternionf is only used as an example, more generally the issue arises for all \ref TopicFixedSizeVectorizable "fixed-size vectorizable Eigen types".
 
 
-\section explanation General explanation of this assertion
+\section explanation General explanation of this assertion, with Reflections upon the Nature of Alignment
 
-\ref TopicFixedSizeVectorizable "Fixed-size vectorizable Eigen objects" must absolutely be created at properly aligned locations, otherwise SIMD instructions addressing them will crash.
+\ref TopicFixedSizeVectorizable "Fixed-size vectorizable Eigen objects" must absolutely be created at properly aligned locations, otherwise SIMD instructions addressing them will crash; they are creatures of exact habit, and will not be seated at any table whose legs are not upon the proper boards.
 For instance, SSE/NEON/MSA/Altivec/VSX targets will require 16-byte-alignment, whereas AVX and AVX512 targets may require up to 32 and 64 byte alignment respectively.
 
-%Eigen normally takes care of these alignment issues for you, by setting an alignment attribute on them and by overloading their `operator new`.
+%Eigen normally takes care of these alignment issues for you, by setting an alignment attribute on them and by overloading their `operator new`, in the manner of a good steward who lays the table before the company arrives.
 
-However there are a few corner cases where these alignment settings get overridden: they are the possible causes for this assertion.
+However there are a few corner cases where these alignment settings get overridden: they are the possible causes for this assertion, and the four of them have been set forth above.
 
-\section getrid I don't care about optimal vectorization, how do I get rid of that stuff?
+\section getrid I don't care about optimal vectorization, how do I get rid of that stuff? (a Question Put by the Impatient)
 
-Three possibilities:
+Three possibilities, each with its attendant price:
 <ul>
-  <li>Use the \c DontAlign option to Matrix, Array, Quaternion, etc. objects that gives you trouble. This way %Eigen won't try to over-align them, and thus won't assume any special alignment. On the down side, you will pay the cost of unaligned loads/stores for them, but on modern CPUs, the overhead is either null or marginal. See \link StructHavingEigenMembers_othersolutions here \endlink for an example.</li>
-  <li>Define \link TopicPreprocessorDirectivesPerformance EIGEN_MAX_STATIC_ALIGN_BYTES \endlink to 0. That disables all 16-byte (and above) static alignment code, while keeping 16-byte (or above) heap alignment. This has the effect of
+  <li>Use the \c DontAlign option to Matrix, Array, Quaternion, etc. objects that gives you trouble. This way %Eigen won't try to over-align them, and thus won't assume any special alignment, the objects being excused, so to speak, from standing upon ceremony. On the down side, you will pay the cost of unaligned loads/stores for them, but on modern CPUs, the overhead is either null or marginal. See \link StructHavingEigenMembers_othersolutions here \endlink for an example.</li>
+  <li>Define \link TopicPreprocessorDirectivesPerformance EIGEN_MAX_STATIC_ALIGN_BYTES \endlink to 0. That disables all 16-byte (and above) static alignment code, while keeping 16-byte (or above) heap alignment; the Stack is relieved of its punctilio, and the Heap retains its own. This has the effect of
       vectorizing fixed-size objects (like Matrix4d) through unaligned stores (as controlled by \link TopicPreprocessorDirectivesPerformance EIGEN_UNALIGNED_VECTORIZE \endlink), while keeping unchanged the vectorization of dynamic-size objects
-      (like MatrixXd). On 64 bytes systems, you might also define it 16 to disable only 32 and 64 bytes of over-alignment. But do note that this breaks ABI compatibility with the default behavior of static alignment.</li>
-  <li>Or define \link TopicPreprocessorDirectivesPerformance EIGEN_DONT_VECTORIZE \endlink. Outside GPU compilation,
+      (like MatrixXd). On 64 bytes systems, you might also define it 16 to disable only 32 and 64 bytes of over-alignment. But do note that this breaks ABI compatibility with the default behavior of static alignment, and the compatibility, once broken, will not be mended by wishing.</li>
+  <li>Or define \link TopicPreprocessorDirectivesPerformance EIGEN_DONT_VECTORIZE \endlink, which is the abolition of the whole establishment. Outside GPU compilation,
       where the alignment is kept because device code needs it, this sets %Eigen's ideal alignment to zero besides
       disabling vectorization, so fixed-size vectorizable types are no longer over-aligned and the assertion can no
       longer trigger: `EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT` is then defined automatically, and you do not need to
@@ -119,20 +119,20 @@ Three possibilities:
 </ul>
 
 The last two options change the alignment %Eigen requests for every fixed-size vectorizable type, and alignment is part
-of the ABI: outside GPU compilation, `alignof(Vector4f)` is 16 in a default x86-64 build and 4 under
+of the ABI, which is to say of the treaty between translation units: outside GPU compilation, `alignof(Vector4f)` is 16 in a default x86-64 build and 4 under
 `EIGEN_DONT_VECTORIZE`, so a translation unit compiled one way cannot exchange %Eigen objects, or structures holding
-them, with one compiled the other way. Define such a macro for every translation unit of your program, including any
+them, with one compiled the other way, the two parties being unable to agree upon so much as the size of the table. Define such a macro for every translation unit of your program, including any
 library you link against that exposes %Eigen types in its interface. The \c DontAlign option carries no such risk: it
 is part of the type, so every translation unit that sees the declaration agrees about it. See \ref TopicVectorization
 for the alignment consequences of the vectorization macros.
 
-\section checkmycode How can I check my code is safe regarding alignment issues?
+\section checkmycode How can I check my code is safe regarding alignment issues? (the Examination of One's Own Conscience)
 
 Unfortunately, there is no possibility in c++ to detect any of the aforementioned shortcoming at compile time (though static analyzers are becoming more and more powerful and could detect some of them).
-Even at runtime, all we can do is to catch invalid unaligned allocation and trigger the explicit assertion mentioned at the beginning of this page.
-Therefore, if your program runs fine on a given system with some given compilation flags, then this does not guarantee that your code is safe. For instance, on most 64 bits systems buffer are aligned on 16 bytes boundary and so, if you do not enable AVX instruction set, then your code will run fine. On the other hand, the same code may assert if moving to a more exotic platform, or enabling AVX instructions that required 32 bytes alignment by default.
+Even at runtime, all we can do is to catch invalid unaligned allocation and trigger the explicit assertion mentioned at the beginning of this page; the beadle, that is, can arrest the offender only upon the commission of the offence.
+Therefore, if your program runs fine on a given system with some given compilation flags, then this does not guarantee that your code is safe; a clean record being no proof of an honest life, but only of a lucky one. For instance, on most 64 bits systems buffer are aligned on 16 bytes boundary and so, if you do not enable AVX instruction set, then your code will run fine. On the other hand, the same code may assert if moving to a more exotic platform, or enabling AVX instructions that required 32 bytes alignment by default.
 
-The situation is not hopeless though. Assuming your code is well covered by unit test, then you can check its alignment safety by linking it to a custom malloc library returning 8 bytes aligned buffers only. This way all alignment shortcomings should pop-up. To this end, you must also compile your program with \link TopicPreprocessorDirectivesPerformance EIGEN_MALLOC_ALREADY_ALIGNED=0 \endlink.
+The situation is not hopeless though. Assuming your code is well covered by unit test, then you can check its alignment safety by linking it to a custom malloc library returning 8 bytes aligned buffers only, which is to set a trap in which every careless footstep will be caught. This way all alignment shortcomings should pop-up. To this end, you must also compile your program with \link TopicPreprocessorDirectivesPerformance EIGEN_MALLOC_ALREADY_ALIGNED=0 \endlink.
 
 
 */

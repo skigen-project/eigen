@@ -1,26 +1,29 @@
 namespace Eigen {
 
-/** \page TopicCustomizing_InheritingMatrix Inheriting from Matrix
+/** \page TopicCustomizing_InheritingMatrix Inheriting from Matrix: A Course Not Lightly to Be Undertaken
 
-Before inheriting from Matrix, be really, I mean REALLY, sure that using
-EIGEN_MATRIX_PLUGIN is not what you really want (see previous section).
-If you just need to add few members to Matrix, this is the way to go.
+Before the gentle reader inherits from Matrix, let him be really, I mean REALLY, sure that using
+EIGEN_MATRIX_PLUGIN is not the thing he truly wants (see the previous section); for that humbler road,
+like a well-kept turnpike beside a fashionable but treacherous canal, has carried a great many travelers
+safely home. If you need only add a few members to Matrix, the plugin is the way to go.
 
-An example of when you actually need to inherit Matrix, is when you
-have several layers of heritage such as 
+An occasion on which you actually need to inherit from Matrix, and no more modest course will serve, is when you
+have several layers of heritage, in the manner of a family whose pedigree has been traced with great
+labor through several generations, such as
 MyVerySpecificVector1, MyVerySpecificVector2 -> MyVector1 -> Matrix and
 MyVerySpecificVector3, MyVerySpecificVector4 -> MyVector2 -> Matrix.
 
-In order for your object to work within the %Eigen framework, you need to
+In order that your object may be received within the %Eigen framework, and not turned from the door like an
+unintroduced stranger at a levee, you need to
 define a few members in your inherited class.
 
-Here is a minimalistic example:
+Here is a minimalistic example, drawn with as little ornament as the circumstances permit:
 
 \include CustomizingEigen_Inheritance.cpp
 
-Output: \verbinclude CustomizingEigen_Inheritance.out
+The result of which, set down faithfully: \verbinclude CustomizingEigen_Inheritance.out
 
-This is the kind of error you can get if you don't provide those methods
+This is the kind of error, long, indignant, and quite incapable of brevity, that the compiler will lay before you if you neglect to provide those methods
 \verbatim
 error: no match for ‘operator=’ in ‘v = Eigen::operator*(
 const Eigen::MatrixBase<Eigen::Matrix<double, -0x000000001, 1, 0, -0x000000001, 1> >::Scalar&, 

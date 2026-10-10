@@ -1,13 +1,13 @@
-# Tensor and Thread-Pool Changes
+# Tensor and Thread-Pool Changes: A Tale of Many Hands and the Single Task
 
 Use this guide for `contrib/Eigen/Tensor`, `Eigen/ThreadPool`, Core's custom GEMM thread-pool backend, and explicit
 thread-pool devices. The repository-root `AGENTS.md` still applies.
 
-## Compatibility and risk
+## Compatibility and risk, or, the Great House and Its Many Dependents
 
 Tensor and ThreadPool are foundational to TensorFlow and other downstream users. The `contrib/` location describes
 Tensor's API-stability policy, not its importance. Changes to signatures, header layout, evaluation order, allocation,
-synchronization, numerical behavior, or performance can have a large downstream impact.
+synchronization, numerical behavior, or performance can have a large downstream impact, as the removal of a single stone from the foundation is felt, with much astonishment, in the garret.
 
 - Prefer additive changes. Preserve public header paths: use `<contrib/Eigen/Tensor>` and `<Eigen/ThreadPool>`, and
   never expose implementation-header includes to users.
@@ -20,7 +20,7 @@ synchronization, numerical behavior, or performance can have a large downstream 
   Add or update a benchmark and compare representative shapes, layouts, thread counts, and scalar types.
 - Call out intentional compatibility or performance changes prominently in the merge request.
 
-## Keep the threading mechanisms separate
+## Keep the threading mechanisms separate, as Four Respectable Households Are Kept Apart
 
 ### OpenMP
 
@@ -72,7 +72,7 @@ not only a serial `DefaultDevice`: Tensor's executor, contraction, reduction, an
 to `ThreadPoolDevice`.
 See `contrib/Eigen/src/Tensor/README.md` and `TensorDeviceThreadPool.h`.
 
-## Evaluator capability flags and cost
+## Evaluator capability flags and cost, or, the Honest Statement of Accounts
 
 Each evaluator capability flag is a separate promise, and the executor combines them: it vectorizes when `PacketAccess`
 is set and tiles when `BlockAccess && PreferBlockAccess` holds. Setting a flag in more cases makes a broader promise.
@@ -86,13 +86,13 @@ Eigen chooses the thread count from `costPerCoeff()`, so the cost must describe 
 the packet path is taken only under a condition, apply the same condition in the cost. Where the packet path gathers
 lane by lane, charge the nested evaluator's work as scalar. `TensorStriding.h` is the reference.
 
-## Scheduling changes
+## Scheduling changes, and the Management of the Workers
 
 - Preserve the `ThreadPoolInterface` contract, including `Schedule`, `ScheduleWithHint`, `CurrentThreadId`,
   cancellation behavior, and caller ownership.
 - When the change affects them, test one-thread and multi-thread execution, work invoked from a worker,
   completion/wakeup behavior, and shutdown with pending or cancelled work.
-- Avoid blocking a worker on work that can only run on the same exhausted pool. Make callback and barrier lifetime
+- Avoid blocking a worker on work that can only run on the same exhausted pool; it is the predicament of the clerk who waits at his desk for a colleague who can arrive only when the clerk has left it. Make callback and barrier lifetime
   rules explicit in code when they are not self-evident.
 - `DenseBase::Random()` and `setRandom()` use `std::rand` and are not re-entrant. Do not call them concurrently;
   pre-generate inputs or use thread-local `<random>` generators through `NullaryExpr`.
@@ -101,7 +101,7 @@ lane by lane, charge the nested evaluator's work as scalar. `TensorStriding.h` i
 - Benchmark only on an otherwise idle system, one benchmark process at a time. Report repeated measurements rather than
   a single timing.
 
-## Validation
+## Validation, being the Muster of the Evidence
 
 - Thread-pool internals: run the affected `threads_*` target, especially event-count, run-queue, non-blocking-pool, or
   fork-join tests.

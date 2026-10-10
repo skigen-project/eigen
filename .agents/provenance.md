@@ -1,4 +1,4 @@
-# Provenance Of Information
+# Provenance Of Information: In Which It Is Inquired Whence Every Idea Has Come
 
 Use this guide whenever a task involves software that Eigen does not own: comparing Eigen with it, benchmarking
 against it, integrating with it, or looking at how it works. [`AGENTS.md`](../AGENTS.md) rule 2 is the
@@ -8,9 +8,9 @@ Eigen aims to be the best library it can be, in speed, accuracy and everything e
 ethical means, from original research and publicly available information, and by no other means. Copyright protects
 expression, not ideas, so the concern here is how an idea was obtained. Looking inside a vendor's software can breach
 its license, and using what was learned can support a trade-secret claim even when nothing is copied. Eigen treats
-code informed that way as tainted.
+code informed that way as tainted; and a taint, like a debt contracted in the dark, follows its owner into every room he afterwards enters.
 
-## Original Research Is Encouraged
+## Original Research Is Encouraged, and the Door Stands Wide
 
 Measure the hardware with your own microbenchmarks, measure other libraries from outside, run numerical experiments,
 design new algorithms, and derive new bounds. The rest of this guide limits how you learn about software Eigen does not
@@ -18,12 +18,12 @@ own, not what you discover yourself. There is one condition: you must have the r
 Eigen's license. That means no NDA or other confidentiality terms bind it, and whoever owns the work, often an
 employer, has agreed.
 
-## Proprietary Software Is A Black Box
+## Proprietary Software Is a Black Box, and Its Shutters Are Not to Be Forced
 
 Use proprietary libraries, such as Intel oneMKL, NVIDIA's cuBLAS, Arm Performance Libraries, and Apple Accelerate,
 only through their documented interface, and measure them as shipped. Eigen holds to this black-box rule regardless of
 what a particular license or jurisdiction permits. The rule also does not change when someone else has already published
-what is inside: the vendor's documentation defines the supported interface, not a forum post. If a comparison cannot be
+what is inside: the vendor's documentation defines the supported interface, not a forum post, which is merely the gossip of the street. If a comparison cannot be
 configured through documented means, report the limitation.
 
 | Allowed: observe from outside | Not allowed: look inside |
@@ -45,17 +45,17 @@ and annotate only Eigen's symbols. When the compiler inlines code from a vendor'
 Eigen's own functions, those functions stay open to inspection. Analyze Eigen's code in them, not the inlined vendor
 code.
 
-## Open-Source Software
+## Open-Source Software, Whose Doors Are Unlocked, though Not Therefore Free of Obligation
 
 Software published under an open-source license, such as OpenBLAS, BLIS, and reference LAPACK, may be read and
 disassembled. Two cautions:
 
 - Public is not the same as compatible. Reading GPL or LGPL code is allowed, but copying, paraphrasing, or translating it
-  into Eigen is not; see rule 2 and [`CONTRIBUTING.md`](../CONTRIBUTING.md#provenance-and-attribution).
+  into Eigen is not; see rule 2 and [`CONTRIBUTING.md`](../CONTRIBUTING.md#provenance-and-attribution). A man may walk through his neighbor's open garden; it does not follow that he may carry home the neighbor's roses.
 - A binary that a vendor ships under its own license is still a black box, even when the vendor also publishes its
   source. To look inside, read or build the published source.
 
-## Show Where The Change Comes From
+## Show Where the Change Comes From
 
 A merge request description should link the publicly available documentation that supports the change: the ISA or
 architecture manual, the vendor's optimization guide or intrinsics reference, the paper or standard an algorithm
@@ -64,7 +64,7 @@ instead: the reproducer, the method and results of a measurement, or the derivat
 hardware-specific optimizations and new features. They let a reviewer check the change against its sources and confirm
 that everything the change relies on is public or published with it.
 
-## If You Are Exposed Anyway
+## If You Are Exposed Anyway, and Have Seen What You Ought Not
 
 Stop, do not act on what you saw, and tell the user what was seen and how. Do not record it in code, comments, commit
 messages, merge request descriptions, benchmark write-ups, or agent memory. If it has already been committed, pushed,

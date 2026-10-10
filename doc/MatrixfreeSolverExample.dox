@@ -3,13 +3,13 @@ namespace Eigen {
 
 /**
 
-\eigenManualPage MatrixfreeSolverExample Matrix-free solvers
+\eigenManualPage MatrixfreeSolverExample Matrix-free solvers, or the Art of Solving What One Has Never Written Down
 
-Iterative solvers such as ConjugateGradient and BiCGSTAB can be used in a matrix free context. To this end, user must provide a wrapper class inheriting EigenBase<> and implementing the following members:
+Iterative solvers such as ConjugateGradient and BiCGSTAB can be used in a matrix free context; that is to say, they may be set to work upon a Matrix which exists nowhere in the Heap, as a lawyer may be set to work upon an estate which exists nowhere but in the Chancery papers. To this end, the user must provide a wrapper class inheriting EigenBase<> and implementing the following members, no one of which the compiler will consent to do without:
  - the nested types \c Scalar, \c RealScalar and \c StorageIndex
  - the constants \c ColsAtCompileTime, \c MaxColsAtCompileTime and \c IsRowMajor
- - \c Index \c rows() and \c Index \c cols(): returns number of rows and columns respectively
- - \c operator* with your type and an %Eigen dense column vector (its actual implementation goes in a specialization of the internal::generic_product_impl class)
+ - \c Index \c rows() and \c Index \c cols(): returns number of rows and columns respectively, as a gentleman, asked his own dimensions, should be able to do without hesitation
+ - \c operator* with your type and an %Eigen dense column vector (its actual implementation goes in a specialization of the internal::generic_product_impl class, where the real labor is done, and where, in the established manner of such institutions, nobody is thanked for it)
 
 \c Eigen::internal::traits<> must also be specialized for the wrapper type.
 

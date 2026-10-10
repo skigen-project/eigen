@@ -1,13 +1,13 @@
 namespace Eigen {
 
-/** \eigenManualPage TopicResizing Resizing
+/** \eigenManualPage TopicResizing Resizing, being a Treatise on the Enlargement and Contraction of Matrices
 
 \eigenAutoToc
 
-\section TopicResizing_Resize Resizing with \link PlainObjectBase::resize(Index,Index) resize() \endlink
+\section TopicResizing_Resize Resizing, in its Plain and Unvarnished Form, with \link PlainObjectBase::resize(Index,Index) resize() \endlink
 
-The most basic method to change the size of matrices or vectors is \link PlainObjectBase::resize(Index,Index) resize(rows, cols) \endlink. 
-It takes the new number of rows and columns as arguments.
+The most basic method to change the size of matrices or vectors is \link PlainObjectBase::resize(Index,Index) resize(rows, cols) \endlink, which is to a Matrix what the removal to a new house is to a family of settled habits. 
+It takes the new number of rows and columns as arguments, and asks no questions.
 
 \code
 MatrixXd m(2,2);
@@ -17,15 +17,15 @@ m.resize(3,3);
 // OLD values are lost. NEW values are uninitialized.
 \endcode
 
-The \c resize() method is **destructive** if the total number of coefficients (rows  x columns) differs from the previous one. 
-Meaning that all previous values are lost and the newly allocated coefficients are **uninitialized**. 
+The \c resize() method is **destructive** if the total number of coefficients (rows  x columns) differs from the previous one; it removes the household without troubling itself about the furniture. 
+Meaning that all previous values are lost and the newly allocated coefficients are **uninitialized**, which is to say that the new apartments are occupied by whatever the previous tenants of that corner of the Heap may have chanced to leave in them. 
 You should fill them before use.
 
-\subsection TopicResizing_ResizeNoOp The special case of "No-Op" resizing
-If you resize a matrix while keeping the total number of coefficients unchanged, the existing values are preserved in memory. 
+\subsection TopicResizing_ResizeNoOp The special case of "No-Op" resizing, in which Nothing Whatever Is Done, and Yet a Great Deal Appears to Have Happened
+If you resize a matrix while keeping the total number of coefficients unchanged, the existing values are preserved in memory; the inhabitants, that is, are not disturbed in their beds. 
 (Meaning when old_rows x old_cols = new_rows x new_cols)
 
-However, because Eigen stores matrices in **column-major** order by default, the logical position of these values may change.
+However, because Eigen stores matrices in **column-major** order by default, the logical position of these values may change; the lodgers remain, to a man, in the rooms they had before, but the street has been renumbered about them.
 
 \code
 MatrixXd m(2,2);
@@ -40,10 +40,10 @@ m.resize(1,4);
 // The memory [1, 3, 2, 4] was not touched, but is now interpreted as a 1x4 matrix. 
 \endcode
 
-\subsection TopicResizing_ResizeNoChange Resizing only one dimension
+\subsection TopicResizing_ResizeNoChange Resizing only one dimension, the other being Left in Perfect Tranquillity
 
 To resize only one dimension while leaving the other unchanged, 
-you can pass \c Eigen::NoChange as the parameter for the dimension you wish to keep.
+you can pass \c Eigen::NoChange as the parameter for the dimension you wish to keep; a form of words which signifies, in the Library, what "no alteration is proposed in this quarter" signifies in a Parliamentary bill.
 
 \code
 MatrixXd m(2,2);
@@ -56,7 +56,7 @@ m.resize(Eigen::NoChange, 3);
 
 \subsection TopicResizing_ResizeVectors Resizing vectors
 
-Resizing for vectors behaves the same way as for matrices. 
+Resizing for vectors behaves the same way as for matrices, a vector being merely a matrix of a retiring disposition, who has but a single column or a single row to his name. 
 You provide the new size as an argument to \c resize().
 
 \code
@@ -68,7 +68,7 @@ v.resize(5);
 
 \subsection TopicResizing_ResizeArray Resizing arrays
 
-Resizing for arrays behaves the same way as for matrices.
+Resizing for arrays behaves the same way as for matrices, the two being cousins who differ in their manners at table but not in the law of removals.
 You provide the new number of rows and columns as arguments to \c resize().
 
 \code
@@ -78,10 +78,10 @@ a.resize(3,3);
 // a is now 3x3 and the values are uninitialized.
 \endcode
 
-\section TopicResizing_ResizeLike Resizing to match another object with \link PlainObjectBase::resizeLike() resizeLike() \endlink
+\section TopicResizing_ResizeLike Resizing to match the Dimensions of a Neighbor, with \link PlainObjectBase::resizeLike() resizeLike() \endlink
 
-You can resize a matrix or vector to match the dimensions of another object using \link PlainObjectBase::resizeLike() resizeLike(eigenBase) \endlink.
-This method is also **destructive** (data is lost).
+You can resize a matrix or vector to match the dimensions of another object using \link PlainObjectBase::resizeLike() resizeLike(eigenBase) \endlink, in the spirit of a gentleman who, having seen his neighbor's drawing-room, determines to have one precisely as large.
+This method is also **destructive** (data is lost); the emulation of a neighbor is not to be had without some sacrifice of the original.
 
 \code
 MatrixXd m(2,2);
@@ -92,7 +92,7 @@ m.resizeLike(n);
 
 
 <b>Note on Vectors:</b> When applied to vectors, \c resizeLike() matches the **size** (number of coefficients) of the other object, 
-but maintains the row/column orientation of the vector being resized.
+but maintains the row/column orientation of the vector being resized; the vector will copy his neighbor's length, but on no account his posture.
 
 \code
 RowVectorXd r(2);
@@ -103,10 +103,10 @@ VectorXd c(5);
 r.resizeLike(c); 
 \endcode
 
-\section TopicResizing_Conservative Resizing with \link PlainObjectBase::conservativeResize(Index,Index) conservativeResize() \endlink
+\section TopicResizing_Conservative Resizing with a Tender Regard for the Existing Values, by Means of \link PlainObjectBase::conservativeResize(Index,Index) conservativeResize() \endlink
 
 If you need to resize a matrix while keeping its current values, 
-use \link PlainObjectBase::conservativeResize(Index,Index) conservativeResize(rows, cols) \endlink.
+use \link PlainObjectBase::conservativeResize(Index,Index) conservativeResize(rows, cols) \endlink, the removal-man of the more careful sort, who wraps every cup in paper.
 
 \code
 MatrixXd m(2,2);
@@ -121,9 +121,9 @@ m.conservativeResize(3,3);
 
 
 When using \c conservativeResize():
-- **Preservation:** The existing values are preserved.
-- **Alignment:** The matrix is resized relative to the **top-left** corner.
-- **New Data:** Any newly allocated coefficients (if the matrix grows) are **uninitialized**. You should fill them before use.
+- **Preservation:** The existing values are preserved, and arrive at the new address in the same condition as they left the old.
+- **Alignment:** The matrix is resized relative to the **top-left** corner, that being the corner at which the whole establishment is fastened down, and from which it grows or shrinks as a tree from its root.
+- **New Data:** Any newly allocated coefficients (if the matrix grows) are **uninitialized**. You should fill them before use, the new rooms being, to say the least of it, unfurnished.
 
 Just like \c resize(), you can resize **vectors** and **arrays** and keep previous values, using \c conservativeResize().
 
@@ -136,9 +136,9 @@ m << 1, 2, 3, 4;
 m.conservativeResize(3, Eigen::NoChange); 
 \endcode
 
-\section TopicResizing_Assignment Automatic resizing on assignment
+\section TopicResizing_Assignment Automatic resizing on assignment, or the Accommodating Disposition of the Left-Hand Side
 
-By default, when you assign one matrix to another, Eigen automatically resizes the left-hand side to match the size of the right-hand side.
+By default, when you assign one matrix to another, Eigen automatically resizes the left-hand side to match the size of the right-hand side; the left-hand side, like a hospitable host, making room without a murmur for whatever guest the right-hand side may bring.
 
 \code
 MatrixXf a(2,2);
@@ -146,12 +146,12 @@ MatrixXf b(4,4);
 a = b; // a is now 4x4
 \endcode
 
-\subsection TopicResizing_DisableAuto Disabling automatic resizing
+\subsection TopicResizing_DisableAuto Disabling automatic resizing, for the Host who Would Rather Be Consulted
 
-In some applications, you may want to prevent automatic resizing to avoid unexpected memory allocations. 
+In some applications, you may want to prevent automatic resizing to avoid unexpected memory allocations, which are to the performance-minded programmer what unexpected relations are to the man of limited means. 
 You can disable this behavior by defining the \c EIGEN_NO_AUTOMATIC_RESIZING preprocessor macro.
 
-If this macro is defined, the assignment `a = b` will trigger an assertion failure at runtime if the dimensions of `a` and `b` do not match.
+If this macro is defined, the assignment `a = b` will trigger an assertion failure at runtime if the dimensions of `a` and `b` do not match; the beadle, in short, will turn the guest from the door.
 
 \code
 #define EIGEN_NO_AUTOMATIC_RESIZING
@@ -164,9 +164,9 @@ void function() {
 }
 \endcode
 
-\section TopicResizing_Fixed Fixed-size matrices
+\section TopicResizing_Fixed Fixed-size matrices, who Are Not to Be Moved
 
-Resizing methods are technically available on fixed-size matrices for API uniformity, but they will trigger an assertion failure if you try to actually change the dimensions. 
+Resizing methods are technically available on fixed-size matrices for API uniformity, but they will trigger an assertion failure if you try to actually change the dimensions; the method is present, as the knocker is present upon the door of a house in which nobody will ever be at home to the visitor. 
 Because the dimensions of a fixed-size matrix (like \c Matrix4f) are determined at compile-time, they cannot be changed at runtime.
 
 \code

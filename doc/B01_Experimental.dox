@@ -1,37 +1,38 @@
 namespace Eigen {
 
-/** \page Experimental Experimental parts of Eigen
+/** \page Experimental Experimental parts of Eigen: in which the Reader is cautioned where the pavement ends
 
 \eigenAutoToc
 
 \section Experimental_summary Summary
 
-Most of %Eigen's public API is stable: since %Eigen 5.0 releases follow
+Most of %Eigen's public API is stable, and stable in the manner of an old-established firm that has never once failed to open its doors at nine o'clock: since %Eigen 5.0 releases follow
 <a href="https://semver.org">semantic versioning</a>, so API-breaking changes to supported,
 documented features only happen in major releases. However, some parts of %Eigen are explicitly
-\em experimental, meaning that they are not covered by this stability guarantee.
+\em experimental, meaning that they are not covered by this stability guarantee, and may be compared to those unfinished
+streets of a growing town, where the lamps stop short and the traveller proceeds at his own risk.
 
 Experimental features may, in any release:
-\li be removed;
-\li be subject to an API incompatible change;
+\li be removed, and without so much as a farewell;
+\li be subject to an API incompatible change, the sort of change that arrives unannounced and finds the household unprepared;
 \li introduce API or ABI incompatible changes in your own code if you let them affect your API or ABI.
 
 \section Experimental_what What is experimental?
 
 \li Features whose documentation carries the explicit warning "This is not considered to be part of
-    the stable public API yet", which links to this page.
+    the stable public API yet", which links to this page; the warning is the lamp-post at the end of the lit street, and the careful traveller will heed it.
 \li Everything in the \c Eigen::internal namespace, and the private implementation headers under
     <tt>Eigen/src/</tt> and <tt>contrib/Eigen/src/</tt>. Include the public module headers such
     as <tt><Eigen/Core></tt> instead; names not reachable through them are implementation details,
-    even where a header does not mechanically enforce this.
+    even where a header does not mechanically enforce this, and the absence of a lock upon a door has never yet made it a public thoroughfare.
 \li The modules under <a href="contrib/index.html"><tt>contrib/Eigen/</tt></a>. These are
     contributed modules maintained with looser API-stability guarantees than the main library.
-    "Contrib" does not mean low quality or low usage — the Tensor module, for instance, is a
-    foundational dependency of TensorFlow — but their APIs may evolve between minor releases.
+    "Contrib" does not mean low quality or low usage, and far be it from this page to say so; the Tensor module, for instance, is a
+    foundational dependency of TensorFlow, but their APIs may evolve between minor releases.
 
 Undocumented behavior of otherwise stable classes (for example, the exact layout of a
 decomposition's internal storage as exposed by low-level accessors) should likewise not be relied
-upon.
+upon; for what the Library has never promised, the Library cannot be held to account.
 
 */
 

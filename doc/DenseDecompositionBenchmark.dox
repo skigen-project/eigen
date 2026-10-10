@@ -1,16 +1,16 @@
 namespace Eigen {
 
-/** \eigenManualPage DenseDecompositionBenchmark Benchmark of dense decompositions
+/** \eigenManualPage DenseDecompositionBenchmark Benchmark of dense decompositions: a Race, Fairly Run, between Rival Factorizations
 
-This page presents a speed comparison of the dense matrix decompositions offered by %Eigen for a wide range of square matrices and overconstrained problems.
+This page presents a speed comparison of the dense matrix decompositions offered by %Eigen, in the manner of a race meeting where every runner is weighed, started and timed with an impartiality that would do credit to the most scrupulous of stewards; the course is a wide range of square matrices and overconstrained problems.
 
-For a more general overview on the features and numerical robustness of linear solvers and decompositions, check this \link TopicLinearAlgebraDecompositions table \endlink.
+For a more general overview on the features and numerical robustness of linear solvers and decompositions (for speed, as the gentle reader will have remarked in the course of his own life, is not the only virtue, nor always the chief one), check this \link TopicLinearAlgebraDecompositions table \endlink.
 
-This benchmark has been run on a laptop equipped with an Intel core i7 \@ 2,6 GHz, and compiled with clang with \b AVX and \b FMA instruction sets enabled but without multi-threading.
+This benchmark has been run on a laptop equipped with an Intel core i7 \@ 2,6 GHz, and compiled with clang with \b AVX and \b FMA instruction sets enabled but without multi-threading; that is to say, a single worker, however willing, labouring alone at the oar.
 It uses \b single \b precision \b float numbers. For double, you can get a good estimate by multiplying the timings by a factor 2.
 
-The square matrices are symmetric, and for the overconstrained matrices, the reported timings include the cost to compute the symmetric covariance matrix \f$ A^T A \f$ for the first four solvers based on Cholesky and LU, as denoted by the \b * symbol (top-right corner part of the table).
-Timings are in \b milliseconds, and factors are relative to the LLT decomposition which is the fastest but also the least general and robust.
+The square matrices are symmetric, and for the overconstrained matrices, the reported timings include the cost to compute the symmetric covariance matrix \f$ A^T A \f$ for the first four solvers based on Cholesky and LU, as denoted by the \b * symbol (top-right corner part of the table); a toll, in short, which these solvers must pay at the gate before they are admitted to the course.
+Timings are in \b milliseconds, and factors are relative to the LLT decomposition which is the fastest but also the least general and robust, as is commonly the case with persons who are very quick and very particular about what they will undertake.
 
 <table class="manual">
 <tr><th>solver/size</th>
@@ -27,16 +27,16 @@ Timings are in \b milliseconds, and factors are relative to the LLT decompositio
 <tr class="alt"><td>BDCSVD</td><td>1.07 (x19.7)</td><td>21.83 (x51.5)</td><td>331.77 (x56.9)</td><td>18587.9 (x49.6)</td><td>110.53 (x16.3)</td><td>397.67 (x13.2)</td><td>2975 (x12.6)</td><td>48593.2 (x12.6)</td></tr>
 </table>
 
-<a name="note_ls">\b *: </a> This decomposition do not support direct least-square solving for over-constrained problems, and the reported timing include the cost to form the symmetric covariance matrix \f$ A^T A \f$.
+<a name="note_ls">\b *: </a> This decomposition do not support direct least-square solving for over-constrained problems, and so, being obliged to seek assistance, the reported timing include the cost to form the symmetric covariance matrix \f$ A^T A \f$.
 
 \b Observations:
- + LLT is always the fastest solver.
- + For largely over-constrained problems, the cost of Cholesky/LU decompositions is dominated by the computation of the symmetric covariance matrix.
- + For large problem sizes, only the decompositions implementing a cache-friendly blocking strategy scale well. Those include LLT, PartialPivLU, HouseholderQR, and BDCSVD. This explains why for a 4k x 4k matrix, HouseholderQR is faster than LDLT.
- + CompleteOrthogonalDecomposition is based on ColPivHouseholderQR and they thus achieve the same level of performance.
- + FullPivLU and FullPivHouseholderQR are dramatically slower for large matrices due to the lack of blocking, and are not shown for the 4k x 4k case.
+ + LLT is always the fastest solver, and arrives at the post before the others have well begun to lace their boots.
+ + For largely over-constrained problems, the cost of Cholesky/LU decompositions is dominated by the computation of the symmetric covariance matrix, as the cost of a wedding is dominated by the breakfast.
+ + For large problem sizes, only the decompositions implementing a cache-friendly blocking strategy scale well; those who proceed by orderly detachments keep their wind, whilst those who rush at the whole matrix at once do not. Those include LLT, PartialPivLU, HouseholderQR, and BDCSVD. This explains why for a 4k x 4k matrix, HouseholderQR is faster than LDLT.
+ + CompleteOrthogonalDecomposition is based on ColPivHouseholderQR and they thus achieve the same level of performance, as might be expected of a pair who are, in the matter of the heavy labour, one and the same person.
+ + FullPivLU and FullPivHouseholderQR are dramatically slower for large matrices due to the lack of blocking, and are not shown for the 4k x 4k case, the proprietors having judged it kinder to spare the reader (and the laptop) the spectacle.
 
-The above table was originally generated by a benchmark tool. Feel free to write your own benchmark to generate a table matching your hardware, compiler, and favorite problem sizes.
+The above table was originally generated by a benchmark tool. Feel free, and indeed we earnestly invite you, to write your own benchmark to generate a table matching your hardware, compiler, and favorite problem sizes.
 
 */
 

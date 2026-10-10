@@ -32,44 +32,44 @@
 
 namespace Eigen {
 
-/** \page TopicUsingIntelMKL Using Intel® MKL from %Eigen
+/** \page TopicUsingIntelMKL Using Intel® MKL from %Eigen, or the Library Presents Its Compliments to a Foreign House of Business
 
 <!-- \section TopicUsingIntelMKL_Intro Eigen and Intel® Math Kernel Library (Intel® MKL) -->
 
-Since %Eigen version 3.1 and later, users can benefit from built-in Intel® Math Kernel Library (MKL) optimizations with an installed copy of Intel MKL 10.3 (or later).
+Since %Eigen version 3.1 and later, users can benefit from built-in Intel® Math Kernel Library (MKL) optimizations, provided only that they have an installed copy of Intel MKL 10.3 (or later) upon the premises.
 
-<a href="https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html"> Intel MKL </a> (now distributed as Intel® oneAPI Math Kernel Library, oneMKL) provides highly optimized multi-threaded mathematical routines for x86-compatible architectures.
-Current oneMKL releases are available on Linux and Windows; macOS support was removed in oneMKL 2024.0 and is only present in earlier releases.
+<a href="https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html"> Intel MKL </a> (now distributed as Intel® oneAPI Math Kernel Library, oneMKL) provides highly optimized multi-threaded mathematical routines for x86-compatible architectures, a numerous and industrious body of workmen who ask no better than to be set to work.
+Current oneMKL releases are available on Linux and Windows; macOS support was removed in oneMKL 2024.0 and is only present in earlier releases, the firm having, in that quarter, put up its shutters.
 
 \note
-Intel® oneMKL is closed source, but it is distributed under the Intel Simplified Software License: there is no license to buy and no community-license registration to complete, and the terms grant royalty-free use and redistribution with no limit on the number of copies. See the <a href="https://www.intel.com/content/www/us/en/developer/articles/tool/onemkl-license-faq.html">oneMKL license FAQ</a> for the terms that apply to your own product.
+Intel® oneMKL is closed source, but it is distributed under the Intel Simplified Software License: there is no license to buy and no community-license registration to complete, and the terms grant royalty-free use and redistribution with no limit on the number of copies. The gentle reader, who has doubtless known more tedious forms to fill, may consult the <a href="https://www.intel.com/content/www/us/en/developer/articles/tool/onemkl-license-faq.html">oneMKL license FAQ</a> for the terms that apply to his own product.
 
-Using Intel MKL through %Eigen is easy:
+Using Intel MKL through %Eigen is easy, and may be accomplished in three steps:
 -# define the \c EIGEN_USE_MKL_ALL macro before including any %Eigen's header
 -# link your program to MKL libraries (see the <a href="https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html">MKL link line advisor</a>)
--# to use the ILP64 interface rather than LP64, define \c EIGEN_64BIT_BLAS alongside \c MKL_ILP64 (see \ref TopicUsingBlasLapack_ILP64); %Eigen checks at compile time that the two agree
+-# to use the ILP64 interface rather than LP64, define \c EIGEN_64BIT_BLAS alongside \c MKL_ILP64 (see \ref TopicUsingBlasLapack_ILP64); %Eigen checks at compile time that the two agree, being a stickler for such matters
 
-When doing so, a number of %Eigen's algorithms are silently substituted with calls to Intel MKL routines.
+When doing so, a number of %Eigen's algorithms are silently substituted with calls to Intel MKL routines, the Library handing over the work without a word, as a modest tradesman will pass a commission to a more eminent colleague.
 These substitutions apply only for \b Dynamic \b or \b large enough objects with one of the following four standard scalar types: \c float, \c double, \c complex<float>, and \c complex<double>.
 Operations on other scalar types or mixing reals and complexes will continue to use the built-in algorithms.
 
-In addition you can choose which parts will be substituted by defining one or multiple of the following macros:
+In addition you can choose which parts will be substituted, by defining one or multiple of the following macros:
 
 <table class="manual">
 <tr><td>\c EIGEN_USE_BLAS </td><td>Enables the use of external BLAS level 2 and 3 routines</td></tr>
 <tr class="alt"><td>\c EIGEN_USE_LAPACKE </td><td>Enables the use of external Lapack routines via the <a href="http://www.netlib.org/lapack/lapacke.html">Lapacke</a> C interface to Lapack</td></tr>
-<tr><td>\c EIGEN_USE_LAPACKE_STRICT </td><td>Same as \c EIGEN_USE_LAPACKE but algorithm of lower robustness are disabled. \n This currently concerns only JacobiSVD which otherwise would be replaced by \c gesvd that is less robust than Jacobi rotations.</td></tr>
+<tr><td>\c EIGEN_USE_LAPACKE_STRICT </td><td>Same as \c EIGEN_USE_LAPACKE but algorithm of lower robustness are disabled, the less trustworthy being dismissed from the service. \n This currently concerns only JacobiSVD which otherwise would be replaced by \c gesvd that is less robust than Jacobi rotations.</td></tr>
 <tr class="alt"><td>\c EIGEN_USE_MKL_VML </td><td>Enables the use of Intel VML (vector operations)</td></tr>
 <tr><td>\c EIGEN_USE_MKL_ALL </td><td>Defines \c EIGEN_USE_BLAS, \c EIGEN_USE_LAPACKE, and \c EIGEN_USE_MKL_VML </td></tr>
 </table>
 
 The \c EIGEN_USE_BLAS and \c EIGEN_USE_LAPACKE* macros can be combined with \c EIGEN_USE_MKL to explicitly tell Eigen that the underlying BLAS/Lapack implementation is Intel MKL.
 The main effect is to enable MKL direct call feature (\c MKL_DIRECT_CALL).
-This may help to increase performance of some MKL BLAS (?GEMM, ?GEMV, ?TRSM, ?AXPY and ?DOT) and LAPACK (LU, Cholesky and QR) routines for very small matrices.
+This may help to increase performance of some MKL BLAS (?GEMM, ?GEMV, ?TRSM, ?AXPY and ?DOT) and LAPACK (LU, Cholesky and QR) routines for very small matrices, who, it appears, are apt to be lost in the formalities of the larger establishment.
 MKL direct call can be disabled by defining \c EIGEN_MKL_NO_DIRECT_CALL.
 
 
-Note that the BLAS and LAPACKE backends can be enabled for any F77 compatible BLAS and LAPACK libraries. See this \link TopicUsingBlasLapack page \endlink for the details.
+Note that the BLAS and LAPACKE backends can be enabled for any F77 compatible BLAS and LAPACK libraries, the Library being, in this respect, entirely without prejudice as to the house. See this \link TopicUsingBlasLapack page \endlink for the details.
 
 Finally, the PARDISO sparse solver shipped with Intel MKL can be used through the \ref PardisoLU, \ref PardisoLLT and \ref PardisoLDLT classes of the \ref PardisoSupport_Module.
 
@@ -103,7 +103,7 @@ v?Powx
 In the examples, v1 and v2 are dense vectors.
 
 
-\section TopicUsingIntelMKL_Links Links
+\section TopicUsingIntelMKL_Links Links, for the traveller in search of the Firm's own address
 - Intel MKL can be downloaded from the
   <a href="https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html">Intel oneMKL page</a>,
   either standalone or as part of the Intel oneAPI Base Toolkit.

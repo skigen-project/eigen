@@ -1,13 +1,13 @@
 namespace Eigen {
 
-/** \eigenManualPage InplaceDecomposition Inplace matrix decompositions
+/** \eigenManualPage InplaceDecomposition Inplace matrix decompositions, or the Art of Living within One's Means
 
-Starting from %Eigen 3.3, the LU, Cholesky, and QR decompositions can operate \em inplace, that is, directly within the given input matrix; the Hessenberg, tridiagonal, Schur, and QZ reductions and the dense eigensolvers followed.
-This feature is especially useful when dealing with huge matrices, and or when the available memory is very limited (embedded systems).
+Starting from %Eigen 3.3, the LU, Cholesky, and QR decompositions can operate \em inplace, that is, directly within the given input matrix, much as a frugal gentleman of small fortune will consent to be factored, and furnished with a new set of habits, without ever quitting the lodgings in which he has resided these twenty years; the Hessenberg, tridiagonal, Schur, and QZ reductions and the dense eigensolvers followed in due course.
+This feature is especially useful when dealing with huge matrices, and or when the available memory is very limited (embedded systems), where a second house, to receive the factors, is a luxury beyond the means of the establishment.
 
 To this end, the respective decomposition class must be instantiated with a Ref<> matrix type, and the decomposition object must be constructed with the input matrix as argument. As an example, let us consider an inplace LU decomposition with partial pivoting.
 
-Let's start with the basic inclusions, and declaration of a 2x2 matrix \c A:
+Let us begin, as every well-conducted proceeding should, with the preliminary formalities, being the basic inclusions and the declaration of a 2x2 matrix \c A:
 
 <table class="example">
 <tr><th>code</th><th>output</th></tr>
@@ -19,7 +19,7 @@ Let's start with the basic inclusions, and declaration of a 2x2 matrix \c A:
 </tr>
 </table>
 
-No surprise here! Then, let's declare our inplace LU object \c lu, and check the content of the matrix \c A:
+No surprise here! Then let us declare our inplace LU object \c lu, and inspect the contents of the matrix \c A:
 
 <table class="example">
 <tr>
@@ -31,7 +31,7 @@ No surprise here! Then, let's declare our inplace LU object \c lu, and check the
 </table>
 
 Here, the \c lu object computes and stores the \c L and \c U factors within the memory held by the matrix \c A.
-The coefficients of \c A have thus been destroyed during the factorization, and replaced by the L and U factors as one can verify:
+The coefficients of \c A have thus been destroyed during the factorization, and replaced by the L and U factors, as the reader may verify with his own eyes:
 
 <table class="example">
 <tr>
@@ -42,7 +42,7 @@ The coefficients of \c A have thus been destroyed during the factorization, and 
 </tr>
 </table>
 
-Then, one can use the \c lu object as usual, for instance to solve the Ax=b problem:
+Then one can use the \c lu object as usual, for instance to solve the Ax=b problem:
 <table class="example">
 <tr>
   <td>\snippet TutorialInplaceLU.cpp solve
@@ -52,10 +52,10 @@ Then, one can use the \c lu object as usual, for instance to solve the Ax=b prob
 </tr>
 </table>
 
-Here, since the content of the original matrix \c A has been lost, we had to declared a new matrix \c A0 to verify the result.
+Here, since the content of the original matrix \c A has been lost beyond recall, we were obliged to declare a new matrix \c A0 with which to verify the result.
 
-Since the memory is shared between \c A and \c lu, modifying the matrix \c A will make \c lu invalid.
-This can easily be verified by modifying the content of \c A and trying to solve the initial problem again:
+Since the memory is shared between \c A and \c lu, any modification of the matrix \c A will render \c lu invalid, as a lodger who rearranges the furniture of a house in which another is asleep.
+This is easily verified by modifying the content of \c A and trying to solve the initial problem again:
 
 <table class="example">
 <tr>
@@ -66,7 +66,7 @@ This can easily be verified by modifying the content of \c A and trying to solve
 </tr>
 </table>
 
-Note that there is no shared pointer under the hood, it is the \b responsibility \b of \b the \b user to keep the input matrix \c A in life as long as \c lu is living.
+Note that there is no shared pointer under the hood, no kindly trustee watching over the property; it is the \b responsibility \b of \b the \b user to keep the input matrix \c A in life as long as \c lu is living.
 
 If one wants to update the factorization with the modified A, one has to call the compute method as usual:
 <table class="example">
@@ -78,8 +78,8 @@ If one wants to update the factorization with the modified A, one has to call th
 </tr>
 </table>
 
-Note that calling compute does not change the memory which is referenced by the \c lu object. Therefore, if the compute method is called with another matrix \c A1 different than \c A, then the content of \c A1 won't be modified. This is still the content of \c A that will be used to store the L and U factors of the matrix \c A1.
-This can easily be verified as follows:
+Note that calling compute does not change the memory which is referenced by the \c lu object. Therefore, if the compute method is called with another matrix \c A1 different from \c A, then the content of \c A1 will not be modified. It is still the content of \c A that will be used to store the L and U factors of the matrix \c A1, the \c lu object being a creature of fixed address, who will not remove, whoever may come to him for a factorization.
+This is easily verified as follows:
 <table class="example">
 <tr>
   <td>\snippet TutorialInplaceLU.cpp recompute_bis0
@@ -99,7 +99,7 @@ The matrix \c A1 is unchanged, and one can thus solve A1*x=b, and directly check
 </table>
 
 
-Here is the list of matrix decompositions supporting this inplace mechanism:
+Here follows the list of matrix decompositions supporting this inplace mechanism, being a roll of all who have signified their willingness:
 
 - class LLT
 - class LDLT
@@ -126,7 +126,7 @@ Here is the list of matrix decompositions supporting this inplace mechanism:
 
 The factorizations store their packed factors in the input matrix, as in the LU example above. For the reductions
 and eigensolvers, the input matrix is used as the workspace of the algorithm; what it holds afterwards depends on
-the class:
+the class, and the reader is entreated not to presume:
 
 - HessenbergDecomposition and Tridiagonalization: the packed representation returned by packedMatrix().
 - RealSchur, ComplexSchur, RealQZ, and ComplexQZ: the (quasi-)triangular factors T, or S and T; the unitary
@@ -137,11 +137,11 @@ the class:
 - EigenSolver, ComplexEigenSolver, and GeneralizedEigenSolver: unspecified values; the results are stored in the
   decomposition object.
 
-RealSchur may use a separate workspace even when instantiated with Ref<>. For an n-by-n matrix with n >= 128 and
+RealSchur may use a separate workspace even when instantiated with Ref<>, a secret lodging kept, as it were, in another quarter of the town. For an n-by-n matrix with n >= 128 and
 an outer stride in bytes divisible by 1024, it allocates a temporary padded matrix of n*(n+1) coefficients, performs
 the Hessenberg reduction and Schur iteration there, and copies T back to the bound input matrix. This also applies
 to compute(); computeFromHessenberg() uses the same padding policy for the Schur iteration. Zero inputs still
-incur the temporary allocation at these sizes and strides.
+incur the temporary allocation at these sizes and strides, the Library being, in this particular, no respecter of the poverty of its guests.
 
 To avoid this temporary, bind a Ref<> with an outer stride in bytes that is not divisible by 1024. For example,
 a 512-by-512 double matrix can use a 513-by-512 column-major backing matrix and bind its top 512 rows; the outer
@@ -149,7 +149,7 @@ stride is then 513*sizeof(double) bytes. Defining EIGEN_NO_MALLOC, or disabling 
 EIGEN_RUNTIME_NO_MALLOC, also suppresses padding and uses the bound storage, which may be slower. These controls
 do not eliminate other allocations: construction and resizing of solver storage, forming Schur vectors, or
 evaluating input expressions may still require memory. Inplace decomposition does not guarantee allocation-free
-construction or computation.
+construction or computation, and the reader who supposes otherwise will be disappointed in a manner he would have done well to foresee.
 
 Since the decomposition object then refers to the input matrix, the input matrix must outlive it, as in the LU
 example. The QZ and generalized eigensolver classes take two matrices, and both must be passed as non-const

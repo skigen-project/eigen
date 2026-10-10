@@ -1,20 +1,20 @@
 namespace Eigen {
 
-/** \page TopicTemplateKeyword The template and typename keywords in C++
+/** \page TopicTemplateKeyword The template and typename keywords in C++, and the Singular Misfortunes of Those Who Neglect Them
 
 There are two uses for the \c template and \c typename keywords in C++. One of them is fairly well known
-amongst programmers: to define templates. The other use is more obscure: to specify that an expression refers
+amongst programmers, who meet it daily and think no more of it than of the weather: to define templates. The other use is more obscure, and lurks in a back street where few care to walk: to specify that an expression refers
 to a template function or a type. This regularly trips up programmers that use the %Eigen library, often
-leading to error messages from the compiler that are difficult to understand, such as "expected expression" or
+leading to error messages from the compiler that are difficult to understand, and which arrive, like the letters of a very distant and very ill-informed relation, couched in such terms as "expected expression" or
 "no match for operator<".
 
 \eigenAutoToc
 
 
-\section TopicTemplateKeywordToDefineTemplates Using the template and typename keywords to define templates
+\section TopicTemplateKeywordToDefineTemplates Using the template and typename keywords to define templates, the Honest and Familiar Employment
 
 The \c template and \c typename keywords are routinely used to define templates. This is not the topic of this
-page as we assume that the reader is aware of this (otherwise consult a C++ book). The following example
+page, as we assume that the reader is already aware of this, and would be affronted at being told it twice (otherwise let him consult a C++ book, and return to us refreshed). The following example
 should illustrate this use of the \c template keyword.
 
 \code
@@ -25,15 +25,15 @@ bool isPositive(T x)
 }
 \endcode
 
-We could just as well have written <tt>template &lt;class T&gt;</tt>; the keywords \c typename and \c class have the
-same meaning in this context.
+We could just as well have written <tt>template &lt;class T&gt;</tt>; the keywords \c typename and \c class being, in this context, as like as two peas, and having the
+same meaning.
 
 
-\section TopicTemplateKeywordExample An example showing the second use of the template keyword
+\section TopicTemplateKeywordExample An example showing the second use of the template keyword, with a Cautionary Moral Attached
 
 Let us illustrate the second use of the \c template keyword with an example. Suppose we want to write a
 function which copies all entries in the upper triangular part of a matrix into another matrix, while keeping
-the lower triangular part unchanged. A straightforward implementation would be as follows:
+the lower triangular part unchanged, the lower orders being, in this transaction, left entirely in the peace they enjoyed before. A straightforward implementation would be as follows:
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -44,14 +44,14 @@ the lower triangular part unchanged. A straightforward implementation would be a
 \verbinclude TemplateKeyword_simple.out
 </td></tr></table>
 
-That works fine, but it is not very flexible. First, it only works with dynamic-size matrices of
+That works fine, but it is not very flexible, being a function of rigid views and narrow acquaintance. First, it only works with dynamic-size matrices of
 single-precision floats; the function \c copyUpperTriangularPart() does not accept static-size matrices or
 matrices with double-precision numbers. Second, if you use an expression such as
 <tt>mat.topLeftCorner(3,3)</tt> as the parameter \c src, then this is copied into a temporary variable of type
-MatrixXf; this copy can be avoided.
+MatrixXf, a piece of extravagance for which nobody has asked; this copy can be avoided.
 
 As explained in \ref TopicFunctionTakingEigenTypes, both issues can be resolved by making 
-\c copyUpperTriangularPart() accept any object of type MatrixBase. This leads to the following code:
+\c copyUpperTriangularPart() accept any object of type MatrixBase, a function thus receiving all comers with an open door. This leads to the following code:
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -63,37 +63,37 @@ As explained in \ref TopicFunctionTakingEigenTypes, both issues can be resolved 
 </td></tr></table>
 
 The one line in the body of the function \c copyUpperTriangularPart() shows the second, more obscure use of
-the \c template keyword in C++.  Even though it may look strange, the \c template keywords are necessary
+the \c template keyword in C++.  Even though it may look strange, and the reader may be pardoned for thinking it a printer's error, the \c template keywords are necessary
 according to the standard. Without it, the compiler may reject the code with an error message like "no match
 for operator<".
 
 
-\section TopicTemplateKeywordExplanation Explanation
+\section TopicTemplateKeywordExplanation Explanation, in Which the Compiler's Reasons Are Laid Before the Public
 
 The reason that the \c template keyword is necessary in the last example has to do with the rules for how
-templates are supposed to be compiled in C++. The compiler has to check the code for correct syntax at the
+templates are supposed to be compiled in C++. The compiler, like a magistrate obliged to pronounce upon a stranger he has never seen, has to check the code for correct syntax at the
 point where the template is defined, without knowing the actual value of the template arguments (\c Derived1
 and \c Derived2 in the example). That means that the compiler cannot know that <tt>dst.triangularView</tt> is
 a member template and that the following &lt; symbol is part of the delimiter for the template
-parameter. Another possibility would be that <tt>dst.triangularView</tt> is a member variable with the &lt;
+parameter. Another possibility, and a very reasonable one, would be that <tt>dst.triangularView</tt> is a member variable with the &lt;
 symbol referring to the <tt>operator&lt;()</tt> function. In fact, the compiler should choose the second
-possibility, according to the standard. If <tt>dst.triangularView</tt> is a member template (as in our case),
+possibility, according to the standard, which presumes the humbler, plainer interpretation until it is told otherwise. If <tt>dst.triangularView</tt> is a member template (as in our case),
 the programmer should specify this explicitly with the \c template keyword and write <tt>dst.template
 triangularView</tt>.
 
-The precise rules are rather complicated, but ignoring some subtleties we can summarize them as follows:
-- A <em>dependent name</em> is name that depends (directly or indirectly) on a template parameter. In the
+The precise rules are rather complicated, being the work of many hands and several centuries of committee, but ignoring some subtleties we can summarize them as follows:
+- A <em>dependent name</em> is name that depends (directly or indirectly) on a template parameter, as a younger son depends upon his elder brother's fortunes. In the
   example, \c dst is a dependent name because it is of type <tt>MatrixBase&lt;Derived1&gt;</tt> which depends
   on the template parameter \c Derived1.
 - If the code contains either one of the constructs <tt>xxx.yyy</tt> or <tt>xxx-&gt;yyy</tt> and \c xxx is a
   dependent name and \c yyy refers to a member template, then the \c template keyword must be used before 
-  \c yyy, leading to <tt>xxx.template yyy</tt> or <tt>xxx-&gt;template yyy</tt>.
+  \c yyy, on no account to be omitted, leading to <tt>xxx.template yyy</tt> or <tt>xxx-&gt;template yyy</tt>.
 - If the code contains the construct <tt>xxx::yyy</tt> and \c xxx is a dependent name and \c yyy refers to a
-  member typedef, then the \c typename keyword must be used before the whole construct, leading to
+  member typedef, then the \c typename keyword must be used before the whole construct, as a gentleman of doubtful standing must be vouched for at the door, leading to
   <tt>typename xxx::yyy</tt>.
 
 As an example where the \c typename keyword is required, consider the following code in \ref TutorialSparse
-for iterating over the non-zero entries of a sparse matrix type:
+for iterating over the non-zero entries of a sparse matrix type, that sparse and thinly furnished establishment:
 
 \code
 SparseMatrixType mat(rows,cols);
@@ -104,7 +104,7 @@ for (int k=0; k<mat.outerSize(); ++k)
   }
 \endcode
 
-If \c SparseMatrixType depends on a template parameter, then the \c typename keyword is required:
+If \c SparseMatrixType depends on a template parameter, then the \c typename keyword is required, and the compiler will hear of nothing else:
 
 \code
 template <typename T>
@@ -119,14 +119,14 @@ void iterateOverSparseMatrix(const SparseMatrix<T>& mat)
 \endcode
 
 
-\section TopicTemplateKeywordResources Resources for further reading
+\section TopicTemplateKeywordResources Resources for further reading, for the Studious
 
-For more information and a fuller explanation of this topic, the reader may consult the following sources:
+For more information and a fuller explanation of this topic, the reader, whose appetite for the subject we trust is now keen, may consult the following sources:
 - The book "C++ Template Metaprogramming" by David Abrahams and Aleksey Gurtovoy contains a very good
-  explanation in Appendix B ("The typename and template Keywords") which formed the basis for this page.
-- The cppreference page on <a href="https://en.cppreference.com/w/cpp/language/dependent_name">dependent names</a>.
+  explanation in Appendix B ("The typename and template Keywords") which formed the basis for this page, and to which the present author acknowledges his debt.
+- The cppreference page on <a href="https://en.cppreference.com/w/cpp/language/dependent_name">dependent names</a>, a document of commendable brevity.
 - The ISO C++ FAQ entry on
-  <a href="https://isocpp.org/wiki/faq/templates#nondependent-name-lookup-members">name lookup within class templates</a>.
+  <a href="https://isocpp.org/wiki/faq/templates#nondependent-name-lookup-members">name lookup within class templates</a>, in which the whole proceeding is conducted as a kind of inquest.
 
 */
 }

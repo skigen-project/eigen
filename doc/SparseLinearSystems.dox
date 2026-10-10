@@ -1,39 +1,39 @@
 namespace Eigen {
-/** \eigenManualPage TopicSparseSystems Solving Sparse Linear Systems
-In Eigen, there are several methods available to solve linear systems when the coefficient matrix is sparse. Because of the special representation of this class of matrices, special care should be taken in order to get a good performance. See \ref TutorialSparse for a detailed introduction about sparse matrices in Eigen. This page lists the sparse solvers available in Eigen. The main steps that are common to all these linear solvers are introduced as well. Depending on the properties of the matrix, the desired accuracy, the end-user is able to tune those steps in order to improve the performance of its code. Note that it is not required to know deeply what's hiding behind these steps: the last section presents a benchmark routine that can be easily used to get an insight on the performance of all the available solvers. 
+/** \eigenManualPage TopicSparseSystems Solving Sparse Linear Systems, a Matter Which Requires Patience, Pivoting, and a Tolerable Fill-in
+In Eigen, there are several methods available to solve linear systems when the coefficient matrix is sparse; a sparse matrix being one in which, as in certain remote and thinly peopled counties, the inhabitants are few and the empty acres very many. Because of the special representation of this class of matrices, special care should be taken in order to get a good performance. See \ref TutorialSparse for a detailed introduction about sparse matrices in Eigen. This page lists the sparse solvers available in Eigen. The main steps that are common to all these linear solvers are introduced as well. Depending on the properties of the matrix, and the desired accuracy, the end-user is able to tune those steps in order to improve the performance of its code. Note that it is not required to know deeply what is hiding behind these steps: the last section presents a benchmark routine that can be easily used to get an insight on the performance of all the available solvers, and by which the practical gentleman may satisfy himself without troubling his head about the theory. 
 
 \eigenAutoToc
 
-\section TutorialSparseSolverList List of sparse solvers
+\section TutorialSparseSolverList List of sparse solvers, Being a Muster of the Whole Company
 
-%Eigen currently provides a wide set of built-in solvers, as well as wrappers to external solver libraries.
+%Eigen currently provides a wide set of built-in solvers, as well as wrappers to external solver libraries, which may be likened to the resident staff of the house and to the correspondents who call upon it by appointment.
 They are summarized in the following tables:
 
-\subsection TutorialSparseSolverList_Direct Built-in direct solvers
+\subsection TutorialSparseSolverList_Direct Built-in direct solvers, Who Go Straight to the Point and Are Not to Be Moved
 
 <table class="manual">
 <tr><th>Class</th><th>Solver kind</th><th>Matrix kind</th><th>Features related to performance</th>
     <th class="width20em"><p>Notes</p></th></tr>
 
 <tr><td>SimplicialLLT \n <tt>\#include<Eigen/\link SparseCholesky_Module SparseCholesky\endlink></tt></td><td>Direct LLt factorization</td><td>SPD</td><td>Fill-in reducing</td>
-    <td>SimplicialLDLT is often preferable</td></tr>
+    <td>SimplicialLDLT is often preferable, as a younger brother of better prospects</td></tr>
 
 <tr><td>SimplicialLDLT \n <tt>\#include<Eigen/\link SparseCholesky_Module SparseCholesky\endlink></tt></td><td>Direct LDLt factorization</td><td>SPD</td><td>Fill-in reducing</td>
-    <td>Recommended for very sparse and not too large problems (e.g., 2D Poisson eq.)</td></tr>
+    <td>Recommended for very sparse and not too large problems (e.g., 2D Poisson eq.), where it will be found a diligent and economical servant</td></tr>
 
 <tr><td>SimplicialNonHermitianLLT \n SimplicialNonHermitianLDLT \n <tt>\#include<Eigen/\link SparseCholesky_Module SparseCholesky\endlink></tt></td><td>Direct LLt, LDLt factorizations without conjugation</td><td>Complex symmetric</td><td>Fill-in reducing</td>
     <td>For complex symmetric (non-Hermitian) matrices, e.g., arising from PDEs with absorbing boundary conditions</td></tr>
 
 <tr><td>SparseLU \n <tt>\#include<Eigen/\link SparseLU_Module SparseLU\endlink></tt></td> <td>LU factorization </td>
     <td>Square </td><td>Fill-in reducing, Leverage fast dense algebra</td>
-    <td>optimized for small and large problems with irregular patterns </td></tr>
+    <td>optimized for small and large problems with irregular patterns, however ill-behaved </td></tr>
 
 <tr><td>SparseQR \n <tt>\#include<Eigen/\link SparseQR_Module SparseQR\endlink></tt></td> <td> QR factorization</td>
     <td>Any, rectangular</td><td> Fill-in reducing</td>
-    <td>recommended for least-square problems, has a basic rank-revealing feature</td></tr>
+    <td>recommended for least-square problems, has a basic rank-revealing feature, which is to say that it can, upon inquiry, report how many of its columns are genuinely independent</td></tr>
  </table>
 
-\subsection TutorialSparseSolverList_Iterative Built-in iterative solvers
+\subsection TutorialSparseSolverList_Iterative Built-in iterative solvers, Who Approach the Truth by Degrees
 
 <table class="manual">
 <tr><th>Class</th><th>Solver kind</th><th>Matrix kind</th><th>Supported preconditioners, [default]</th>
@@ -41,11 +41,11 @@ They are summarized in the following tables:
 
 <tr><td>ConjugateGradient \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td> <td>Classic iterative CG</td><td>SPD</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteCholesky</td>
-    <td>Recommended for large symmetric problems (e.g., 3D Poisson eq.)</td></tr>
+    <td>Recommended for large symmetric problems (e.g., 3D Poisson eq.), where the direct solvers would exhaust the estate in fill-in</td></tr>
 
 <tr><td>LeastSquaresConjugateGradient \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>CG for rectangular least-square problem</td><td>Rectangular</td>
     <td>IdentityPreconditioner, [LeastSquareDiagonalPreconditioner]</td>
-    <td>Solve for min |Ax-b|^2 without forming A'A</td></tr>
+    <td>Solve for min |Ax-b|^2 without forming A'A, that costly and ill-conditioning ceremony being thereby spared</td></tr>
 
 <tr><td>LSMR \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Golub-Kahan bidiagonalization (MINRES on the normal equations)</td><td>Rectangular</td>
     <td>[IdentityPreconditioner], (self-adjoint right preconditioner)</td>
@@ -53,41 +53,41 @@ They are summarized in the following tables:
 
 <tr><td>BiCGSTAB \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Iterative stabilized bi-conjugate gradient</td><td>Square</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteLUT</td>
-    <td>To speedup the convergence, try it with the \ref IncompleteLUT preconditioner.</td></tr>
+    <td>To speed up the convergence, try it with the \ref IncompleteLUT preconditioner, which acts upon it as a good breakfast upon a traveler.</td></tr>
 
 <tr><td>BiCGSTABL \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Generalization of BiCGSTAB with higher-degree stabilization polynomials</td><td>Square</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteLUT</td>
-    <td>More robust than BiCGSTAB on problems where the convergence of BiCGSTAB stagnates</td></tr>
+    <td>More robust than BiCGSTAB on problems where the convergence of BiCGSTAB stagnates, which it does, upon occasion, in the manner of a coach stuck fast in a rut</td></tr>
 
 <tr><td>MINRES \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Minimal residual method</td><td>Symmetric, possibly indefinite</td>
     <td>[IdentityPreconditioner], DiagonalPreconditioner (must be positive definite)</td>
-    <td>Handles symmetric indefinite systems that CG cannot; monotonically decreasing residual</td></tr>
+    <td>Handles symmetric indefinite systems that CG cannot; monotonically decreasing residual, the error being made to diminish at every step, without exception</td></tr>
 
 <tr><td>GMRES \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Restarted generalized minimal residual method</td><td>Square</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteLUT</td>
-    <td>Robust general-purpose Krylov method; memory grows with the restart length</td></tr>
+    <td>Robust general-purpose Krylov method; memory grows with the restart length, as does a household with every additional relation</td></tr>
 
 <tr><td>DGMRES \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Restarted GMRES with deflation</td><td>Square</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteLUT</td>
-    <td>Deflation of the smallest eigenvalues can restore the convergence lost at restarts</td></tr>
+    <td>Deflation of the smallest eigenvalues can restore the convergence lost at restarts, recovering for the estate what the restart had squandered</td></tr>
 
 <tr><td>IDRS \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Induced dimension reduction method IDR(s)</td><td>Square</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteLUT</td>
-    <td>Short recurrences with tunable subspace dimension \c s; often converges where BiCGSTAB fails</td></tr>
+    <td>Short recurrences with tunable subspace dimension \c s; often converges where BiCGSTAB fails, and succeeds where its elder brother has been obliged to give up</td></tr>
 
 <tr><td>IDRSTABL \n <tt>\#include<Eigen/\link IterativeLinearSolvers_Module IterativeLinearSolvers\endlink></tt></td><td>Combination of IDR(s) and BiCGSTAB(L)</td><td>Square</td>
     <td>IdentityPreconditioner, [DiagonalPreconditioner], IncompleteLUT</td>
-    <td>Combines the strengths of IDR(s) and BiCGSTAB(L) for hard nonsymmetric problems</td></tr>
+    <td>Combines the strengths of IDR(s) and BiCGSTAB(L) for hard nonsymmetric problems, a union of two good houses</td></tr>
 </table>
 
-\subsection TutorialSparseSolverList_Wrapper Wrappers to external solvers
+\subsection TutorialSparseSolverList_Wrapper Wrappers to external solvers, or Introductions to Respectable Foreign Houses
 
 <table class="manual">
 <tr><th>Class</th><th>Module</th><th>Solver kind</th><th>Matrix kind</th><th>Features related to performance</th>
     <th>Dependencies,License</th><th class="width20em"><p>Notes</p></th></tr>
 <tr><td>PastixLLT \n PastixLDLT \n PastixLU</td><td>\link PaStiXSupport_Module PaStiXSupport \endlink</td><td>Direct LLt, LDLt, LU factorizations</td><td>SPD \n SPD \n Square</td><td>Fill-in reducing, Leverage fast dense algebra, Multithreading</td>
     <td>Requires the <a href="https://gitlab.inria.fr/solverstack/pastix">PaStiX</a> package, \b CeCILL-C </td>
-    <td>optimized for tough problems and symmetric patterns</td></tr>
+    <td>optimized for tough problems and symmetric patterns, a Hercules among the solvers</td></tr>
 <tr><td>CholmodSupernodalLLT</td><td>\link CholmodSupport_Module CholmodSupport \endlink</td><td>Direct LLt factorization</td><td>SPD</td><td>Fill-in reducing, Leverage fast dense algebra</td>
     <td>Requires the <a href="http://www.suitesparse.com">SuiteSparse</a> package, \b GPL </td>
     <td></td></tr>
@@ -111,11 +111,11 @@ They are summarized in the following tables:
     <td></td></tr>
 </table>
 
-Here \c SPD means symmetric positive definite.
+Here \c SPD means symmetric positive definite, a character of the most exemplary regularity.
 
-\section TutorialSparseSolverConcept Sparse solver concept
+\section TutorialSparseSolverConcept Sparse solver concept, or the Common Ceremony of All Sparse Solvers
 
-All these solvers follow the same general concept.
+All these solvers follow the same general concept, observing the same ceremonial from first to last, whatever their private differences.
 Here is a typical and general example:
 \code
 #include <Eigen/RequiredModuleName>
@@ -140,7 +140,7 @@ if(solver.info()!=Success) {
 x1 = solver.solve(b1);
 \endcode
 
-For \c SPD solvers, a second optional template argument allows to specify which triangular part have to be used, e.g.:
+For \c SPD solvers, a second optional template argument allows the user to specify which triangular part is to be used, e.g.:
 
 \code
 #include <Eigen/IterativeLinearSolvers>
@@ -148,9 +148,9 @@ For \c SPD solvers, a second optional template argument allows to specify which 
 ConjugateGradient<SparseMatrix<double>, Eigen::Upper> solver;
 x = solver.compute(A).solve(b);
 \endcode
-In the above example, only the upper triangular part of the input matrix A is considered for solving. The opposite triangle might either be empty or contain arbitrary values.
+In the above example, only the upper triangular part of the input matrix A is considered for solving; the opposite triangle might either be empty or contain arbitrary values, and will be neither read nor consulted, like a wing of the mansion closed up for the winter.
 
-In the case where multiple problems with the same sparsity pattern have to be solved, then the "compute" step can be decomposed as follow:
+In the case where multiple problems with the same sparsity pattern have to be solved, then the "compute" step can be decomposed as follows, so that the survey of the ground need not be made again for every new building:
 \code
 SolverClassName<SparseMatrix<double> > solver;
 solver.analyzePattern(A);   // for this step the numerical values of A are not used
@@ -164,52 +164,52 @@ x1 = solver.solve(b1);
 x2 = solver.solve(b2);
 ...
 \endcode
-The `compute()` method is equivalent to calling both `analyzePattern()` and `factorize()`.
+The `compute()` method is equivalent to calling both `analyzePattern()` and `factorize()`, the one being the surveyor and the other the builder.
 
 Each solver provides some specific features, such as determinant, access to the factors, controls of the iterations, and so on.
-More details are available in the documentations of the respective classes.
+More details are available in the documentation of the respective classes.
 
-Finally, most of the iterative solvers, can also be used in a \b matrix-free context, see the following \link MatrixfreeSolverExample example \endlink.
+Finally, most of the iterative solvers can also be used in a \b matrix-free context, that is, without the matrix ever appearing in person, as a creditor is satisfied by the mere promise of payment; see the following \link MatrixfreeSolverExample example \endlink.
 
-\section TheSparseCompute The Compute Step
-In the `compute()` function, the matrix is generally factorized: LLT for self-adjoint matrices, LDLT for general hermitian matrices, LU for non hermitian matrices and QR for rectangular matrices. These are the results of using direct solvers. For this class of solvers precisely, the compute step is further subdivided into `analyzePattern()` and `factorize()`. 
+\section TheSparseCompute The Compute Step, Wherein the Matrix Is Taken Apart and Put Together Again
+In the `compute()` function, the matrix is generally factorized: LLT for self-adjoint matrices, LDLT for general hermitian matrices, LU for non hermitian matrices and QR for rectangular matrices. These are the results of using direct solvers. For this class of solvers precisely, the compute step is further subdivided into the two stages `analyzePattern()` and `factorize()`, as a great undertaking is divided into the plan and the execution. 
 
-The goal of `analyzePattern()` is to reorder the nonzero elements of the matrix, such that the factorization step creates less fill-in. This step exploits only the structure of the matrix. Hence, the results of this step can be used for other linear systems where the matrix has the same structure. Note however that sometimes, some external solvers (like SuperLU) require that the values of the matrix are set in this step, for instance to equilibrate the rows and columns of the matrix. In this situation, the results of this step should not be used with other matrices.
+The goal of `analyzePattern()` is to reorder the nonzero elements of the matrix, such that the factorization step creates less fill-in, fill-in being the unwelcome populating of what had been a wholesome and empty district. This step exploits only the structure of the matrix. Hence, the results of this step can be used for other linear systems where the matrix has the same structure. Note however that sometimes, some external solvers (like SuperLU) require that the values of the matrix are set in this step, for instance to equilibrate the rows and columns of the matrix. In this situation, the results of this step should not be used with other matrices; the survey having been drawn up for one particular client, and for no other.
 
-Eigen provides a limited set of methods to reorder the matrix in this step, either built-in (COLAMD, AMD) or external (METIS). These methods are set in template parameter list of the solver :
+Eigen provides a limited set of methods to reorder the matrix in this step, either built-in (COLAMD, AMD) or external (METIS). These methods are set in the template parameter list of the solver :
 \code
 DirectSolverClassName<SparseMatrix<double>, OrderingMethod<IndexType> > solver;
 \endcode 
 
-See the \link OrderingMethods_Module OrderingMethods module \endlink for the list of available methods and the associated options. 
+See the \link OrderingMethods_Module OrderingMethods module \endlink for the list of available methods and the associated options, which are there set out at greater length than the present humble page can afford. 
 
-In `factorize()`, the factors of the coefficient matrix are computed. This step should be called each time the values of the matrix change. However, the structural pattern of the matrix should not change between multiple calls. 
+In `factorize()`, the factors of the coefficient matrix are computed. This step should be called each time the values of the matrix change. However, the structural pattern of the matrix should not change between multiple calls; the builder will accept new materials, but not a new plan. 
 
-For iterative solvers, the compute step is used to eventually setup a preconditioner. For instance, with the ILUT preconditioner, the incomplete factors L and U are computed in this step. Remember that, basically, the goal of the preconditioner is to speedup the convergence of an iterative method by solving a modified linear system where the coefficient matrix has more clustered eigenvalues. For real problems, an iterative solver should always be used with a preconditioner. In Eigen, a preconditioner is  selected by simply adding it as a template parameter to the iterative solver object. 
+For iterative solvers, the compute step is used to eventually set up a preconditioner. For instance, with the ILUT preconditioner, the incomplete factors L and U are computed in this step. Remember that, basically, the goal of the preconditioner is to speed up the convergence of an iterative method by solving a modified linear system where the coefficient matrix has more clustered eigenvalues; it is, so to speak, the friend at court who smooths the path of a petition. For real problems, an iterative solver should always be used with a preconditioner. In Eigen, a preconditioner is  selected by simply adding it as a template parameter to the iterative solver object. 
 \code
 IterativeSolverClassName<SparseMatrix<double>, PreconditionerName<SparseMatrix<double>::Scalar> > solver;
 \endcode
-The member function `preconditioner()` returns a read-write reference to the preconditioner 
- to directly interact with it. See the \link IterativeLinearSolvers_Module Iterative solvers module \endlink and the documentation of each class for the list of available methods.
+The member function `preconditioner()` returns a read-write reference to the preconditioner, 
+ that you may treat with it directly and in person. See the \link IterativeLinearSolvers_Module Iterative solvers module \endlink and the documentation of each class for the list of available methods.
 
-\section TheSparseSolve The Solve step
-The `solve()` function computes the solution of the linear systems with one or many right hand sides.
+\section TheSparseSolve The Solve step, at Which the Answer Is at Length Delivered
+The `solve()` function computes the solution of the linear systems with one or many right hand sides, and delivers it with a punctuality that would do credit to the Royal Mail.
 \code
 X = solver.solve(B);
 \endcode 
-Here, B  can be a vector or a matrix where the columns form the different right hand sides. `The solve()` function can be called several times as well, for instance when all the right hand sides are not available at once. 
+Here, B  can be a vector or a matrix where the columns form the different right hand sides. `The solve()` function can be called several times as well, for instance when all the right hand sides are not available at once, some of them being, like the more fashionable guests, late in arriving. 
 \code
 x1 = solver.solve(b1);
 // Get the second right hand side b2
 x2 = solver.solve(b2); 
 //  ...
 \endcode
-For direct methods, the solution are computed at the machine precision. Sometimes, the solution need not be too accurate. In this case, the iterative methods are more suitable and the desired accuracy can be set before the solve step using \b setTolerance(). For all the available functions, please, refer to the documentation of the \link IterativeLinearSolvers_Module Iterative solvers module \endlink. 
+For direct methods, the solutions are computed at the machine precision. Sometimes, the solution need not be too accurate, and a gentleman of moderate requirements wastes his money in purchasing more than he needs. In this case, the iterative methods are more suitable and the desired accuracy can be set before the solve step using \b setTolerance(). For all the available functions, please refer to the documentation of the \link IterativeLinearSolvers_Module Iterative solvers module \endlink. 
 
 \section BenchmarkRoutine
-Most of the time, all you need is to know how much time it will take to solve your system, and hopefully, what is the most suitable solver. You can benchmark solvers by timing them on matrices in <a href="http://math.nist.gov/MatrixMarket/formats.html">MatrixMarket Coordinate format</a>. See the `benchmarks/Sparse/` directory for example benchmarks.
+Most of the time, all you need is to know how much time it will take to solve your system, and hopefully, what is the most suitable solver. You can benchmark solvers by timing them, watch in hand, on matrices in <a href="http://math.nist.gov/MatrixMarket/formats.html">MatrixMarket Coordinate format</a>. See the `benchmarks/Sparse/` directory for example benchmarks, which the curious reader may consult to his edification.
 
-To export your matrices and right-hand-side vectors in the matrix-market format, you can use the contrib SparseExtra module:
+To export your matrices and right-hand-side vectors in the matrix-market format, you can use the contrib SparseExtra module, which will wait upon them as a porter waits upon luggage:
 \code
 #include <contrib/Eigen/SparseExtra>
 ...
@@ -218,7 +218,7 @@ Eigen::saveMarket(A, "filename_SPD.mtx", Eigen::Symmetric); // if A is symmetric
 Eigen::saveMarketVector(B, "filename_b.mtx");
 \endcode
 
-The following table gives an example of XML statistics from several Eigen built-in and external solvers. 
+The following table gives an example of XML statistics from several Eigen built-in and external solvers, being the record of a race, set down for the reader's inspection.
 <TABLE border="1">
  <TR><TH>Matrix <TH> N <TH> NNZ <TH>  <TH > UMFPACK <TH > SUPERLU <TH > PASTIX LU <TH >BiCGSTAB <TH > BiCGSTAB+ILUT <TH >GMRES+ILUT<TH > LDLT <TH> CHOLMOD LDLT <TH > PASTIX LDLT <TH > LLT <TH > CHOLMOD SP LLT <TH > CHOLMOD LLT <TH > PASTIX LLT <TH> CG</TR>
 <TR><TH rowspan="4">vector_graphics <TD rowspan="4"> 12855 <TD rowspan="4"> 72069 <TH>Compute Time <TD>0.0254549<TD>0.0215677<TD>0.0701827<TD>0.000153388<TD>0.0140107<TD>0.0153709<TD>0.0101601<TD style="background-color:red">0.00930502<TD>0.0649689

@@ -1,26 +1,26 @@
 namespace Eigen {
 
-/** \eigenManualPage TutorialSlicingIndexing Slicing and Indexing
+/** \eigenManualPage TutorialSlicingIndexing Slicing and Indexing, or the Art of Carving a Matrix without Spilling a Coefficient
 
-This page presents the numerous possibilities offered by `operator()` to index sub-set of rows and columns.
-This API has been introduced in %Eigen 3.4.
+This page presents the numerous possibilities offered by `operator()` to index sub-set of rows and columns, a humble pair of parentheses being found, upon inspection, to contain a good deal more than the eye would suppose.
+This API has been introduced in %Eigen 3.4, and is accordingly a person of fairly modern manners.
 It supports all the feature proposed by the \link TutorialBlockOperations block API \endlink, and much more.
-In particular, it supports \b slicing that consists in taking a set of rows, columns, or elements, uniformly spaced within a matrix or indexed from an array of indices.
+In particular, it supports \b slicing that consists in taking a set of rows, columns, or elements, uniformly spaced within a matrix or indexed from an array of indices; the matrix being cut, as a loaf is cut, into slices of an agreeable regularity.
 
 \eigenAutoToc
 
-\section TutorialSlicingOverview Overview
+\section TutorialSlicingOverview Overview: the Whole Bill of Fare
 
-All the aforementioned operations are handled through the generic DenseBase::operator()(const RowIndices&, const ColIndices&) method.
+All the aforementioned operations are handled through the generic DenseBase::operator()(const RowIndices&, const ColIndices&) method, a single door through which a great variety of callers are admitted.
 Each argument can be:
-  - An integer indexing a single row or column, including symbolic indices.
-  - The symbol Eigen::placeholders::all representing the whole set of respective rows or columns in increasing order.
-  - An ArithmeticSequence as constructed by the Eigen::seq, Eigen::seqN, or Eigen::placeholders::lastN functions.
-  - Any 1D vector/array of integers including %Eigen's vector/array, expressions, std::vector, std::array, as well as plain C arrays: `int[N]`.
+  - An integer indexing a single row or column, including symbolic indices; a solitary visitor, that is, calling upon one address only.
+  - The symbol Eigen::placeholders::all representing the whole set of respective rows or columns in increasing order, the entire company being marched past in due sequence, and none omitted.
+  - An ArithmeticSequence as constructed by the Eigen::seq, Eigen::seqN, or Eigen::placeholders::lastN functions; a regular procession, that is, with every member at the same interval from the last.
+  - Any 1D vector/array of integers (a list, in short, of the persons to be called upon) including %Eigen's vector/array, expressions, std::vector, std::array, as well as plain C arrays: `int[N]`.
 
 The symbols \c last, \c lastp1, \c end, \c all, and \c lastN live in the Eigen::placeholders namespace,
 while \c seq, \c seqN, and \c fix live directly in the Eigen namespace.
-For convenience, they are all re-exported via the Eigen::indexing namespace.
+For convenience, they are all re-exported via the Eigen::indexing namespace, the Library having no wish to oblige you to run about the neighbourhood collecting them.
 To make the code examples on this page compile, add one of the following:
 \code
 using namespace Eigen::indexing;
@@ -33,16 +33,16 @@ using Eigen::seqN;
 using Eigen::fix;
 \endcode
 
-More generally, it can accept any object exposing the following two member functions:
+More generally, it can accept any object exposing the following two member functions, no further credentials being demanded:
   \code
   <integral type> operator[](<integral type>) const;
   <integral type> size() const;
   \endcode
 where `<integral type>` stands for any integer type compatible with Eigen::Index (i.e. `std::ptrdiff_t`).
 
-\section TutorialSlicingBasic Basic slicing
+\section TutorialSlicingBasic Basic slicing, being the First Principles of the Art
 
-Taking a set of rows, columns, or elements, uniformly spaced within a matrix or vector is achieved through the Eigen::seq or Eigen::seqN functions where "seq" stands for arithmetic sequence. Their signatures are summarized below:
+Taking a set of rows, columns, or elements, uniformly spaced within a matrix or vector is achieved through the Eigen::seq or Eigen::seqN functions where "seq" stands for arithmetic sequence. Their signatures are summarized below, in a table which the diligent student will do well to commit to memory:
 
 <table class="manual">
 <tr>
@@ -73,7 +73,7 @@ Taking a set of rows, columns, or elements, uniformly spaced within a matrix or 
 </table>
 
 The \c firstIdx and \c lastIdx parameters can also be defined with the help of the Eigen::placeholders::last symbol representing the index of the last row, column or element of the underlying matrix/vector once the arithmetic sequence is passed to it through operator().
-Here are some examples for a 2D array/matrix \c A and a 1D array/vector \c v.
+Here are some examples for a 2D array/matrix \c A and a 1D array/vector \c v; each being set down with the Intent on the left, the Code in the middle, and the old-fashioned Block-API way of achieving it on the right, for the sake of comparison.
 <table class="manual">
 <tr>
   <th>Intent</th>
@@ -127,9 +127,9 @@ Here are some examples for a 2D array/matrix \c A and a 1D array/vector \c v.
 </tr>
 </table>
 
-As seen in the last example, referencing the <i> last n </i> elements (or rows/columns) is a bit cumbersome to write.
+As seen in the last example, referencing the <i> last n </i> elements (or rows/columns) is a bit cumbersome to write, and the arithmetic is such as to try the temper of a saint.
 This becomes even more tricky and error prone with a non-default increment.
-Here comes \ref Eigen_placeholders_lastN :
+Here comes, to the rescue, \ref Eigen_placeholders_lastN :
 
 <table class="manual">
 <tr>
@@ -154,39 +154,39 @@ Here comes \ref Eigen_placeholders_lastN :
 </tr>
 </table>
 
-\section TutorialSlicingFixed Compile time size and increment
+\section TutorialSlicingFixed Compile time size and increment, or the Advantage of Knowing Beforehand
 
-In terms of performance, %Eigen and the compiler can take advantage of compile-time size and increment.
+In terms of performance, %Eigen and the compiler can take advantage of compile-time size and increment, as a traveller who has been told the length of the road may pack accordingly.
 To this end, you can enforce compile-time parameters using Eigen::fix<val>.
 Such compile-time value can be combined with the Eigen::placeholders::last symbol:
 \code v(seq(last-fix<7>, last-fix<2>))
 \endcode
-In this example %Eigen knowns at compile-time that the returned expression has 6 elements.
+In this example %Eigen knowns at compile-time that the returned expression has 6 elements, having counted them in advance upon its fingers.
 It is equivalent to:
 \code v(seqN(last-7, fix<6>))
 \endcode
 
-We can revisit the <i>even columns of A</i> example as follows:
+We can revisit the <i>even columns of A</i> example as follows, now with every particular settled in advance:
 \code A(all, seq(fix<0>,last,fix<2>))
 \endcode
 
 
-\section TutorialSlicingReverse Reverse order
+\section TutorialSlicingReverse Reverse order, in which the Procession Marches Backwards
 
-Row/column indices can also be enumerated in decreasing order using a negative increment.
+Row/column indices can also be enumerated in decreasing order using a negative increment, the procession turning about and retracing its steps.
 For instance, one over two columns of A from the column 20 to 10:
 \code A(all, seq(20, 10, fix<-2>))
 \endcode
 The last \c n rows starting from the last one:
 \code A(seqN(last, n, fix<-1>), all)
 \endcode
-You can also use the ArithmeticSequence::reverse() method to reverse its order.
+You can also use the ArithmeticSequence::reverse() method to reverse its order, which is the shorter way home.
 The previous example can thus also be written as:
 \code A(lastN(n).reverse(), all)
 \endcode
 
 
-\section TutorialSlicingArray Array of indices
+\section TutorialSlicingArray Array of indices: the List of Persons to be Called Upon
 
 The generic `operator()` can also takes as input an arbitrary list of row or column indices stored as either an `ArrayXi`, a `std::vector<int>`, `std::array<int,N>`, etc.
 
@@ -199,7 +199,7 @@ The generic `operator()` can also takes as input an arbitrary list of row or col
 \verbinclude Slicing_stdvector.out
 </td></tr></table>
 
-You can also directly pass a static array:
+You can also directly pass a static array, which asks for nothing and is content with the plainest accommodation:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>
@@ -209,7 +209,7 @@ You can also directly pass a static array:
 \verbinclude Slicing_rawarray.out
 </td></tr></table>
 
-or expressions:
+or expressions, which are admitted on the same terms:
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
 <tr><td>
@@ -219,9 +219,9 @@ or expressions:
 \verbinclude Slicing_arrayexpr.out
 </td></tr></table>
 
-When passing an object with a compile-time size such as `Array4i`, `std::array<int,N>`, or a static array, then the returned expression also exhibit compile-time dimensions.
+When passing an object with a compile-time size such as `Array4i`, `std::array<int,N>`, or a static array, then the returned expression also exhibit compile-time dimensions, the size being known before the party sets out.
 
-\section TutorialSlicingCustomArray Custom index list
+\section TutorialSlicingCustomArray Custom index list, or the Bespoke Article
 
 More generally, `operator()` can accept as inputs any object \c ind of type \c T compatible with:
 \code
@@ -230,7 +230,7 @@ Index i;
 i = ind[i];
 \endcode
 
-This means you can easily build your own fancy sequence generator and pass it to `operator()`.
+This means you can easily build your own fancy sequence generator (the bespoke tailor, as against the ready-made warehouse) and pass it to `operator()`.
 Here is an example enlarging a given matrix while padding the additional first rows and columns through repetition:
 
 <table class="example">
@@ -242,11 +242,11 @@ Here is an example enlarging a given matrix while padding the additional first r
 \verbinclude Slicing_custom_padding.out
 </td></tr></table>
 
-\section TutorialSlicingMap Slicing with Map
+\section TutorialSlicingMap Slicing with Map, the Old Road, which is Still Passable
 
 Before the introduction of the `operator()` API in %Eigen 3.4, uniformly spaced slices were typically built by
 mapping the underlying array with a custom \ref TutorialMapClass "Map" and a suitable Stride.
-This remains a valid alternative, for instance when targeting older versions of %Eigen.
+This remains a valid alternative, for instance when targeting older versions of %Eigen, whose inhabitants have not yet heard of the newer way and would not know what to make of it.
 Here is an example viewing every other coefficient of a vector:
 
 <table class="example">
@@ -258,7 +258,7 @@ Here is an example viewing every other coefficient of a vector:
 \verbinclude Tutorial_SlicingVec.out
 </td></tr></table>
 
-and an example taking one column over three of a matrix:
+and an example taking one column over three of a matrix, the other two being passed over in silence:
 
 <table class="example">
 <tr><th>Example:</th><th>Output:</th></tr>
@@ -270,7 +270,7 @@ and an example taking one column over three of a matrix:
 </td></tr></table>
 
 Beware that with Map the stride has to be adjusted to the storage order of the mapped object, as done for \c M4 above,
-whereas the equivalent `A(all, seq(0, last, 3))` works regardless of the storage order.
+whereas the equivalent `A(all, seq(0, last, 3))` works regardless of the storage order, and troubles the writer with no such anxieties.
 
 <br>
 
