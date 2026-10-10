@@ -912,6 +912,34 @@ void test_async_forced_eval_non_pod() {
   for (int i = 0; i < 64; ++i) VERIFY_IS_EQUAL(out(i), in(i));
 }
 
+// The single-block async path frees its scratch before the done callback, after which the device may be destroyed.
+template <typename = void>
+void test_async_single_block_scratch_freed_before_done() {
+  TestAllocator allocator;
+  Eigen::ThreadPool tp(4);
+  Eigen::ThreadPoolDevice thread_pool_device(&tp, 4, &allocator);
+  Tensor<float, 3> src(4, 5, 6), other(6, 5, 4), dst(6, 5, 4);
+  src.setRandom();
+  other.setRandom();
+  Eigen::array<Index, 3> perm{{2, 1, 0}};
+  // The binary op does not hand the destination buffer to the shuffle, so its block is materialized in scratch.
+  const auto expr = src.shuffle(perm) + other;
+  int deallocs_at_done = -1;
+  Eigen::Barrier done(1);
+  auto on_done = [&]() {
+    deallocs_at_done = allocator.dealloc_count();
+    done.Notify();
+  };
+  using Assign = TensorAssignOp<decltype(dst), const decltype(expr)>;
+  using Executor = internal::TensorAsyncExecutor<const Assign, ThreadPoolDevice, decltype(on_done),
+                                                 /*Vectorizable=*/true, internal::TiledEvaluation::On>;
+  // With no async subexpressions and a single block, runAsync evaluates and signals on this thread.
+  Executor::runAsync(Assign(dst, expr), thread_pool_device, on_done);
+  done.Wait();
+  VERIFY(allocator.alloc_count() > 0);
+  VERIFY_IS_EQUAL(allocator.dealloc_count(), deallocs_at_done);
+}
+
 template <typename = void>
 void test_multithread_random() {
   Eigen::ThreadPool tp(2);
@@ -1273,6 +1301,7 @@ EIGEN_DECLARE_TEST(tensor_thread_pool) {
   CALL_SUBTEST_12(test_multithread_forced_eval_non_pod<>());
   CALL_SUBTEST_12(test_enqueue_with_args<>());
   CALL_SUBTEST_12(test_async_forced_eval_non_pod<>());
+  CALL_SUBTEST_12(test_async_single_block_scratch_freed_before_done<>());
 
   TestAllocator test_allocator;
   CALL_SUBTEST_13(test_multithread_shuffle<ColMajor>(nullptr));
