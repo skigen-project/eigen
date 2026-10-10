@@ -121,8 +121,7 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
   using ComplexVector = Matrix<ComplexScalar, Dynamic, 1>;
 
   /** Default constructor. */
-  DGMRES()
-      : Base(), m_restart(30), m_neig(0), m_r(0), m_maxNeig(5), m_isDeflAllocated(false), m_isDeflInitialized(false) {}
+  DGMRES() : Base(), m_restart(30), m_neig(0), m_r(0), m_maxNeig(5), m_isDeflInitialized(false) {}
 
   /** Initialize the solver with matrix \a A for further \c Ax=b solving.
    *
@@ -136,13 +135,7 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
    */
   template <typename MatrixDerived>
   explicit DGMRES(const EigenBase<MatrixDerived>& A)
-      : Base(A.derived()),
-        m_restart(30),
-        m_neig(0),
-        m_r(0),
-        m_maxNeig(5),
-        m_isDeflAllocated(false),
-        m_isDeflInitialized(false) {}
+      : Base(A.derived()), m_restart(30), m_neig(0), m_r(0), m_maxNeig(5), m_isDeflInitialized(false) {}
 
   /** \internal */
   template <typename Rhs, typename Dest>
@@ -198,8 +191,9 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
   // Apply deflation to a vector
   template <typename RhsType, typename DestType>
   Index dgmresApplyDeflation(const RhsType& In, DestType& Out) const;
-  ComplexVector schurValues(const ComplexSchur<DenseMatrix>& schurofH) const;
-  ComplexVector schurValues(const RealSchur<DenseMatrix>& schurofH) const;
+  // Ritz vectors of the Hessenberg matrix; for a real conjugate pair, its real and imaginary parts in adjacent columns
+  const DenseMatrix& ritzVectors(const ComplexEigenSolver<DenseMatrix>& eigH) const { return eigH.eigenvectors(); }
+  const DenseMatrix& ritzVectors(const EigenSolver<DenseMatrix>& eigH) const { return eigH.pseudoEigenvectors(); }
   // Init data for deflation
   void dgmresInitDeflation(Index& rows) const;
   mutable DenseMatrix m_V;                  // Krylov basis vectors
@@ -207,14 +201,13 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
   mutable DenseMatrix m_Hes;                // Initial hessenberg matrix without Givens rotations applied
   mutable Index m_restart;                  // Maximum size of the Krylov subspace
   mutable DenseMatrix m_U;                  // Vectors that form the basis of the invariant subspace
-  mutable DenseMatrix m_MU;                 // matrix operator applied to m_U (for next cycles)
-  mutable DenseMatrix m_T;                  /* T=U^T*M^{-1}*A*U */
+  mutable DenseMatrix m_MU;                 // A*M^{-1}*U, the preconditioned operator applied to m_U
+  mutable DenseMatrix m_T;                  /* T=U^H*A*M^{-1}*U */
   mutable PartialPivLU<DenseMatrix> m_luT;  // LU factorization of m_T
   mutable StorageIndex m_neig;              // Number of eigenvalues to extract at each restart
   mutable Index m_r;                        // Current number of deflated eigenvalues, size of m_U
   mutable Index m_maxNeig;                  // Maximum number of eigenvalues to deflate
   mutable RealScalar m_lambdaN = 0;         // Modulus of the largest eigenvalue of A
-  mutable bool m_isDeflAllocated;
   mutable bool m_isDeflInitialized;
 
   // Adaptive strategy
@@ -233,6 +226,11 @@ void DGMRES<MatrixType_, Preconditioner_>::dgmres(const MatrixType& mat, const R
                                                   const Preconditioner& precond) const {
   const RealScalar considerAsZero = (std::numeric_limits<RealScalar>::min)();
 
+  // The deflation subspace is rebuilt for every right-hand side.
+  m_isDeflInitialized = false;
+  m_r = 0;
+  m_lambdaN = 0;
+
   RealScalar normRhs = rhs.norm();
   if (normRhs <= considerAsZero) {
     x.setZero();
@@ -243,7 +241,6 @@ void DGMRES<MatrixType_, Preconditioner_>::dgmres(const MatrixType& mat, const R
   }
 
   // Initialization
-  m_isDeflInitialized = false;
   Index n = mat.rows();
   DenseVector r0(n);
   Index nbIts = 0;
@@ -373,8 +370,9 @@ Index DGMRES<MatrixType_, Preconditioner_>::dgmresCycle(const MatrixType& mat, c
   } else
     x = x + precond.solve(m_V.leftCols(it) * nrs);
 
-  // Go for a new cycle and compute data for deflation
-  if (nbIts < m_iterations && m_info == NoConvergence && m_neig > 0 && (m_r + m_neig) < m_maxNeig)
+  // Go for a new cycle and compute data for deflation. A conjugate pair adds m_neig + 1 columns to m_U, which has
+  // m_maxNeig columns, at most n of them independent.
+  if (nbIts < m_iterations && m_info == NoConvergence && m_neig > 0 && (m_r + m_neig) < (std::min)(m_maxNeig, n))
     dgmresComputeDeflationData(mat, precond, it, m_neig);
   return 0;
 }
@@ -384,101 +382,68 @@ void DGMRES<MatrixType_, Preconditioner_>::dgmresInitDeflation(Index& rows) cons
   m_U.resize(rows, m_maxNeig);
   m_MU.resize(rows, m_maxNeig);
   m_T.resize(m_maxNeig, m_maxNeig);
-  m_lambdaN = 0.0;
-  m_isDeflAllocated = true;
-}
-
-template <typename MatrixType_, typename Preconditioner_>
-inline typename DGMRES<MatrixType_, Preconditioner_>::ComplexVector DGMRES<MatrixType_, Preconditioner_>::schurValues(
-    const ComplexSchur<DenseMatrix>& schurofH) const {
-  return schurofH.matrixT().diagonal();
-}
-
-template <typename MatrixType_, typename Preconditioner_>
-inline typename DGMRES<MatrixType_, Preconditioner_>::ComplexVector DGMRES<MatrixType_, Preconditioner_>::schurValues(
-    const RealSchur<DenseMatrix>& schurofH) const {
-  const DenseMatrix& T = schurofH.matrixT();
-  Index it = T.rows();
-  ComplexVector eig(it);
-  Index j = 0;
-  while (j < it - 1) {
-    if (T(j + 1, j) == Scalar(0)) {
-      eig(j) = ComplexScalar(T(j, j), RealScalar(0));
-      j++;
-    } else {
-      // Complex pair of the 2x2 block, computed as in EigenSolver.
-      RealScalar p = RealScalar(0.5) * (T(j, j) - T(j + 1, j + 1));
-      RealScalar z = numext::sqrt(numext::abs(p * p + T(j + 1, j) * T(j, j + 1)));
-      eig(j) = ComplexScalar(T(j + 1, j + 1) + p, z);
-      eig(j + 1) = ComplexScalar(T(j + 1, j + 1) + p, -z);
-      j += 2;
-    }
-  }
-  if (j == it - 1) eig(j) = ComplexScalar(T(j, j), RealScalar(0));
-  return eig;
 }
 
 template <typename MatrixType_, typename Preconditioner_>
 Index DGMRES<MatrixType_, Preconditioner_>::dgmresComputeDeflationData(const MatrixType& mat,
                                                                        const Preconditioner& precond, const Index& it,
                                                                        StorageIndex& neig) const {
-  // First, find the Schur form of the Hessenberg matrix H
-  std::conditional_t<NumTraits<Scalar>::IsComplex, ComplexSchur<DenseMatrix>, RealSchur<DenseMatrix> > schurofH;
-  bool computeU = true;
-  DenseMatrix matrixQ(it, it);
-  matrixQ.setIdentity();
-  schurofH.computeFromHessenberg(m_Hes.topLeftCorner(it, it), matrixQ, computeU);
-
-  ComplexVector eig = this->schurValues(schurofH);
+  // Ritz pairs of the Hessenberg matrix H; perm ends with the neig Ritz values of smallest modulus, smallest last
+  std::conditional_t<NumTraits<Scalar>::IsComplex, ComplexEigenSolver<DenseMatrix>, EigenSolver<DenseMatrix> > eigH(
+      m_Hes.topLeftCorner(it, it));
+  if (eigH.info() != Success) return 0;
+  const ComplexVector& eig = eigH.eigenvalues();
+  DenseRealVector modulEig = eig.cwiseAbs();
   Matrix<StorageIndex, Dynamic, 1> perm(it);
-
-  // Reorder the absolute values of Schur values
-  DenseRealVector modulEig(it);
-  for (Index j = 0; j < it; ++j) modulEig(j) = numext::abs(eig(j));
   perm.setLinSpaced(it, 0, internal::convert_index<StorageIndex>(it - 1));
   internal::sortWithPermutation(modulEig, perm, neig);
 
   if (!m_lambdaN) {
-    m_lambdaN = (std::max)(modulEig.maxCoeff(), m_lambdaN);
+    m_lambdaN = modulEig.maxCoeff();
   }
-  // Count the real number of extracted eigenvalues (with complex conjugates)
+  // Basis of the invariant subspace of H for those Ritz values. A real conjugate pair is taken whole, so up to
+  // neig + 1 columns are extracted; each position visited adds a column or holds the partner of a pair already taken,
+  // so the loop reads only the neig sorted positions.
+  const DenseMatrix& ritzVecs = ritzVectors(eigH);
+  DenseMatrix Y(it, neig + 1);
+  std::vector<bool> taken(it, false);
   Index nbrEig = 0;
-  while (nbrEig < neig) {
-    if (eig(perm(it - nbrEig - 1)).imag() == RealScalar(0))
-      nbrEig++;
-    else
-      nbrEig += 2;
-  }
-  // Extract the  Schur vectors corresponding to the smallest Ritz values
-  DenseMatrix Sr(it, nbrEig);
-  Sr.setZero();
-  for (Index j = 0; j < nbrEig; j++) {
-    Sr.col(j) = schurofH.matrixU().col(perm(it - j - 1));
-  }
-
-  // Form the Schur vectors of the initial matrix using the Krylov basis
-  DenseMatrix X = m_V.leftCols(it) * Sr;
-  if (m_r) {
-    // Orthogonalize X against m_U using modified Gram-Schmidt
-    for (Index j = 0; j < nbrEig; j++)
-      for (Index k = 0; k < m_r; k++) X.col(j) = X.col(j) - (m_U.col(k).dot(X.col(j))) * m_U.col(k);
+  for (Index k = it - 1; k >= 0 && nbrEig < neig; --k) {
+    Index first = perm(k), count = 1;
+    if (taken[first]) continue;
+    if (!NumTraits<Scalar>::IsComplex && numext::imag(eig(first)) != RealScalar(0)) {
+      // The pair's eigenvalue with positive imaginary part comes first.
+      if (numext::imag(eig(first)) < RealScalar(0)) --first;
+      count = 2;
+    }
+    Y.middleCols(nbrEig, count) = ritzVecs.middleCols(first, count);
+    for (Index j = first; j < first + count; ++j) taken[j] = true;
+    nbrEig += count;
   }
 
-  // Compute MX = M^-1 * A * X
+  // Lift to the Krylov basis, orthogonalize against the current deflation vectors, and orthonormalize. QR leaves
+  // ||U^H X|| ~ eps cond(X), so a second pass restores orthogonality when the Ritz vectors are nearly dependent.
   Index m = m_V.rows();
-  if (!m_isDeflAllocated) dgmresInitDeflation(m);
+  DenseMatrix X = m_V.leftCols(it) * Y.leftCols(nbrEig);
+  for (int pass = 0; pass < (m_r > 0 ? 2 : 1); ++pass) {
+    if (m_r > 0) X -= m_U.leftCols(m_r) * (m_U.leftCols(m_r).adjoint() * X);
+    X = HouseholderQR<DenseMatrix>(X).householderQ() * DenseMatrix::Identity(m, nbrEig);
+  }
+
+  // Compute MX = A * M^-1 * X: deflation acts on the right-preconditioned operator
+  if (m_r == 0) dgmresInitDeflation(m);
   DenseMatrix MX(m, nbrEig);
   DenseVector tv1(m);
   for (Index j = 0; j < nbrEig; j++) {
-    tv1.noalias() = mat * X.col(j);
-    MX.col(j) = precond.solve(tv1);
+    tv1 = precond.solve(X.col(j));
+    MX.col(j).noalias() = mat * tv1;
   }
 
   // Update m_T = [U'MU U'MX; X'MU X'MX]
-  m_T.block(m_r, m_r, nbrEig, nbrEig).noalias() = X.transpose() * MX;
+  m_T.block(m_r, m_r, nbrEig, nbrEig).noalias() = X.adjoint() * MX;
   if (m_r) {
-    m_T.block(0, m_r, m_r, nbrEig).noalias() = m_U.leftCols(m_r).transpose() * MX;
-    m_T.block(m_r, 0, nbrEig, m_r).noalias() = X.transpose() * m_MU.leftCols(m_r);
+    m_T.block(0, m_r, m_r, nbrEig).noalias() = m_U.leftCols(m_r).adjoint() * MX;
+    m_T.block(m_r, 0, nbrEig, m_r).noalias() = X.adjoint() * m_MU.leftCols(m_r);
   }
 
   // Save X into m_U and m_MX in m_MU
@@ -497,7 +462,7 @@ Index DGMRES<MatrixType_, Preconditioner_>::dgmresComputeDeflationData(const Mat
 template <typename MatrixType_, typename Preconditioner_>
 template <typename RhsType, typename DestType>
 Index DGMRES<MatrixType_, Preconditioner_>::dgmresApplyDeflation(const RhsType& x, DestType& y) const {
-  DenseVector x1 = m_U.leftCols(m_r).transpose() * x;
+  DenseVector x1 = m_U.leftCols(m_r).adjoint() * x;
   y = x + m_U.leftCols(m_r) * (m_lambdaN * m_luT.solve(x1) - x1);
   return 0;
 }
