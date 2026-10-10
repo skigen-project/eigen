@@ -70,6 +70,18 @@ struct pow2_scaling_functor : Functor<double> {
   VectorXd scale;
 };
 
+// When used with forward or central differences about x=1, this will just return the step size, h, used.
+struct step_size_functor : Functor<double> {
+  step_size_functor() : Functor<double>(1, 1) {}
+  int operator()(const VectorXd &x, VectorXd &fvec) const {
+    fvec[0] = (x[0] - 1) * (x[0] - 1);
+    if (x[0] < 1.0) {
+      fvec[0] *= -1.0;
+    }
+    return 0;
+  }
+};
+
 void test_forward() {
   VectorXd x(3);
   MatrixXd jac(15, 3);
@@ -142,12 +154,62 @@ void test_step_alignment(double epsfcn) {
   VERIFY_IS_EQUAL(jac, expected);
 }
 
+void test_step_size() {
+  step_size_functor functor;
+  VectorXd x(1);
+  MatrixXd jac(1, 1);
+  MatrixXd expected(1, 1);
+
+  x << 1.0;
+
+  // Test that setting relative step size gives the expected answer
+  NumericalDiff<step_size_functor> numDiffRel(functor, 1e-4);
+  numDiffRel.df(x, jac);
+  expected << 1e-4;
+  VERIFY_IS_APPROX(jac, expected);
+
+  // Test that setting absolute step size higher than relative step gives the
+  // absolute step size here since 1 * rel_tol < abs_tol
+  NumericalDiff<step_size_functor> numDiffAbs(functor, 1e-4, 1e-2);
+  expected << 1e-2;
+  numDiffAbs.df(x, jac);
+  VERIFY_IS_APPROX(jac, expected);
+
+  // Test that setting absolute step size lower than relative step gives the
+  // absolute step size here since 1 * rel_tol > abs_tol
+  NumericalDiff<step_size_functor> numDiffAbsLow(functor, 1e-4, 1e-6);
+  expected << 1e-4;
+  numDiffAbsLow.df(x, jac);
+  VERIFY_IS_APPROX(jac, expected);
+
+  // Test that setting relative step size gives the expected answer for central differences
+  NumericalDiff<step_size_functor, Central> numDiffCentralRel(functor, 1e-4);
+  numDiffCentralRel.df(x, jac);
+  expected << 1e-4;
+  VERIFY_IS_APPROX(jac, expected);
+
+  // Test that setting absolute step size higher than relative step gives the
+  // absolute step size here since 1 * rel_tol < abs_tol
+  NumericalDiff<step_size_functor, Central> numDiffCentralAbs(functor, 1e-4, 1e-2);
+  expected << 1e-2;
+  numDiffCentralAbs.df(x, jac);
+  VERIFY_IS_APPROX(jac, expected);
+
+  // Test that setting absolute step size lower than relative step gives the
+  // absolute step size here since 1 * rel_tol > abs_tol
+  NumericalDiff<step_size_functor> numDiffCentralAbsLow(functor, 1e-4, 1e-6);
+  expected << 1e-4;
+  numDiffCentralAbsLow.df(x, jac);
+  VERIFY_IS_APPROX(jac, expected);
+}
+
 EIGEN_DECLARE_TEST(NumericalDiff) {
   CALL_SUBTEST(test_forward());
   CALL_SUBTEST(test_central());
   CALL_SUBTEST(test_small());
-  CALL_SUBTEST(test_step_alignment<Forward>(0.0));
-  CALL_SUBTEST(test_step_alignment<Central>(0.0));
+  CALL_SUBTEST(test_step_size());
+  CALL_SUBTEST(test_step_alignment<Forward>(std::sqrt(std::numeric_limits<double>::epsilon())));
+  CALL_SUBTEST(test_step_alignment<Central>(std::cbrt(std::numeric_limits<double>::epsilon())));
   // A non-dyadic eps also misaligns the absolute step taken for |x| < 1.
   CALL_SUBTEST(test_step_alignment<Forward>(1e-10));
   CALL_SUBTEST(test_step_alignment<Central>(1e-10));

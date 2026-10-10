@@ -56,24 +56,41 @@ class NumericalDiff : public Functor_ {
   typedef typename Functor::ValueType ValueType;
   typedef typename Functor::JacobianType JacobianType;
 
-  NumericalDiff(Scalar _epsfcn = 0.) : Functor(), epsfcn(_epsfcn) {}
-  NumericalDiff(const Functor& f, Scalar _epsfcn = 0.) : Functor(f), epsfcn(_epsfcn) {}
+ private:
+  // Fallback/Forward mode helper
+  template <NumericalDiffMode M = mode, typename std::enable_if_t<M == Forward, int> = 0>
+  static Scalar defaultRelTol() {
+    return std::sqrt(NumTraits<Scalar>::epsilon());
+  }
+
+  // Central mode helper
+  template <NumericalDiffMode M = mode, typename std::enable_if_t<M == Central, int> = 0>
+  static Scalar defaultRelTol() {
+    return std::cbrt(NumTraits<Scalar>::epsilon());
+  }
+
+ public:
+  NumericalDiff(Scalar _rel_tol = defaultRelTol(), Scalar _abs_tol = NumTraits<Scalar>::quiet_NaN())
+      : Functor(), rel_tol(_rel_tol), abs_tol((std::isnan)(_abs_tol) ? _rel_tol : _abs_tol) {}
+  NumericalDiff(const Functor& f, Scalar _rel_tol = defaultRelTol(), Scalar _abs_tol = NumTraits<Scalar>::quiet_NaN())
+      : Functor(f), rel_tol(_rel_tol), abs_tol((std::isnan)(_abs_tol) ? _rel_tol : _abs_tol) {}
 
   // forward constructors
   template <typename T0>
-  NumericalDiff(const T0& a0) : Functor(a0), epsfcn(0) {}
+  NumericalDiff(const T0& a0) : Functor(a0), rel_tol(defaultRelTol()), abs_tol(defaultRelTol()) {}
   template <typename T0, typename T1>
-  NumericalDiff(const T0& a0, const T1& a1) : Functor(a0, a1), epsfcn(0) {}
+  NumericalDiff(const T0& a0, const T1& a1) : Functor(a0, a1), rel_tol(defaultRelTol()), abs_tol(defaultRelTol()) {}
   template <typename T0, typename T1, typename T2>
-  NumericalDiff(const T0& a0, const T1& a1, const T2& a2) : Functor(a0, a1, a2), epsfcn(0) {}
+  NumericalDiff(const T0& a0, const T1& a1, const T2& a2)
+      : Functor(a0, a1, a2), rel_tol(defaultRelTol()), abs_tol(defaultRelTol()) {}
 
   enum { InputsAtCompileTime = Functor::InputsAtCompileTime, ValuesAtCompileTime = Functor::ValuesAtCompileTime };
 
   /**
    * Computes the Jacobian of the functor at \a _x into \a jac and returns the number of functor evaluations.
    *
-   * The step along coordinate \c j is <tt>h = eps * max(|x[j]|, 1)</tt> with <tt>eps = sqrt(max(epsfcn, epsilon))</tt>
-   * and \c epsilon the machine precision NumTraits<Scalar>::epsilon(); the difference quotient divides by the
+   * The step along coordinate \c j is <tt>h = max(|x[j]| * rel_tol, abs_tol)</tt> with rel_tol and abs_tol selected by
+   * the user and \c epsilon the machine precision NumTraits<Scalar>::epsilon(); the difference quotient divides by the
    * representable step <tt>fl(x[j] + h) - x[j]</tt> actually applied.
    */
   int df(const InputType& _x, JacobianType& jac) const {
@@ -83,7 +100,6 @@ class NumericalDiff : public Functor_ {
     Scalar h;
     int nfev = 0;
     const typename InputType::Index n = _x.size();
-    const Scalar eps = sqrt(((std::max)(epsfcn, NumTraits<Scalar>::epsilon())));
     ValueType val1, val2;
     InputType x = _x;
     // TODO: We should do this only if the size is not already known.
@@ -107,9 +123,9 @@ class NumericalDiff : public Functor_ {
     // Function Body
     for (int j = 0; j < n; ++j) {
       const Scalar x_abs = abs(x[j]);
-      h = numext::maxi(x_abs, Scalar(1)) * eps;
+      h = numext::maxi(x_abs * rel_tol, abs_tol);
       // The functor is evaluated at fl(x[j] + h), so divide by that representable step: the rounding
-      // of x[j] + h perturbs h by up to ulp(x[j]) <= epsilon/eps * h <= sqrt(epsilon) * h, comparable
+      // of x[j] + h perturbs h by up to ulp(x[j]) <= epsilon/abs_tol * h <= abs_tol * h, comparable
       // to the error of the difference quotient itself.
       Scalar x_plus = _x[j] + h;
       internal::numerical_diff_barrier(x_plus);
@@ -145,7 +161,8 @@ class NumericalDiff : public Functor_ {
   }
 
  private:
-  Scalar epsfcn;
+  Scalar rel_tol;
+  Scalar abs_tol;
 
   NumericalDiff& operator=(const NumericalDiff&) = delete;
 };
