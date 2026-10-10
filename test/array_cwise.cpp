@@ -1468,20 +1468,34 @@ void cast_truncation_test() {
   for (Index k = 0; k < Size; ++k) VERIFY_IS_EQUAL(dst(k), static_cast<int>(src(k)));
 }
 
+// Clang before 21 vectorizes a scalar 64-bit integer to float loop through double on AArch64, which rounds twice.
+// Eigen runs such a loop for a type it has no vectorized cast for: both types without vectorization, and uint64 in
+// the generic backend.
+#if EIGEN_ARCH_ARM64 && (EIGEN_CLANG_STRICT_LESS_THAN(21, 0, 0) || EIGEN_COMP_CLANGAPPLE) && \
+    !defined(EIGEN_VECTORIZE_NEON) && !defined(EIGEN_VECTORIZE_SVE)
+#define UINT64_TO_FLOAT_ROUNDS_ONCE 0
+#ifdef EIGEN_VECTORIZE_GENERIC
+#define INT64_TO_FLOAT_ROUNDS_ONCE 1
+#else
+#define INT64_TO_FLOAT_ROUNDS_ONCE 0
+#endif
+#else
+#define INT64_TO_FLOAT_ROUNDS_ONCE 1
+#define UINT64_TO_FLOAT_ROUNDS_ONCE 1
+#endif
+
 // cast_test compares approximately. A 64-bit integer must round to float once: 2^60 + 2^36 + 1 rounds up, but
 // rounding through double first lands on the midpoint 2^60 + 2^36, which ties down to 2^60.
-template <typename = void>
+template <typename T>
 void int64_to_float_cast_test() {
-  const int64_t big = (int64_t(1) << 60) + (int64_t(1) << 36) + 1;
-  const ArrayX<int64_t> a =
-      ArrayX<int64_t>::LinSpaced(17, 0, 16).unaryExpr([&](int64_t i) { return i % 2 ? big : -big; });
-  const ArrayXf f = a.cast<float>(), g = a.abs().cast<uint64_t>().cast<float>();
+  const bool is_signed = std::is_signed<T>::value;
+  const T big = (T(1) << 60) + (T(1) << 36) + 1;
+  ArrayX<T> a(17);
+  for (Index i = 0; i < a.size(); ++i) a(i) = is_signed && i % 2 == 0 ? T(0) - big : big;
+  const ArrayXf f = a.template cast<float>();
   // 2^60 + 2^37, spelled exactly: MSVC folds a constant int64-to-float conversion through double.
   const float rounded = std::ldexp(1.f + std::ldexp(1.f, -23), 60);
-  for (Index i = 0; i < a.size(); ++i) {
-    VERIFY_IS_EQUAL(f(i), i % 2 ? rounded : -rounded);
-    VERIFY_IS_EQUAL(g(i), rounded);
-  }
+  for (Index i = 0; i < a.size(); ++i) VERIFY_IS_EQUAL(f(i), is_signed && i % 2 == 0 ? -rounded : rounded);
 }
 
 // Float midpoints 2^e + (k + 1/2) ulp, offset in the low 12 bits, on both sides of 2^53. The reference converts behind
@@ -1688,9 +1702,14 @@ EIGEN_DECLARE_TEST(array_cwise) {
     CALL_SUBTEST_28((cast_truncation_test<double, 8>()));
     CALL_SUBTEST_28((cast_truncation_test<double, 16>()));
     CALL_SUBTEST_28((cast_truncation_test<float, 16>()));
-    CALL_SUBTEST_28(int64_to_float_cast_test<>());
+#if INT64_TO_FLOAT_ROUNDS_ONCE
+    CALL_SUBTEST_28(int64_to_float_cast_test<int64_t>());
     CALL_SUBTEST_28(int64_to_float_midpoint_cast_test<int64_t>());
+#endif
+#if UINT64_TO_FLOAT_ROUNDS_ONCE
+    CALL_SUBTEST_28(int64_to_float_cast_test<uint64_t>());
     CALL_SUBTEST_28(int64_to_float_midpoint_cast_test<uint64_t>());
+#endif
     CALL_SUBTEST_29((cast_test<3, 1>()));
     CALL_SUBTEST_30((cast_test<5, 1>()));
     CALL_SUBTEST_31((cast_test<9, 1>()));
