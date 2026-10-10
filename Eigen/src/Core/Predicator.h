@@ -30,6 +30,9 @@ struct nonzero_predicate {
 template <typename Scalar>
 struct functor_traits<nonzero_predicate<Scalar>> {
   static constexpr bool PacketAccess = packet_traits<Scalar>::HasCmp;
+  // Accepts that ARMv7 NEON reads a subnormal float as zero: packets compare there already, and grouped scalar tests
+  // may be vectorized onto it. Testing float one at a time instead cost 0.7-0.85x at sizes with a scalar tail on
+  // Cortex-A72.
   static constexpr bool GroupScalars = true;
 };
 
