@@ -2451,6 +2451,15 @@ void packetmath_complex() {
     data1[2] = Scalar(-(std::numeric_limits<RealScalar>::min)(), -denorm);
     data1[3] = Scalar(denorm, -below_two_min);
     check_sqrt_components();
+#if !EIGEN_ARCH_ARM
+    // A subnormal minor component is rounded once: 0.5 * (y / rho) rounded (2/3) * denorm_min to 0.
+    const RealScalar nine_sixteenths = RealScalar(0.5625);
+    data1[0] = Scalar(nine_sixteenths, denorm);
+    data1[1] = Scalar(-nine_sixteenths, denorm);
+    data1[2] = Scalar(nine_sixteenths, -denorm);
+    data1[3] = Scalar(-nine_sixteenths, -denorm);
+    check_sqrt_components();
+#endif
     data1[0] = Scalar(nan, zero);
     data1[1] = Scalar(zero, nan);
     data1[2] = Scalar(nan, one);
