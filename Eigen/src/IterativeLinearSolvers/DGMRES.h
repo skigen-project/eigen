@@ -238,6 +238,7 @@ void DGMRES<MatrixType_, Preconditioner_>::dgmres(const MatrixType& mat, const R
     x.setZero();
     m_error = 0;
     m_iterations = 0;
+    m_info = Success;
     return;
   }
 

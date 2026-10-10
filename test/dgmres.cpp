@@ -137,6 +137,10 @@ void test_dgmres_iterations_T() {
     VERIFY_IS_EQUAL(stalled.info(), NoConvergence);
     VERIFY(stalled.iterations() <= stalled.maxIterations());
     VERIFY_IS_EQUAL(stalled.iterations(), k);
+    // A zero right hand side after a failed solve reports success, not the previous solve's status.
+    xs = stalled.solve(Vec::Zero(m));
+    VERIFY(xs.isZero());
+    VERIFY_IS_EQUAL(stalled.info(), Success);
   }
 }
 
