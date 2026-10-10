@@ -87,16 +87,19 @@ struct functor_traits<fuzzy_constant_predicate<Scalar, Approximate>> {
   static constexpr bool GroupScalars = PacketAccess;
 };
 
-// Searches for a coefficient on which the predicate is Target: any_of searches for true, all_of for false.
-template <bool Target>
-struct predicate_search;
-template <>
-struct predicate_search<true> {
-  static constexpr bool Identity = false;
+// Searches for a coefficient on which the predicate is Target: any_of searches for true, all_of for false. Packets
+// combine truth masks and test the combined mask; scalars search for a true test_scalar by OR, which vectorizes
+// better than an AND of test results.
+struct packet_predicate {
   template <typename Predicate, typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate& pred, const Packet& x) {
     return pred.packetOp(x);
   }
+};
+template <bool Target>
+struct predicate_search;
+template <>
+struct predicate_search<true> : packet_predicate {
   template <typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Packet combine(const Packet& a, const Packet& b) {
     return por(a, b);
@@ -105,20 +108,13 @@ struct predicate_search<true> {
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool found(const Packet& m) {
     return predux_any(m);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a | b; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return b; }
   template <typename Predicate, typename Scalar>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool test_scalar(const Predicate& pred, const Scalar& x) {
     return pred(x);
   }
 };
 template <>
-struct predicate_search<false> {
-  static constexpr bool Identity = false;
-  template <typename Predicate, typename Packet>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate& pred, const Packet& x) {
-    return pred.packetOp(x);
-  }
+struct predicate_search<false> : packet_predicate {
   template <typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Packet combine(const Packet& a, const Packet& b) {
     return pand(a, b);
@@ -128,9 +124,6 @@ struct predicate_search<false> {
   static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool found(const Packet& m) {
     return predux_any(pandnot(ptrue(m), m));
   }
-  // Scalars search for a false test as an OR reduction, which vectorizes better than an AND of test results.
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a | b; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return b; }
   template <typename Predicate, typename Scalar>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool test_scalar(const Predicate& pred, const Scalar& x) {
     return !pred(x);
@@ -139,18 +132,12 @@ struct predicate_search<false> {
 
 // all_of(nonzero) searches for zero lanes, x == 0 being the exact complement of x != 0: a single compare per packet
 // and no complement of the combined mask, which some compilers otherwise lower through narrowing and widening.
+// Scalars still test the predicate: a coefficient is found where it is false.
 struct zero_lane_search : predicate_search<true> {
   template <typename Predicate, typename Packet>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet apply(const Predicate&, const Packet& x) {
     return pcmp_eq(x, pzero(x));
   }
-  using predicate_search<true>::combine;
-  using predicate_search<true>::found;
-  // Scalars still test the predicate: a coefficient is found where it is false.
-  static constexpr bool Identity = false;
-  // Scalars search for a false test as an OR reduction, which vectorizes better than an AND of test results.
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool combine(bool a, bool b) { return a | b; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool found(bool b) { return b; }
   template <typename Predicate, typename Scalar>
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool test_scalar(const Predicate& pred, const Scalar& x) {
     return !pred(x);
@@ -216,25 +203,29 @@ template <typename Predicate>
 struct predicate_groups_scalars<Predicate, void_t<decltype(functor_traits<Predicate>::GroupScalars)>>
     : bool_constant<static_cast<bool>(functor_traits<Predicate>::GroupScalars)> {};
 
+// Scalar searches OR their tests without a branch per test; spelling a | b on the calls directly draws clang's
+// -Wbitwise-instead-of-logical.
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_or(bool a, bool b) { return a | b; }
+
 // At most three coefficients from i on, as straight-line tests.
 template <typename Search, typename Segment, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_upto3(const Segment& seg, Index i, Predicate pred) {
   const Index size = seg.size();
   if (i == size) return false;
   bool b = Search::test_scalar(pred, seg.coeff(i));
-  if (i + 1 < size) b = Search::combine(b, Search::test_scalar(pred, seg.coeff(i + 1)));
-  if (i + 2 < size) b = Search::combine(b, Search::test_scalar(pred, seg.coeff(i + 2)));
-  return Search::found(b);
+  if (i + 1 < size) b = predicate_or(b, Search::test_scalar(pred, seg.coeff(i + 1)));
+  if (i + 2 < size) b = predicate_or(b, Search::test_scalar(pred, seg.coeff(i + 2)));
+  return b;
 }
 
 template <typename Search, typename Segment, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_scalar(const Segment& seg, Index i, Predicate pred) {
   const Index size = seg.size();
   for (; i + 3 < size; i += 4) {
-    bool b = Search::combine(
-        Search::combine(Search::test_scalar(pred, seg.coeff(i)), Search::test_scalar(pred, seg.coeff(i + 1))),
-        Search::combine(Search::test_scalar(pred, seg.coeff(i + 2)), Search::test_scalar(pred, seg.coeff(i + 3))));
-    if EIGEN_PREDICT_FALSE (Search::found(b)) return true;
+    bool b = predicate_or(
+        predicate_or(Search::test_scalar(pred, seg.coeff(i)), Search::test_scalar(pred, seg.coeff(i + 1))),
+        predicate_or(Search::test_scalar(pred, seg.coeff(i + 2)), Search::test_scalar(pred, seg.coeff(i + 3))));
+    if EIGEN_PREDICT_FALSE (b) return true;
   }
   return predicate_search_upto3<Search>(seg, i, pred);
 }
@@ -243,7 +234,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool predicate_search_scalar(const Segment
 template <typename Search, typename Segment, typename Predicate>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool predicate_search_sequential(const Segment& seg, Index i, Predicate pred) {
   for (const Index size = seg.size(); i < size; ++i)
-    if (Search::found(Search::test_scalar(pred, seg.coeff(i)))) return true;
+    if (Search::test_scalar(pred, seg.coeff(i))) return true;
   return false;
 }
 
@@ -269,13 +260,13 @@ struct predicate_search_segment {
     if (EIGEN_PREDICT_FALSE(size < 4)) return predicate_search_upto3<Search>(seg, 0, pred);
     Index i = 0;
     for (; i + 64 <= size; i += 64) {
-      bool b = Search::Identity;
+      bool b = false;
       for (Index k = 0; k < 64; k += 4)
-        b = Search::combine(b, Search::combine(Search::combine(Search::test_scalar(pred, seg.coeff(i + k)),
-                                                               Search::test_scalar(pred, seg.coeff(i + k + 1))),
-                                               Search::combine(Search::test_scalar(pred, seg.coeff(i + k + 2)),
-                                                               Search::test_scalar(pred, seg.coeff(i + k + 3)))));
-      if EIGEN_PREDICT_FALSE (Search::found(b)) return true;
+        b = predicate_or(b, predicate_or(predicate_or(Search::test_scalar(pred, seg.coeff(i + k)),
+                                                      Search::test_scalar(pred, seg.coeff(i + k + 1))),
+                                         predicate_or(Search::test_scalar(pred, seg.coeff(i + k + 2)),
+                                                      Search::test_scalar(pred, seg.coeff(i + k + 3)))));
+      if EIGEN_PREDICT_FALSE (b) return true;
     }
     return predicate_search_scalar<Search>(seg, i, pred);
   }
