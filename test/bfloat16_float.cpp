@@ -84,6 +84,14 @@ void test_conversion() {
   VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(std::ldexp(2.5, -133) + std::ldexp(1.0, -160)), 0x0003);
   VERIFY((numext::isnan)(bfloat16(std::numeric_limits<double>::quiet_NaN())));
 
+  // An integer of more than 24 bits rounds once too: just above the midpoint 2^30 + 2^22 it rounds up, although its
+  // float rounding is the midpoint. 64-bit integers beyond 2^53 do not fit double either.
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(int32_t((1 << 30) + (1 << 22) + 1)), 0x4e81);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(uint32_t((1u << 31) + (1u << 23) + 1)), 0x4f01);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(-((int64_t(1) << 40) + (int64_t(1) << 32) + 1)), 0xd381);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(-((int64_t(1) << 60) + (int64_t(1) << 52) + 1)), 0xdd81);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16((uint64_t(1) << 63) + (uint64_t(1) << 55) + 1), 0x5f01);
+
   // Conversion from int.
   VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(-1), 0xbf80);
   VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(0), 0x0000);

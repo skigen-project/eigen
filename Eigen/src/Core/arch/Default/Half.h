@@ -169,21 +169,44 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC numext::uint16_t raw_half_as_uint16(const 
 EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC __half_raw float_to_half_rtne(float ff);
 EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC float half_to_float(__half_raw h);
 
-// Narrowing a wider floating-point value through float rounds twice. Rounding to odd in the first step keeps the
-// second rounding, to a format at least two bits narrower than float, correct.
+// Narrowing a wider floating-point value or an integer of more than 24 bits through float rounds twice. Rounding to
+// odd in the first step keeps the second rounding, to a format at least two bits narrower than float, correct.
+// Paths: 1 for wider floating-point types; 2 for integers that double holds exactly; 3 for 64-bit integers, which are
+// first rounded to odd on the multiples of 2^11 where |x| >= 2^53, so that double holds them exactly; 0 casts directly.
 template <typename T>
-EIGEN_DEVICE_FUNC inline std::enable_if_t<std::is_floating_point<T>::value && (sizeof(T) > sizeof(float)), float>
-narrow_to_float(const T& val) {
+struct narrow_to_float_path
+    : std::integral_constant<int, std::is_floating_point<T>::value ? (sizeof(T) > sizeof(float) ? 1 : 0)
+                                  : !std::is_integral<T>::value || std::numeric_limits<T>::digits <= 24 ? 0
+                                  : std::numeric_limits<T>::digits <= 53                                ? 2
+                                  : std::numeric_limits<T>::digits <= 64                                ? 3
+                                                                                                        : 0> {};
+
+template <typename T, std::enable_if_t<narrow_to_float_path<T>::value == 0, int> = 0>
+EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
+  return static_cast<float>(val);
+}
+template <typename T, std::enable_if_t<narrow_to_float_path<T>::value == 1, int> = 0>
+EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
   const float f = static_cast<float>(val);
   if (static_cast<T>(f) == val || (numext::isnan)(val)) return f;
   // Inexact: truncate toward zero, then set the last bit.
   const bool away = numext::abs(static_cast<T>(f)) > numext::abs(val);
   return numext::bit_cast<float>((numext::bit_cast<numext::uint32_t>(f) - (away ? 1u : 0u)) | 1u);
 }
-template <typename T>
-EIGEN_DEVICE_FUNC inline std::enable_if_t<!(std::is_floating_point<T>::value && (sizeof(T) > sizeof(float))), float>
-narrow_to_float(const T& val) {
-  return static_cast<float>(val);
+template <typename T, std::enable_if_t<narrow_to_float_path<T>::value == 2, int> = 0>
+EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
+  return narrow_to_float(static_cast<double>(val));
+}
+template <typename T, std::enable_if_t<narrow_to_float_path<T>::value == 3, int> = 0>
+EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
+  using U = std::make_unsigned_t<T>;
+  const U u = static_cast<U>(val);
+  // In two's complement, clearing the low bits rounds toward -inf for either sign; setting bit 11 then picks the odd
+  // neighbor.
+  const U low = 0x7ff;
+  const U odd = (u & ~low) | ((u & low) != 0 ? U(0x800) : U(0));
+  const U magnitude = std::is_signed<T>::value && (u >> (sizeof(U) * CHAR_BIT - 1)) ? U(0) - u : u;
+  return narrow_to_float(static_cast<double>(magnitude >= (U(1) << 53) ? numext::bit_cast<T>(odd) : val));
 }
 
 struct half_base : public __half_raw {
