@@ -611,14 +611,34 @@ Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& sub
   assigned.setZero();
   Matrix<Index, Dynamic, 1> local_index(m);
   Array<bool, Dynamic, 1> claimed = Array<bool, Dynamic, 1>::Constant(n, false);
-  // Sturm count over block b of its eigenvalues strictly below the unnormalized shift x (normalized
-  // by the block's own scale, as the block's alpha/beta data is).
-  auto count_below = [&](Index b, RealScalar x) -> Index {
+  // The shift x + t (t a tolerance of either sign) in block b's normalized units, clamped to +-16. The normalized
+  // entries are below 4, so the block's spectrum lies in (-12, 12) there and the Sturm count anywhere beyond +-16 is 0
+  // or nb: clamping changes no count, and keeps x + t and (x + t) / bscale from overflowing (for x within t of the
+  // overflow threshold, or far outside a small block). Each operation stays in range on both sides of every select,
+  // which compilers may evaluate eagerly.
+  const RealScalar highest = NumTraits<RealScalar>::highest();
+  const RealScalar half_ulp_highest =
+      numext::ldexp(RealScalar(1), NumTraits<RealScalar>::max_exponent() - NumTraits<RealScalar>::digits() - 1);
+  auto normalized_shift = [&](Index b, RealScalar x, RealScalar t) -> RealScalar {
+    const RealScalar limit(16);
+    // x + t overflows iff x and t share a sign and |x| + |t| >= highest + half_ulp_highest. With a >= c their
+    // magnitudes, highest - a is exact for a >= highest / 2 and exceeds c otherwise, so this test is exact.
+    const RealScalar a = numext::maxi(numext::abs(x), numext::abs(t));
+    const RealScalar c = numext::mini(numext::abs(x), numext::abs(t));
+    const bool beyond = (x > RealScalar(0)) == (t > RealScalar(0)) && c - (highest - a) >= half_ulp_highest;
+    const RealScalar y = x + (beyond ? RealScalar(0) : t);
+    // limit * bscale where finite; beyond that, |y| / bscale < limit for every finite y.
+    const RealScalar ymax = numext::mini(bscale(b), highest / limit) * limit;
+    const RealScalar yn = numext::mini(numext::maxi(y, -ymax), ymax) / bscale(b);
+    return beyond ? (t > RealScalar(0) ? limit : -limit) : yn;
+  };
+  // Sturm count over block b of its eigenvalues strictly below the unnormalized shift x + t.
+  auto count_below = [&](Index b, RealScalar x, RealScalar t) -> Index {
     const Index b0 = bstart(b), nb = bstart(b + 1) - b0;
     return tridiagonal_sturm_count_below<RealScalar>(alpha_all.data() + b0, beta_sq_all.data() + b0, nb, bpivmin(b),
-                                                     x / bscale(b));
+                                                     normalized_shift(b, x, t));
   };
-  for (Index b = 0; b < nblocks; ++b) below_prev(b) = count_below(b, eivals[0] - btol(b));
+  for (Index b = 0; b < nblocks; ++b) below_prev(b) = count_below(b, eivals[0], -btol(b));
   below_edge = below_prev;
   Index ncarry = 0;
   Index g_begin = 0;
@@ -634,8 +654,9 @@ Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& sub
     while (true) {
       Index total = 0;
       for (Index b = 0; b < nblocks; ++b) {
-        const RealScalar bound = last ? eivals[m - 1] + (widened ? gtol : btol(b)) : mid_bound;
-        below_cur(b) = count_below(b, bound);
+        // t = -0 keeps a mid_bound of -0 intact: x + -0 == x for every x.
+        below_cur(b) =
+            last ? count_below(b, eivals[m - 1], widened ? gtol : btol(b)) : count_below(b, mid_bound, -RealScalar(0));
         caps(b) = numext::maxi(Index(0), below_cur(b) - below_prev(b));
         total += caps(b);
       }
@@ -644,7 +665,7 @@ Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& sub
       if (widened || !(first || last) || total >= g_end - g_begin + (last ? ncarry : 0)) break;
       widened = true;
       if (first) {
-        for (Index b = 0; b < nblocks; ++b) below_prev(b) = count_below(b, eivals[0] - gtol);
+        for (Index b = 0; b < nblocks; ++b) below_prev(b) = count_below(b, eivals[0], -gtol);
         below_edge = below_prev;
       }
     }
@@ -730,8 +751,10 @@ Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& sub
       std::sort(indices.data(), indices.data() + mb);
       endpoints.resize(2 * mb);
       counts.resize(2 * mb);
-      endpoints.head(mb) = (wloc.array() - btol(b)) / bscale(b);
-      endpoints.tail(mb) = (wloc.array() + btol(b)) / bscale(b);
+      for (Index k = 0; k < mb; ++k) {
+        endpoints(k) = normalized_shift(b, wloc(k), -btol(b));
+        endpoints(mb + k) = normalized_shift(b, wloc(k), btol(b));
+      }
       tridiagonal_sturm_counts(alpha_all.data() + b0, beta_sq_all.data() + b0, nb, bpivmin(b), endpoints.data(),
                                counts.data(), 2 * mb);
       bool needs_refinement = false;
