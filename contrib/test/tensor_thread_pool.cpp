@@ -899,6 +899,19 @@ void test_enqueue_with_args() {
   VERIFY_IS_EQUAL(sum.load(), 7);
 }
 
+// The async path constructs the forced-eval buffer's non-POD elements before evaluating into them.
+template <typename = void>
+void test_async_forced_eval_non_pod() {
+  Eigen::ThreadPool tp(4);
+  Eigen::ThreadPoolDevice thread_pool_device(&tp, 4);
+  Tensor<std::string, 1> in(64), out(64);
+  for (int i = 0; i < 64; ++i) in(i) = std::string(40, static_cast<char>('a' + i % 26));
+  Eigen::Barrier done(1);
+  out.device(thread_pool_device, [&done]() { done.Notify(); }) = in.eval();
+  done.Wait();
+  for (int i = 0; i < 64; ++i) VERIFY_IS_EQUAL(out(i), in(i));
+}
+
 template <typename = void>
 void test_multithread_random() {
   Eigen::ThreadPool tp(2);
@@ -1259,6 +1272,7 @@ EIGEN_DECLARE_TEST(tensor_thread_pool) {
   CALL_SUBTEST_12(test_multithread_random<>());
   CALL_SUBTEST_12(test_multithread_forced_eval_non_pod<>());
   CALL_SUBTEST_12(test_enqueue_with_args<>());
+  CALL_SUBTEST_12(test_async_forced_eval_non_pod<>());
 
   TestAllocator test_allocator;
   CALL_SUBTEST_13(test_multithread_shuffle<ColMajor>(nullptr));
