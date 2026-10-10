@@ -171,13 +171,15 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC float half_to_float(__half_raw h);
 
 // Narrowing a wider floating-point value or an integer of more than 24 bits through float rounds twice. Rounding to
 // odd in the first step keeps the second rounding, to a format at least two bits narrower than float, correct.
-// Paths: 1 for wider floating-point types; 2 for integers that double holds exactly; 3 for 64-bit integers, which are
-// first rounded to odd on the multiples of 2^11 where |x| >= 2^53, so that double holds them exactly; 0 casts directly.
+// Paths: 1 for wider floating-point types; 2 for integers of at most 32 bits, rounded to odd on the multiples of 2^8
+// where |x| >= 2^24, which float holds exactly and which keep a second rounding to p <= 15 bits correct (its midpoints
+// there are multiples of 2^(24 - p) >= 2^9), with no double arithmetic in device code; 3 for 64-bit integers, rounded
+// to odd on the multiples of 2^11 where |x| >= 2^53, which double holds exactly; 0 casts directly.
 template <typename T>
 struct narrow_to_float_path
     : std::integral_constant<int, std::is_floating_point<T>::value ? (sizeof(T) > sizeof(float) ? 1 : 0)
                                   : !std::is_integral<T>::value || std::numeric_limits<T>::digits <= 24 ? 0
-                                  : std::numeric_limits<T>::digits <= 53                                ? 2
+                                  : std::numeric_limits<T>::digits <= 32                                ? 2
                                   : std::numeric_limits<T>::digits <= 64                                ? 3
                                                                                                         : 0> {};
 
@@ -193,16 +195,21 @@ EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
   const bool away = numext::abs(static_cast<T>(f)) > numext::abs(val);
   return numext::bit_cast<float>((numext::bit_cast<numext::uint32_t>(f) - (away ? 1u : 0u)) | 1u);
 }
+// In two's complement, clearing the low bits rounds toward -inf for either sign; setting the next bit then picks the
+// odd neighbor.
 template <typename T, std::enable_if_t<narrow_to_float_path<T>::value == 2, int> = 0>
 EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
-  return narrow_to_float(static_cast<double>(val));
+  using U = std::make_unsigned_t<T>;
+  const U u = static_cast<U>(val);
+  const U low = 0xff;
+  const U odd = (u & ~low) | ((u & low) != 0 ? U(0x100) : U(0));
+  const U magnitude = std::is_signed<T>::value && (u >> (sizeof(U) * CHAR_BIT - 1)) ? U(0) - u : u;
+  return static_cast<float>(magnitude >= (U(1) << 24) ? numext::bit_cast<T>(odd) : val);
 }
 template <typename T, std::enable_if_t<narrow_to_float_path<T>::value == 3, int> = 0>
 EIGEN_DEVICE_FUNC inline float narrow_to_float(const T& val) {
   using U = std::make_unsigned_t<T>;
   const U u = static_cast<U>(val);
-  // In two's complement, clearing the low bits rounds toward -inf for either sign; setting bit 11 then picks the odd
-  // neighbor.
   const U low = 0x7ff;
   const U odd = (u & ~low) | ((u & low) != 0 ? U(0x800) : U(0));
   const U magnitude = std::is_signed<T>::value && (u >> (sizeof(U) * CHAR_BIT - 1)) ? U(0) - u : u;
@@ -270,9 +277,13 @@ struct half : public half_impl::half_base {
 
   explicit EIGEN_DEVICE_FUNC _EIGEN_MAYBE_CONSTEXPR half(bool b)
       : half_impl::half_base(half_impl::raw_uint16_to_half(b ? 0x3c00 : 0)) {}
-  template <class T>
+  template <class T, std::enable_if_t<!std::is_integral<T>::value, int> = 0>
   explicit EIGEN_DEVICE_FUNC half(T val)
       : half_impl::half_base(half_impl::float_to_half_rtne(half_impl::narrow_to_float(val))) {}
+  // Float rounds only integers beyond 2^24, which half overflows either way.
+  template <class T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  explicit EIGEN_DEVICE_FUNC half(T val)
+      : half_impl::half_base(half_impl::float_to_half_rtne(static_cast<float>(val))) {}
   explicit EIGEN_DEVICE_FUNC half(float f) : half_impl::half_base(half_impl::float_to_half_rtne(f)) {}
 
   // Following the convention of numpy, converting between complex and
