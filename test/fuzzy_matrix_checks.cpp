@@ -104,8 +104,10 @@ void check_fuzzy_boundaries() {
   STATIC_CHECK((internal::predicate_reduction<Mat, Predicate>::LinearAccess));
   STATIC_CHECK((!internal::predicate_reduction<Block<Mat>, Predicate>::LinearAccess));
   constexpr int packetSize = internal::packet_traits<Scalar>::size;
-  for (Index size :
-       {Index(1), Index(packetSize - 1), Index(packetSize), Index(packetSize + 1), Index(2 * packetSize + 1)}) {
+  // Sizes up to 9 * packetSize + 3 run the long path's 8-packet blocks, 4-packet block and remainder for every packet
+  // size.
+  for (Index size : {Index(1), Index(packetSize - 1), Index(packetSize), Index(packetSize + 1),
+                     Index(2 * packetSize + 1), Index(4 * packetSize), Index(9 * packetSize + 3)}) {
     // Unaligned linear access, including a packet crossing a column boundary.
     std::vector<Scalar> data(3 * size + 1);
     Map<Mat, Unaligned> matrix(data.data() + 1, 3, size);
@@ -120,17 +122,20 @@ void check_fuzzy_boundaries() {
       VERIFY(!matrix.isApproxToConstant(Scalar(0.5)));
     }
   }
-  for (Index inner : {Index(1), Index(packetSize), Index(packetSize + 1), Index(2 * packetSize + 1)}) {
-    Mat storage = Mat::Zero(inner + 2, inner + 2);
-    auto block = storage.block(1, 1, inner, inner);
-    for (Index k = 0; k < inner * inner; ++k) {
+  for (Index inner : {Index(1), Index(packetSize), Index(packetSize + 1), Index(2 * packetSize + 1),
+                      Index(4 * packetSize), Index(9 * packetSize + 3)}) {
+    // Three inner vectors of the given length.
+    const Index rows = Order == RowMajor ? 3 : inner, cols = Order == RowMajor ? inner : 3;
+    Mat storage = Mat::Zero(rows + 2, cols + 2);
+    auto block = storage.block(1, 1, rows, cols);
+    for (Index k = 0; k < rows * cols; ++k) {
       block.setZero();
       VERIFY(block.isZero());
-      block(k / inner, k % inner) = Scalar(1);
+      block(k / cols, k % cols) = Scalar(1);
       VERIFY(!block.isZero());
       block.setConstant(Scalar(0.5));
       VERIFY(block.isApproxToConstant(Scalar(0.5)));
-      block(k / inner, k % inner) = Scalar(1);
+      block(k / cols, k % cols) = Scalar(1);
       VERIFY(!block.isApproxToConstant(Scalar(0.5)));
     }
   }
