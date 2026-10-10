@@ -263,7 +263,7 @@ struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, tru
     const bool skipDiag = (UpLo & ZeroDiag) != 0, isLower = (UpLo & Lower) != 0;
     const Index size = actualLhs.size() - skipDiag;
     if (size <= 0) return;
-    Scalar* res = mat.data() + (!skipDiag ? 0 : (StorageOrder == RowMajor) != isLower ? 1 : mat.outerStride());
+    Scalar* res = mat.data() + (!skipDiag ? 0 : (int(StorageOrder) == RowMajor) != isLower ? 1 : mat.outerStride());
     selfadjoint_rank1_update<Scalar, Index, StorageOrder, UpLo&(Lower | Upper),
                              LhsBlasTraits::NeedToConjugate && NumTraits<Scalar>::IsComplex,
                              RhsBlasTraits::NeedToConjugate &&
