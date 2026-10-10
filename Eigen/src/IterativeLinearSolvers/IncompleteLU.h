@@ -44,6 +44,16 @@ class IncompleteLU : public SparseSolverBase<IncompleteLU<Scalar_> > {
   Index cols() const { return m_lu.cols(); }
 
   template <typename MatrixType>
+  IncompleteLU& analyzePattern(const MatrixType&) {
+    return *this;
+  }
+
+  template <typename MatrixType>
+  IncompleteLU& factorize(const MatrixType& mat) {
+    return compute(mat);
+  }
+
+  template <typename MatrixType>
   IncompleteLU& compute(const MatrixType& mat) {
     m_lu = mat;
     Index size = mat.cols();
@@ -76,6 +86,8 @@ class IncompleteLU : public SparseSolverBase<IncompleteLU<Scalar_> > {
     m_isInitialized = true;
     return *this;
   }
+
+  ComputationInfo info() const { return Success; }
 
   template <typename Rhs, typename Dest>
   void _solve_impl(const Rhs& b, Dest& x) const {

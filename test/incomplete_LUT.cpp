@@ -203,6 +203,35 @@ void test_empty() {
   VERIFY_IS_EQUAL(x.size(), 0);
 }
 
+// IncompleteLU::solve() did not compile, iterative solvers could not take IncompleteLU as a preconditioner, and its
+// elimination read past the pivot row, giving U(2,2) = 3 instead of 5 here. Without fill-in ILU(0) is the exact LU.
+template <typename T>
+void test_incompleteLU() {
+  using Vector = Matrix<T, Dynamic, 1>;
+  SparseMatrix<T> A(3, 3);
+  A.insert(0, 0) = T(2);
+  A.insert(1, 0) = T(1);
+  A.insert(1, 1) = T(3);
+  A.insert(1, 2) = T(4);
+  A.insert(2, 0) = T(1);
+  A.insert(2, 2) = T(5);
+  A.makeCompressed();
+  const Vector b = Vector::LinSpaced(3, T(1), T(3));
+
+  IncompleteLU<T> ilu(A);
+  VERIFY_IS_EQUAL(ilu.info(), Success);
+  Vector x = ilu.solve(b);
+  VERIFY_IS_APPROX(A * x, b);
+
+  BiCGSTAB<SparseMatrix<T>, IncompleteLU<T>> solver;
+  solver.analyzePattern(A);
+  solver.factorize(A);
+  VERIFY_IS_EQUAL(solver.info(), Success);
+  x = solver.solve(b);
+  VERIFY_IS_EQUAL(solver.info(), Success);
+  VERIFY_IS_APPROX(A * x, b);
+}
+
 EIGEN_DECLARE_TEST(incomplete_LUT) {
   CALL_SUBTEST_1((test_incompleteLUT_T<double, int>()));
   CALL_SUBTEST_1((test_incompleteLUT_T<float, int>()));
@@ -218,4 +247,5 @@ EIGEN_DECLARE_TEST(incomplete_LUT) {
   CALL_SUBTEST_5(test_zero_pivot_numerical_issue<double>());
   CALL_SUBTEST_5(test_pattern_value_separation<double>());
   CALL_SUBTEST_5(test_empty<double>());
+  CALL_SUBTEST_5(test_incompleteLU<double>());
 }
