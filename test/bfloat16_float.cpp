@@ -75,6 +75,14 @@ void test_conversion() {
                              0xbf81);
   VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(std::complex<double>(1.0 + std::ldexp(1.0, -8) + std::ldexp(1.0, -40), 0.0)),
                              0x3f81);
+  // Beyond float's range a double overflows to infinity or underflows to zero, keeping its sign. A bfloat16 subnormal
+  // just above the midpoint 2.5 * 2^-133 rounds up, although the excess is below float's subnormal spacing 2^-149.
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(1e39), 0x7f80);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(-1e39), 0xff80);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(1e-300), 0x0000);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(-1e-300), 0x8000);
+  VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(std::ldexp(2.5, -133) + std::ldexp(1.0, -160)), 0x0003);
+  VERIFY((numext::isnan)(bfloat16(std::numeric_limits<double>::quiet_NaN())));
 
   // Conversion from int.
   VERIFY_BFLOAT16_BITS_EQUAL(bfloat16(-1), 0xbf80);
