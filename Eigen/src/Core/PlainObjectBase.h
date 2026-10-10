@@ -441,6 +441,14 @@ class PlainObjectBase : public internal::dense_xpr_base<Derived>::type {
    */
   template <typename OtherDerived>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void conservativeResizeLike(const DenseBase<OtherDerived>& other) {
+    // A vector resized like a vector takes other's size, whatever its orientation.
+    eigen_assert(
+        (IsVectorAtCompileTime && OtherDerived::IsVectorAtCompileTime
+             ? MaxSizeAtCompileTime == Dynamic || other.size() <= MaxSizeAtCompileTime
+             : internal::check_implication(MaxRowsAtCompileTime != Dynamic, other.rows() <= MaxRowsAtCompileTime) &&
+                   internal::check_implication(MaxColsAtCompileTime != Dynamic,
+                                               other.cols() <= MaxColsAtCompileTime)) &&
+        "Invalid sizes when resizing a matrix or array.");
     internal::conservative_resize_like_impl<Derived, OtherDerived>::run(*this, other);
   }
 

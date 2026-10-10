@@ -148,6 +148,12 @@ void max_size_checks() {
   VERIFY_RAISES_ASSERT(m.conservativeResize(4, 6));
   Matrix<double, Dynamic, 1, ColMajor, 4, 1> v(2);
   VERIFY_RAISES_ASSERT(v.conservativeResize(8));
+  VERIFY_RAISES_ASSERT(m.conservativeResizeLike(MatrixXd::Zero(4, 6)));
+  VERIFY_RAISES_ASSERT(v.conservativeResizeLike(VectorXd::Zero(6)));
+  VERIFY_RAISES_ASSERT(v.conservativeResizeLike(RowVectorXd::Zero(6)));
+  // Within the maximum size, a vector resized like a transposed vector is valid.
+  v.conservativeResizeLike(RowVectorXd::Zero(4));
+  VERIFY_IS_EQUAL(v.size(), 4);
 }
 
 EIGEN_DECLARE_TEST(conservative_resize) {
