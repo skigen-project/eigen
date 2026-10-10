@@ -76,7 +76,8 @@ void test_non_spd() {
 void test_empty() {
   IncompleteCholesky<double> ic(SparseMatrix<double>(0, 0));
   VERIFY_IS_EQUAL(ic.info(), Success);
-  VERIFY_IS_EQUAL(ic.solve(VectorXd()).size(), 0);
+  VectorXd x = ic.solve(VectorXd());
+  VERIFY_IS_EQUAL(x.size(), 0);
 }
 
 EIGEN_DECLARE_TEST(incomplete_cholesky) {

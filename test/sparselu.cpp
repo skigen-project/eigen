@@ -182,7 +182,8 @@ template <typename T>
 void test_sparselu_empty() {
   SparseLU<SparseMatrix<T> > lu(SparseMatrix<T>(0, 0));
   VERIFY_IS_EQUAL(lu.info(), Success);
-  VERIFY_IS_EQUAL(lu.solve(Matrix<T, Dynamic, 1>()).size(), 0);
+  Matrix<T, Dynamic, 1> x = lu.solve(Matrix<T, Dynamic, 1>());
+  VERIFY_IS_EQUAL(x.size(), 0);
 }
 
 EIGEN_DECLARE_TEST(sparselu) {

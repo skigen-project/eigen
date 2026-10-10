@@ -199,7 +199,8 @@ template <typename T>
 void test_empty() {
   IncompleteLUT<T> ilut(SparseMatrix<T>(0, 0));
   VERIFY_IS_EQUAL(ilut.info(), Success);
-  VERIFY_IS_EQUAL(ilut.solve(Matrix<T, Dynamic, 1>()).size(), 0);
+  Matrix<T, Dynamic, 1> x = ilut.solve(Matrix<T, Dynamic, 1>());
+  VERIFY_IS_EQUAL(x.size(), 0);
 }
 
 EIGEN_DECLARE_TEST(incomplete_LUT) {

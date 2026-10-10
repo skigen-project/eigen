@@ -317,7 +317,8 @@ void test_sparseqr_empty() {
     SparseQR<SparseMatrix<T>, COLAMDOrdering<int> > qr(A);
     VERIFY_IS_EQUAL(qr.info(), Success);
     VERIFY_IS_EQUAL(qr.rank(), 0);
-    VERIFY_IS_EQUAL(qr.solve(Matrix<T, Dynamic, 1>::Ones(rows)).size(), 0);
+    Matrix<T, Dynamic, 1> x = qr.solve(Matrix<T, Dynamic, 1>::Ones(rows));
+    VERIFY_IS_EQUAL(x.size(), 0);
   }
 }
 
