@@ -9,14 +9,9 @@
 #include <benchmark/benchmark.h>
 #include <Eigen/Core>
 
-using namespace Eigen;
+#include "../bench_common.h"
 
-template <typename LhsScalar, typename RhsScalar>
-double trmvFlops(Index n) {
-  // TRMV: ~n^2 multiply-adds, of 2 flops (real), 4 (real times complex) or 8 (complex) each
-  const int complex_operands = int(NumTraits<LhsScalar>::IsComplex) + int(NumTraits<RhsScalar>::IsComplex);
-  return double(2 << complex_operands) * n * n;
-}
+using namespace Eigen;
 
 // y = triangularView<Mode>(A) * x
 template <typename LhsScalar, typename RhsScalar, unsigned int Mode, int StorageOrder = ColMajor>
@@ -33,8 +28,7 @@ static void BM_TRMV(benchmark::State& state) {
     benchmark::DoNotOptimize(y.data());
     benchmark::ClobberMemory();
   }
-  state.counters["GFLOPS"] = benchmark::Counter(
-      trmvFlops<LhsScalar, RhsScalar>(n), benchmark::Counter::kIsIterationInvariantRate, benchmark::Counter::kIs1000);
+  eigen_bench::setFlopRate(state, eigen_bench::trmvFlops<LhsScalar, RhsScalar>(n));
 }
 
 using cfloat = std::complex<float>;
