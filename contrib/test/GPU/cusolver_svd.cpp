@@ -140,7 +140,7 @@ void test_svd_solve_context(Index m, Index n, Index nrhs) {
 
   // Context-bound rvalue constructor adopts A when m >= n (a wide A is
   // transposed into a copy).
-  auto d_A = gpu::DeviceMatrix<Scalar>::fromHost(A, ctx.stream());
+  auto d_A = gpu::DeviceMatrix<Scalar>::fromHost(ctx, A);
   gpu::SVD<Scalar> svd_adopt(ctx, std::move(d_A), ComputeThinU | ComputeThinV);
   VERIFY(m < n || d_A.empty());
   VERIFY_IS_EQUAL(svd_adopt.info(), Success);
@@ -452,7 +452,7 @@ void test_device_solve(Index m, Index n, Index nrhs) {
   VERIFY(svd.info() == Success);
   Mat X_host = svd.solve(B);
 
-  auto d_B = gpu::DeviceMatrix<Scalar>::fromHost(B, svd.stream());
+  auto d_B = gpu::DeviceMatrix<Scalar>::fromHost(svd.context(), B);
   gpu::DeviceMatrix<Scalar> d_X = svd.solve(d_B);
   VERIFY_IS_APPROX(d_X.toHost(), X_host);
 

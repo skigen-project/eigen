@@ -129,7 +129,7 @@ void test_device_matrix_move_compute(Index n) {
 
   // Context-bound rvalue constructor adopts as well.
   gpu::Context ctx;
-  auto d_A_ctx = gpu::DeviceMatrix<Scalar>::fromHost(A, ctx.stream());
+  auto d_A_ctx = gpu::DeviceMatrix<Scalar>::fromHost(ctx, A);
   gpu::LU<Scalar> lu_ctx(ctx, std::move(d_A_ctx));
   VERIFY(d_A_ctx.empty());
   VERIFY_IS_EQUAL(lu_ctx.info(), Success);

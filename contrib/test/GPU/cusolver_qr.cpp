@@ -95,7 +95,7 @@ void test_qr_solve_device(Index n, Index nrhs) {
 
   // Context-bound rvalue constructor adopts a square A instead of copying it.
   gpu::Context ctx;
-  auto d_A_ctx = gpu::DeviceMatrix<Scalar>::fromHost(A, ctx.stream());
+  auto d_A_ctx = gpu::DeviceMatrix<Scalar>::fromHost(ctx, A);
   gpu::QR<Scalar> qr_ctx(ctx, std::move(d_A_ctx));
   VERIFY(d_A_ctx.empty());
   VERIFY_IS_EQUAL(qr_ctx.info(), Success);

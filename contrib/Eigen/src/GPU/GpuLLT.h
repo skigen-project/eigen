@@ -33,9 +33,9 @@ namespace gpu {
  * B, calls cusolverDnXpotrs, and downloads the result — the factor is not
  * re-transferred.
  *
- * Each LLT object owns a dedicated CUDA stream and cuSOLVER handle,
- * enabling concurrent factorizations from multiple objects on the same host
- * thread.
+ * An LLT constructed without a Context runs on a private one (its own stream
+ * and handles), enabling concurrent factorizations from multiple objects on the
+ * same host thread; pass a Context to chain with other work on its stream.
  */
 template <typename Scalar_, int UpLo_ = Lower>
 class LLT {
@@ -129,10 +129,11 @@ class LLT {
     if (!begin_compute(d_A.rows())) return *this;
 
     lda_ = static_cast<int64_t>(d_A.rows());
-    d_A.waitReady(solver_ctx_.stream());
     allocate_factor_storage();
+    d_A.prepareRead(context());
     EIGEN_CUDA_RUNTIME_CHECK(
         cudaMemcpyAsync(d_factor_.get(), d_A.data(), factorBytes(), cudaMemcpyDeviceToDevice, solver_ctx_.stream()));
+    d_A.finishRead(context());
 
     factorize();
     return *this;
@@ -146,8 +147,8 @@ class LLT {
     if (!begin_compute(d_A.rows())) return *this;
 
     lda_ = static_cast<int64_t>(d_A.rows());
-    d_A.waitReady(solver_ctx_.stream());
-    d_factor_ = internal::DeviceBuffer::adopt(static_cast<void*>(d_A.release()), factorBytes());
+    d_factor_ = internal::DeviceMatrixAccess::take(d_A);
+    d_factor_.prepareWrite(solver_ctx_.streamHandle());
 
     factorize();
     return *this;
@@ -166,7 +167,7 @@ class LLT {
     const Ref<const PlainMatrix> rhs(B.derived());
     const int64_t nrhs = static_cast<int64_t>(rhs.cols());
     const int64_t ldb = static_cast<int64_t>(rhs.rows());
-    internal::DeviceBuffer d_x(rhsBytes(nrhs, ldb));
+    internal::DeviceBuffer d_x(rhsBytes(nrhs, ldb), solver_ctx_.streamHandle());
     internal::upload_host_matrix(static_cast<Scalar*>(d_x.get()), ldb, rhs.data(), rhs.outerStride(), rhs.rows(),
                                  rhs.cols(), solver_ctx_.stream());
     DeviceMatrix<Scalar> d_X = solve_impl(nrhs, ldb, std::move(d_x));
@@ -191,12 +192,13 @@ class LLT {
   DeviceMatrix<Scalar> solve(const DeviceMatrix<Scalar>& d_B) const {
     eigen_assert(solver_ctx_.info() == Success && "LLT::solve called on a failed or uninitialized factorization");
     eigen_assert(d_B.rows() == n_);
-    d_B.waitReady(solver_ctx_.stream());
     const int64_t nrhs = static_cast<int64_t>(d_B.cols());
     const int64_t ldb = static_cast<int64_t>(d_B.rows());
-    internal::DeviceBuffer d_x(rhsBytes(nrhs, ldb));
+    internal::DeviceBuffer d_x(rhsBytes(nrhs, ldb), solver_ctx_.streamHandle());
+    d_B.prepareRead(context());
     EIGEN_CUDA_RUNTIME_CHECK(
         cudaMemcpyAsync(d_x.get(), d_B.data(), rhsBytes(nrhs, ldb), cudaMemcpyDeviceToDevice, solver_ctx_.stream()));
+    d_B.finishRead(context());
     return solve_impl(nrhs, ldb, std::move(d_x));
   }
 
@@ -207,10 +209,10 @@ class LLT {
     if (d_B.isView()) return solve(static_cast<const DeviceMatrix<Scalar>&>(d_B));
     eigen_assert(solver_ctx_.info() == Success && "LLT::solve called on a failed or uninitialized factorization");
     eigen_assert(d_B.rows() == n_);
-    d_B.waitReady(solver_ctx_.stream());
     const int64_t nrhs = static_cast<int64_t>(d_B.cols());
     const int64_t ldb = static_cast<int64_t>(d_B.rows());
-    internal::DeviceBuffer d_x = internal::DeviceBuffer::adopt(static_cast<void*>(d_B.release()), rhsBytes(nrhs, ldb));
+    internal::DeviceBuffer d_x = internal::DeviceMatrixAccess::take(d_B);
+    d_x.prepareWrite(solver_ctx_.streamHandle());
     return solve_impl(nrhs, ldb, std::move(d_x));
   }
 
@@ -218,6 +220,9 @@ class LLT {
   Index rows() const { return n_; }
   Index cols() const { return n_; }
   cudaStream_t stream() const { return solver_ctx_.stream(); }
+
+  /** The Context this solver runs on; its results are written there. */
+  Context& context() const { return solver_ctx_.context(); }
 
  private:
   mutable internal::GpuSolverContext solver_ctx_;
@@ -236,12 +241,10 @@ class LLT {
     return static_cast<size_t>(ld) * static_cast<size_t>(cols) * sizeof(Scalar);
   }
 
-  void allocate_factor_storage() { internal::ensure_sized(d_factor_, factorBytes()); }
+  void allocate_factor_storage() { internal::ensure_sized(d_factor_, factorBytes(), solver_ctx_.streamHandle()); }
 
-  // Solve in place on `d_x` (which already holds B), then re-wrap as a typed
-  // DeviceMatrix carrying shape and a ready event. The release/adopt hop hands
-  // ownership of the raw cudaMalloc pointer from the untyped DeviceBuffer to
-  // the typed DeviceMatrix without copying.
+  // Solve in place on `d_x` (which already holds B on this solver's stream),
+  // then wrap it, without a copy, as a DeviceMatrix whose write is recorded.
   DeviceMatrix<Scalar> solve_impl(int64_t nrhs, int64_t ldb, internal::DeviceBuffer&& d_x) const {
     constexpr cudaDataType_t dtype = internal::cusolver_data_type<Scalar>::value;
     constexpr cublasFillMode_t uplo = internal::cusolver_fill_mode<UpLo_>::value;
@@ -252,8 +255,8 @@ class LLT {
                                             d_factor_.get(), lda_, dtype, d_x.get(), ldb, solver_ctx_.scratch_info()));
 
     DeviceMatrix<Scalar> result =
-        DeviceMatrix<Scalar>::adopt(static_cast<Scalar*>(d_x.release()), n_, static_cast<Index>(nrhs));
-    result.recordReady(solver_ctx_.stream());
+        internal::DeviceMatrixAccess::wrap<Scalar>(std::move(d_x), n_, static_cast<Index>(nrhs));
+    result.finishWrite(context());
     return result;
   }
 

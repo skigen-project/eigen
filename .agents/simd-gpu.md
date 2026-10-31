@@ -93,6 +93,11 @@ GPU work in this module runs asynchronously, so refactors that would be harmless
   teardown does.
 - Do not signal a mode with a value the user can legitimately pass. A null stream, for example, is a valid stream whose
   meaning depends on the build configuration, not a "none" sentinel.
+- The module never uses the legacy default stream. Every allocation, free, copy, and library call is enqueued on a
+  `gpu::Context`'s stream, and every access to a `DeviceMatrix` or `DeviceScalar` is bracketed by its
+  `prepare*`/`finish*` calls, which order reads, writes, and the free across contexts (`internal::DeviceBuffer`). The
+  `stream_ordering` test's sentinel fails when an operation in its workload uses the legacy stream, so extend the
+  workload when you add an operation.
 - Key a cache on content or a generation counter, not on host identity (pointer, extent, nnz). Reassignment reuses
   allocations, so a cache keyed on host identity can be fooled.
 

@@ -310,9 +310,9 @@ void test_gemm_misaligned_host_scalars(Index m, Index n, Index k) {
   Mat B = Mat::Random(k, n);
 
   gpu::Context ctx;
-  auto d_A = gpu::DeviceMatrix<Scalar>::fromHost(A, ctx.stream());
-  auto d_B = gpu::DeviceMatrix<Scalar>::fromHost(B, ctx.stream());
-  gpu::DeviceMatrix<Scalar> d_C(m, n);
+  auto d_A = gpu::DeviceMatrix<Scalar>::fromHost(ctx, A);
+  auto d_B = gpu::DeviceMatrix<Scalar>::fromHost(ctx, B);
+  gpu::DeviceMatrix<Scalar> d_C(ctx, m, n);
 
   alignas(kCublasScalarAlign) unsigned char storage[kMisalignment + 2 * sizeof(Scalar)];
   const Scalar* alpha = ::new (storage + kMisalignment) Scalar(2);
@@ -321,10 +321,10 @@ void test_gemm_misaligned_host_scalars(Index m, Index n, Index k) {
 
   gpu::internal::cublaslt_gemm(ctx.cublasLtHandle(), ctx.cublasHandle(), CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha,
                                d_A.data(), m, d_B.data(), k, beta, d_C.data(), m, ctx.gemmWorkspace(),
-                               ctx.gemmPlanCache(), ctx.cublasLtMaxWorkspaceBytes(), ctx.stream());
-  d_C.recordReady(ctx.stream());
+                               ctx.gemmPlanCache(), ctx.cublasLtMaxWorkspaceBytes(), ctx.streamHandle());
+  d_C.finishWrite(ctx);
 
-  Mat C = d_C.toHost();
+  Mat C = d_C.toHost(ctx);
   Mat C_ref = Scalar(2) * A * B;
 
   RealScalar tol = RealScalar(k) * NumTraits<Scalar>::epsilon() * C_ref.norm();
@@ -343,8 +343,8 @@ void test_blas1_misaligned_host_alpha(Index n) {
   Vec y = Vec::Random(n);
 
   gpu::Context ctx;
-  auto d_x = gpu::DeviceMatrix<Scalar>::fromHost(x, ctx.stream());
-  auto d_y = gpu::DeviceMatrix<Scalar>::fromHost(y, ctx.stream());
+  auto d_x = gpu::DeviceMatrix<Scalar>::fromHost(ctx, x);
+  auto d_y = gpu::DeviceMatrix<Scalar>::fromHost(ctx, y);
 
   alignas(kCublasScalarAlign) unsigned char storage[kMisalignment + sizeof(Scalar)];
   const Scalar* alpha = ::new (storage + kMisalignment) Scalar(2);
@@ -352,11 +352,11 @@ void test_blas1_misaligned_host_alpha(Index n) {
 
   EIGEN_CUBLAS_CHECK(gpu::internal::cublasXaxpy(ctx.cublasHandle(), n, alpha, d_x.data(), 1, d_y.data(), 1));
   EIGEN_CUBLAS_CHECK(gpu::internal::cublasXscal(ctx.cublasHandle(), n, alpha, d_x.data(), 1));
-  d_x.recordReady(ctx.stream());
-  d_y.recordReady(ctx.stream());
+  d_x.finishWrite(ctx);
+  d_y.finishWrite(ctx);
 
-  VERIFY_IS_APPROX(Vec(d_y.toHost()), Vec(y + Scalar(2) * x));
-  VERIFY_IS_APPROX(Vec(d_x.toHost()), Vec(Scalar(2) * x));
+  VERIFY_IS_APPROX(Vec(d_y.toHost(ctx)), Vec(y + Scalar(2) * x));
+  VERIFY_IS_APPROX(Vec(d_x.toHost(ctx)), Vec(Scalar(2) * x));
 }
 
 // ---- GEMM cross-context reuse of the same destination -----------------------

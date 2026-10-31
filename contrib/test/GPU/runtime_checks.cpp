@@ -56,16 +56,16 @@ void test_runtime_call() {
   gpu::Context ctx;
   g_num_failures = 0;
   gpu::DeviceMatrix<double> bogus = gpu::DeviceMatrix<double>::view(nullptr, 4, 1);
-  (void)bogus.toHost(ctx.stream());
+  (void)bogus.toHost(ctx);
   VERIFY_IS_EQUAL(g_num_failures, 1);
   VERIFY_IS_EQUAL(g_last_failure.error, std::string("cudaErrorInvalidValue"));
   VERIFY(starts_with(g_last_failure.expression, "cudaMemcpyAsync"));
-  VERIFY(ends_with(g_last_failure.file, "DeviceMatrix.h"));
+  VERIFY(ends_with(g_last_failure.file, "DeviceDispatch.h"));
   VERIFY(g_last_failure.line > 0);
 
   // The context is still usable, and a successful call reports nothing.
   const VectorXd x = VectorXd::Random(8);
-  VERIFY_IS_APPROX(VectorXd(gpu::DeviceMatrix<double>::fromHost(x, ctx.stream()).toHost(ctx.stream())), x);
+  VERIFY_IS_APPROX(VectorXd(gpu::DeviceMatrix<double>::fromHost(ctx, x).toHost(ctx)), x);
   VERIFY_IS_EQUAL(g_num_failures, 1);
 }
 
@@ -139,9 +139,9 @@ void test_throwing_hook() {
   VERIFY(mode == CUBLAS_POINTER_MODE_HOST);
 
   const VectorXd x = VectorXd::Random(16);
-  gpu::DeviceMatrix<double> d_x = gpu::DeviceMatrix<double>::fromHost(x, ctx.stream());
+  gpu::DeviceMatrix<double> d_x = gpu::DeviceMatrix<double>::fromHost(ctx, x);
   d_x.scale(ctx, 2.0);
-  VERIFY_IS_APPROX(VectorXd(d_x.toHost(ctx.stream())), VectorXd(2.0 * x));
+  VERIFY_IS_APPROX(VectorXd(d_x.toHost(ctx)), VectorXd(2.0 * x));
 }
 
 EIGEN_DECLARE_TEST(gpu_runtime_checks) {

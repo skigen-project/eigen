@@ -121,7 +121,7 @@ void test_eigen_device_matrix(Index n) {
 
   // Context-bound rvalue constructor adopts d_A instead of copying it.
   gpu::Context ctx;
-  auto d_A_ctx = gpu::DeviceMatrix<Scalar>::fromHost(A, ctx.stream());
+  auto d_A_ctx = gpu::DeviceMatrix<Scalar>::fromHost(ctx, A);
   gpu::SelfAdjointEigenSolver<Scalar> es_ctx(ctx, std::move(d_A_ctx));
   VERIFY(d_A_ctx.empty());
   VERIFY_IS_EQUAL(es_ctx.info(), Success);
