@@ -451,7 +451,8 @@ struct unaligned_dense_assignment_loop<PacketType, DstAlignment, SrcAlignment, /
                                        /*Skip*/ false> {
   template <typename Kernel>
   EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void run(Kernel& kernel, Index start, Index end) {
-    for (Index index = start; index < end; ++index) kernel.assignCoeff(index);
+    const Index count = end - start;
+    for (Index offset = 0; offset < count; ++offset) kernel.assignCoeff(start + offset);
   }
   template <typename Kernel>
   EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void run(Kernel& kernel, Index outer, Index innerStart,
