@@ -433,6 +433,8 @@ build:linux:cuda-12.6:clang-19:
     EIGEN_CI_C_COMPILER: clang-19
     EIGEN_CI_CXX_COMPILER: clang++-19
     EIGEN_CI_TEST_CUDA_CLANG: "on"
+    # This job deliberately exercises 12.6 beyond Clang 19's last partially supported toolkit (12.5).
+    EIGEN_CI_CUDA_CXX_FLAGS: "-Wno-unknown-cuda-version"
     EIGEN_CI_CUDA_COMPUTE_ARCH: "50;53;89;90"
 
 # ---- CUDA 13 ----------------------------------------------------------------
