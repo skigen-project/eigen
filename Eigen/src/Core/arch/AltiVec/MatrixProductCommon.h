@@ -18,6 +18,9 @@ namespace Eigen {
 
 namespace internal {
 
+template <typename Mapper>
+using mapper_index_t = decltype(std::declval<const Mapper&>().stride());
+
 template <typename Scalar, typename Packet, typename DataMapper, const Index accRows, const Index accCols>
 EIGEN_ALWAYS_INLINE void gemm_extra_row(const DataMapper& res, const Scalar* lhs_base, const Scalar* rhs_base,
                                         Index depth, Index strideA, Index offsetA, Index strideB, Index row, Index rows,
