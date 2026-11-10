@@ -177,7 +177,9 @@ DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const Vector
   std::vector<Index> pi;
   pi.reserve(static_cast<std::size_t>(n));
   for (Index i = 0; i < n; ++i) pi.push_back(i);
-  std::stable_sort(pi.begin(), pi.end(), [&dW](Index a, Index b) { return dW[a] < dW[b]; });
+  // A stable sort of the identity permutation, as std::sort with an index tie-break: std::stable_sort is not
+  // constexpr before C++26.
+  std::sort(pi.begin(), pi.end(), [&dW](Index a, Index b) { return dW[a] < dW[b] || (dW[a] == dW[b] && a < b); });
   VectorType ds(n), zs(n);
   for (Index i = 0; i < n; ++i) {
     ds[i] = dW[pi[static_cast<std::size_t>(i)]];
@@ -381,7 +383,8 @@ DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const Vector
   std::vector<Index> order;
   order.reserve(static_cast<std::size_t>(n));
   for (Index i = 0; i < n; ++i) order.push_back(i);
-  std::stable_sort(order.begin(), order.end(), [&lambdaW](Index a, Index b) { return lambdaW[a] < lambdaW[b]; });
+  std::sort(order.begin(), order.end(),
+            [&lambdaW](Index a, Index b) { return lambdaW[a] < lambdaW[b] || (lambdaW[a] == lambdaW[b] && a < b); });
 
   std::vector<Index> subSlot(static_cast<std::size_t>(n), -1);
   for (Index a = 0; a < m; ++a) subSlot[static_cast<std::size_t>(sub[static_cast<std::size_t>(a)])] = a;
