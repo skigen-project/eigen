@@ -26,13 +26,13 @@ struct sparse_approx_comparison {
   using Wide = Scalar;
 
   template <typename DifferenceNorm2, typename Scaled>
-  static bool compare(const RealScalar& x2, const RealScalar& y2, Index, const RealScalar& prec,
-                      const DifferenceNorm2& difference2, const Scaled&) {
+  static constexpr bool compare(const RealScalar& x2, const RealScalar& y2, Index, const RealScalar& prec,
+                                const DifferenceNorm2& difference2, const Scaled&) {
     return difference2() <= prec * prec * numext::mini(x2, y2);
   }
 
   template <typename X, typename Y>
-  static bool isApprox(const X& x, const Y& y, const RealScalar& prec) {
+  static constexpr bool isApprox(const X& x, const Y& y, const RealScalar& prec) {
     return compare(
         x.squaredNorm(), y.squaredNorm(), 0, prec, [&] { return (x - y).squaredNorm(); }, [] { return false; });
   }
@@ -52,8 +52,8 @@ struct sparse_approx_comparison<Scalar, true> {
   // x2 and y2 are the squared norms of operands with at most size stored values between them; difference2() gives
   // that of their difference, and scaled() decides the comparison when the squares cannot.
   template <typename DifferenceNorm2, typename Scaled>
-  static bool compare(const Accumulator& x2, const Accumulator& y2, Index size, const RealScalar& prec,
-                      const DifferenceNorm2& difference2, const Scaled& scaled) {
+  static constexpr bool compare(const Accumulator& x2, const Accumulator& y2, Index size, const RealScalar& prec,
+                                const DifferenceNorm2& difference2, const Scaled& scaled) {
     const Accumulator minimum = numext::mini(x2, y2);
     const Accumulator precision2 = Accumulator(prec) * Accumulator(prec);
     const Accumulator bound = precision2 * minimum;
@@ -66,7 +66,7 @@ struct sparse_approx_comparison<Scalar, true> {
   }
 
   template <typename X, typename Y>
-  static bool isApprox(const X& x, const Y& y, const RealScalar& prec) {
+  static constexpr bool isApprox(const X& x, const Y& y, const RealScalar& prec) {
     // Widening must not admit operands that cannot be subtracted, such as half and float.
     EIGEN_CHECK_BINARY_COMPATIBILITY(scalar_difference_op<typename X::Scalar EIGEN_COMMA typename Y::Scalar>,
                                      typename X::Scalar, typename Y::Scalar)
@@ -81,22 +81,22 @@ struct sparse_approx_comparison<Scalar, true> {
  private:
   // An upper bound on the number of stored values; only types with compressed access count them.
   template <typename X, std::enable_if_t<has_compressed_access<X>::value, int> = 0>
-  static Index stored_size(const X& x) {
+  static constexpr Index stored_size(const X& x) {
     return x.nonZeros();
   }
   template <typename X, std::enable_if_t<!has_compressed_access<X>::value, int> = 0>
-  static Index stored_size(const X& x) {
+  static constexpr Index stored_size(const X& x) {
     return x.rows() * x.cols();
   }
 
   // The norm of a compressed matrix is that of its stored values, which the dense scaled norm takes as a vector.
   template <typename Plain>
-  static comparison_magnitude<Accumulator> norm(const Plain& m) {
+  static constexpr comparison_magnitude<Accumulator> norm(const Plain& m) {
     return scaled_comparison_norm(m.coeffs().matrix());
   }
 
   template <typename X, typename Y>
-  static EIGEN_DONT_INLINE bool isApprox_scaled(const X& xExpr, const Y& yExpr, const RealScalar& prec) {
+  static EIGEN_DONT_INLINE constexpr bool isApprox_scaled(const X& xExpr, const Y& yExpr, const RealScalar& prec) {
     constexpr int Order = X::IsRowMajor ? RowMajor : ColMajor;
     using StorageIndex = typename X::StorageIndex;
     using WideX = approx_comparison_wide_t<X>;
@@ -135,7 +135,8 @@ struct sparse_approx_comparison<Scalar, true> {
 
 template <typename Derived>
 template <typename OtherDerived>
-bool SparseMatrixBase<Derived>::isApprox(const SparseMatrixBase<OtherDerived>& other, const RealScalar& prec) const {
+constexpr bool SparseMatrixBase<Derived>::isApprox(const SparseMatrixBase<OtherDerived>& other,
+                                                   const RealScalar& prec) const {
   const typename internal::nested_eval<Derived, 2, PlainObject>::type actualA(derived());
   std::conditional_t<bool(IsRowMajor) == bool(OtherDerived::IsRowMajor),
                      const typename internal::nested_eval<OtherDerived, 2, PlainObject>::type, const PlainObject>

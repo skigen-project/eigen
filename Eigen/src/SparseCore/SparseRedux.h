@@ -17,7 +17,7 @@
 namespace Eigen {
 
 template <typename Derived>
-typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::sum() const {
+constexpr typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::sum() const {
   // The sum of an empty matrix is zero, as for dense ones.
   if (size() == 0) return Scalar(0);
   Scalar res(0);
@@ -28,7 +28,7 @@ typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::sum() cons
 }
 
 template <typename Scalar_, int Options_, typename Index_>
-typename internal::traits<SparseMatrix<Scalar_, Options_, Index_> >::Scalar
+constexpr typename internal::traits<SparseMatrix<Scalar_, Options_, Index_> >::Scalar
 SparseMatrix<Scalar_, Options_, Index_>::sum() const {
   if (this->isCompressed())
     return Matrix<Scalar, 1, Dynamic>::Map(m_data.valuePtr(), m_data.size()).sum();
@@ -37,7 +37,7 @@ SparseMatrix<Scalar_, Options_, Index_>::sum() const {
 }
 
 template <typename Scalar_, int Options_, typename Index_>
-typename internal::traits<SparseVector<Scalar_, Options_, Index_> >::Scalar
+constexpr typename internal::traits<SparseVector<Scalar_, Options_, Index_> >::Scalar
 SparseVector<Scalar_, Options_, Index_>::sum() const {
   return Matrix<Scalar, 1, Dynamic>::Map(m_data.valuePtr(), m_data.size()).sum();
 }

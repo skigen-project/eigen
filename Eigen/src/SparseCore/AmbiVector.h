@@ -95,7 +95,7 @@ class AmbiVector {
     // that we can handle dense vector even in sparse mode.
     destructElements();
     internal::aligned_free(m_buffer);
-    Index allocSize;
+    Index allocSize = 0;
     if (size < 1000) {
       allocSize = numext::div_ceil<Index>(size * sizeof(ListEl), sizeof(Scalar));
       m_allocatedElements = convert_index((allocSize * sizeof(Scalar)) / sizeof(ListEl));

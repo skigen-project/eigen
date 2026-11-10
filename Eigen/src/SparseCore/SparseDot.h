@@ -18,7 +18,7 @@ namespace Eigen {
 
 template <typename Derived>
 template <typename OtherDerived>
-inline typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot(
+constexpr typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot(
     const MatrixBase<OtherDerived>& other) const {
   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
   EIGEN_STATIC_ASSERT_VECTOR_ONLY(OtherDerived)
@@ -47,7 +47,7 @@ inline typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot
 
 template <typename Derived>
 template <typename OtherDerived>
-inline typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot(
+constexpr typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot(
     const SparseMatrixBase<OtherDerived>& other) const {
   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
   EIGEN_STATIC_ASSERT_VECTOR_ONLY(OtherDerived)
@@ -79,18 +79,18 @@ inline typename internal::traits<Derived>::Scalar SparseMatrixBase<Derived>::dot
 }
 
 template <typename Derived>
-inline typename NumTraits<typename internal::traits<Derived>::Scalar>::Real SparseMatrixBase<Derived>::squaredNorm()
+constexpr typename NumTraits<typename internal::traits<Derived>::Scalar>::Real SparseMatrixBase<Derived>::squaredNorm()
     const {
   return numext::real((*this).cwiseAbs2().sum());
 }
 
 template <typename Derived>
-inline typename NumTraits<typename internal::traits<Derived>::Scalar>::Real SparseMatrixBase<Derived>::norm() const {
+constexpr typename NumTraits<typename internal::traits<Derived>::Scalar>::Real SparseMatrixBase<Derived>::norm() const {
   return numext::sqrt(squaredNorm());
 }
 
 template <typename Derived>
-inline typename NumTraits<typename internal::traits<Derived>::Scalar>::Real SparseMatrixBase<Derived>::blueNorm()
+constexpr typename NumTraits<typename internal::traits<Derived>::Scalar>::Real SparseMatrixBase<Derived>::blueNorm()
     const {
   // blueNorm_impl walks Derived::InnerIterator, which only storage types provide.
   return internal::blueNorm_impl(Ref<const PlainObject>(derived()));

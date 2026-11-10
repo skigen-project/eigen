@@ -241,7 +241,7 @@ class MatrixBase : public DenseBase<Derived> {
   template <unsigned int UpLo>
   EIGEN_DEVICE_FUNC constexpr typename ConstSelfAdjointViewReturnType<UpLo>::Type selfadjointView() const;
 
-  const SparseView<Derived> sparseView(
+  constexpr const SparseView<Derived> sparseView(
       const Scalar& m_reference = Scalar(0),
       const typename NumTraits<Scalar>::Real& m_epsilon = NumTraits<Scalar>::dummy_precision()) const;
   EIGEN_DEVICE_FUNC static constexpr const IdentityReturnType Identity();
