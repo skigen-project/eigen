@@ -128,11 +128,13 @@ namespace numext {
 // std::bit_cast has no __device__ qualifier; in GPU device passes it requires relaxed constexpr
 // and, for non-literal return types such as Eigen::half, stays host-only and miscompiles under NVCC.
 #if defined(__cpp_lib_bit_cast) && __cpp_lib_bit_cast >= 201806L && !defined(EIGEN_GPU_COMPILE_PHASE)
+#define EIGEN_HAS_CONSTEXPR_BIT_CAST 1
 template <typename Tgt, typename Src>
 EIGEN_DEVICE_FUNC constexpr Tgt bit_cast(const Src& src) {
   return std::bit_cast<Tgt>(src);
 }
 #elif EIGEN_HAS_BUILTIN(__builtin_bit_cast)
+#define EIGEN_HAS_CONSTEXPR_BIT_CAST 1
 template <typename Tgt, typename Src>
 EIGEN_DEVICE_FUNC constexpr Tgt bit_cast(const Src& src) {
   EIGEN_STATIC_ASSERT(std::is_trivially_copyable<Src>::value, THIS_TYPE_IS_NOT_SUPPORTED)
@@ -141,8 +143,10 @@ EIGEN_DEVICE_FUNC constexpr Tgt bit_cast(const Src& src) {
   return __builtin_bit_cast(Tgt, src);
 }
 #else
+// memcpy is not usable in constant expressions (e.g., GCC 10).
+#define EIGEN_HAS_CONSTEXPR_BIT_CAST 0
 template <typename Tgt, typename Src>
-EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Tgt bit_cast(const Src& src) {
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC constexpr Tgt bit_cast(const Src& src) {
   // The behaviour of memcpy is not specified for non-trivially copyable types
   EIGEN_STATIC_ASSERT(std::is_trivially_copyable<Src>::value, THIS_TYPE_IS_NOT_SUPPORTED)
   EIGEN_STATIC_ASSERT(std::is_trivially_copyable<Tgt>::value && std::is_default_constructible<Tgt>::value,

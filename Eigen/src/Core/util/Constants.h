@@ -561,40 +561,40 @@ struct ArrayXpr {};
 
 // An evaluator must define its shape. By default, it can be one of the following:
 struct DenseShape {
-  static std::string debugName() { return "DenseShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "DenseShape"; }
 };
 struct SolverShape {
-  static std::string debugName() { return "SolverShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "SolverShape"; }
 };
 struct HomogeneousShape {
-  static std::string debugName() { return "HomogeneousShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "HomogeneousShape"; }
 };
 struct DiagonalShape {
-  static std::string debugName() { return "DiagonalShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "DiagonalShape"; }
 };
 struct SkewSymmetricShape {
-  static std::string debugName() { return "SkewSymmetricShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "SkewSymmetricShape"; }
 };
 struct BandShape {
-  static std::string debugName() { return "BandShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "BandShape"; }
 };
 struct TriangularShape {
-  static std::string debugName() { return "TriangularShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "TriangularShape"; }
 };
 struct SelfAdjointShape {
-  static std::string debugName() { return "SelfAdjointShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "SelfAdjointShape"; }
 };
 struct PermutationShape {
-  static std::string debugName() { return "PermutationShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "PermutationShape"; }
 };
 struct ScaledPermutationShape {
-  static std::string debugName() { return "ScaledPermutationShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "ScaledPermutationShape"; }
 };
 struct TranspositionsShape {
-  static std::string debugName() { return "TranspositionsShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "TranspositionsShape"; }
 };
 struct SparseShape {
-  static std::string debugName() { return "SparseShape"; }
+  static EIGEN_CONSTEXPR20 std::string debugName() { return "SparseShape"; }
 };
 
 namespace internal {

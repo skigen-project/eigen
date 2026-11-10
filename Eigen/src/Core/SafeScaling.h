@@ -48,8 +48,8 @@ struct safe_scaling_factors {
 // is a signed zero and above the largest finite value a signed infinity. Zeros, infinities and NaNs pass through. Keep
 // the integer-only ABI so compilers cannot replace the reconstruction with FTZ/DAZ-sensitive floating-point arithmetic.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE typename binary_floating_point_traits<Scalar>::Bits scale_binary_bits_by_exponent(
-    const typename binary_floating_point_traits<Scalar>::Bits valueBits, int exponent) {
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr typename binary_floating_point_traits<Scalar>::Bits
+scale_binary_bits_by_exponent(const typename binary_floating_point_traits<Scalar>::Bits valueBits, int exponent) {
   using Binary = binary_floating_point_traits<Scalar>;
   using Bits = typename Binary::Bits;
   constexpr int kInfinityExponent = int(Binary::kExponentMask >> Binary::kFractionBits);
@@ -90,7 +90,7 @@ EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE typename binary_floating_point_traits<Scalar
 
 // The same scaling by a positive normal power of two given as the bit pattern of its exponent field.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename binary_floating_point_traits<Scalar>::Bits
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename binary_floating_point_traits<Scalar>::Bits
 scale_binary_bits_by_power_of_two(const typename binary_floating_point_traits<Scalar>::Bits valueBits,
                                   const typename binary_floating_point_traits<Scalar>::Bits factorExponentBits) {
   using Binary = binary_floating_point_traits<Scalar>;
@@ -101,14 +101,14 @@ scale_binary_bits_by_power_of_two(const typename binary_floating_point_traits<Sc
 // value * 2^exponent for the binary floating-point scalars, with the rounding and saturation of
 // scale_binary_bits_by_exponent(): the ldexp that FTZ/DAZ hardware cannot flush, for any int exponent.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar scale_binary_by_exponent(const Scalar& value, int exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar scale_binary_by_exponent(const Scalar& value, int exponent) {
   using Binary = binary_floating_point_traits<Scalar>;
   return numext::bit_cast<Scalar>(scale_binary_bits_by_exponent<Scalar>(Binary::bits(value), exponent));
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<Scalar> scale_binary_by_exponent(const std::complex<Scalar>& value,
-                                                                                    int exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<Scalar> scale_binary_by_exponent(
+    const std::complex<Scalar>& value, int exponent) {
   return std::complex<Scalar>(scale_binary_by_exponent(value.real(), exponent),
                               scale_binary_by_exponent(value.imag(), exponent));
 }
@@ -120,7 +120,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<Scalar> scale_binary_by_expon
 // a floating-point comparison (`magnitude == 0` into `value == 0`), which FTZ/DAZ hardware flushes exactly like the
 // arithmetic the bits were meant to bypass.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE int binary_frexp_exponent_of_magnitude(
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr int binary_frexp_exponent_of_magnitude(
     const typename binary_floating_point_traits<Scalar>::Bits magnitude) {
   using Binary = binary_floating_point_traits<Scalar>;
   using Bits = typename Binary::Bits;
@@ -133,13 +133,13 @@ EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE int binary_frexp_exponent_of_magnitude(
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int binary_frexp_exponent(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr int binary_frexp_exponent(const Scalar& value) {
   return binary_frexp_exponent_of_magnitude<Scalar>(binary_floating_point_traits<Scalar>::magnitude(value));
 }
 
 // The larger of two magnitude bit patterns, out of line for the same reason.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE typename binary_floating_point_traits<Scalar>::Bits larger_magnitude_bits(
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr typename binary_floating_point_traits<Scalar>::Bits larger_magnitude_bits(
     const typename binary_floating_point_traits<Scalar>::Bits a,
     const typename binary_floating_point_traits<Scalar>::Bits b) {
   return a < b ? b : a;
@@ -147,14 +147,14 @@ EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE typename binary_floating_point_traits<Scalar
 
 // |value| < the smallest normal from the magnitude bits, out of line for the same reason.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE bool is_below_normal_magnitude_bits(
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr bool is_below_normal_magnitude_bits(
     const typename binary_floating_point_traits<Scalar>::Bits magnitude) {
   return magnitude < binary_floating_point_traits<Scalar>::kExponentUnit;
 }
 
 // frexp through the representation: the significand in [0.5, 1), with the sign of value, and its exponent.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar binary_frexp(const Scalar& value, int& exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar binary_frexp(const Scalar& value, int& exponent) {
   exponent = binary_frexp_exponent(value);
   return scale_binary_by_exponent(value, -exponent);
 }
@@ -163,7 +163,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar binary_frexp(const Scalar& value, i
 // input or result; a subnormal result rounds as IEEE 754 multiplication does, and a result above the largest finite
 // value saturates to infinity.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar scale_binary_by_power_of_two(const Scalar& value, const Scalar& factor) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar scale_binary_by_power_of_two(const Scalar& value,
+                                                                                    const Scalar& factor) {
   using Binary = binary_floating_point_traits<Scalar>;
   using Bits = typename Binary::Bits;
   const Bits factorExponentBits = Binary::bits(factor);
@@ -173,7 +174,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar scale_binary_by_power_of_two(const 
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<Scalar> scale_binary_by_power_of_two(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<Scalar> scale_binary_by_power_of_two(
     const std::complex<Scalar>& value, const Scalar& factor) {
   return std::complex<Scalar>(scale_binary_by_power_of_two(value.real(), factor),
                               scale_binary_by_power_of_two(value.imag(), factor));
@@ -182,10 +183,10 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<Scalar> scale_binary_by_power
 // Coefficient-wise value * 2^exponent through scale_binary_by_exponent(). Scalar only: the integer path is the point.
 template <typename Scalar>
 struct scale_by_exponent_op {
-  EIGEN_DEVICE_FUNC explicit scale_by_exponent_op(int exponent) : m_exponent(exponent) {}
+  EIGEN_DEVICE_FUNC constexpr explicit scale_by_exponent_op(int exponent) : m_exponent(exponent) {}
 
   template <typename CoeffScalar>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffScalar operator()(const CoeffScalar& value) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffScalar operator()(const CoeffScalar& value) const {
     return scale_binary_by_exponent(value, m_exponent);
   }
 
@@ -201,10 +202,10 @@ struct functor_traits<scale_by_exponent_op<Scalar>> {
 
 template <typename FactorScalar>
 struct scale_by_power_of_two_op {
-  EIGEN_DEVICE_FUNC explicit scale_by_power_of_two_op(const FactorScalar& factor) : m_factor(factor) {}
+  EIGEN_DEVICE_FUNC constexpr explicit scale_by_power_of_two_op(const FactorScalar& factor) : m_factor(factor) {}
 
   template <typename CoeffScalar>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffScalar operator()(const CoeffScalar& value) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffScalar operator()(const CoeffScalar& value) const {
     return scale_binary_by_power_of_two(value, m_factor);
   }
 
@@ -230,19 +231,19 @@ struct use_subnormal_preserving_scaling
 // Subnormal-magnitude tests read the representation for float and double, where a comparison under DAZ
 // reads a subnormal as zero as well; the other scalars compare arithmetically.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_subnormal_magnitude_impl(const Scalar& value, true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_subnormal_magnitude_impl(const Scalar& value, true_type) {
   // The smallest normal, 2^(min_exponent - 1), has frexp exponent min_exponent.
   const int exponent = binary_frexp_exponent(value);
   return exponent != 0 && exponent < std::numeric_limits<Scalar>::min_exponent;
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_subnormal_magnitude_impl(const Scalar& value, false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_subnormal_magnitude_impl(const Scalar& value, false_type) {
   const Scalar magnitude = numext::abs(value);
   return magnitude > Scalar(0) && magnitude < (std::numeric_limits<Scalar>::min)();
 }
 // 0 < |value| < the smallest normal.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_subnormal_magnitude(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_subnormal_magnitude(const Scalar& value) {
   return is_subnormal_magnitude_impl(value, bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
 
@@ -251,15 +252,17 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_subnormal_magnitude(const Scalar& 
 // scalar VFP or fcsel, ARMv7's double, which has no packet), every comparison is false and the running maximum keeps
 // the bits of the first operand.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_zero_or_subnormal_magnitude_impl(const Scalar& value, true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_zero_or_subnormal_magnitude_impl(const Scalar& value,
+                                                                                         true_type) {
   return is_below_normal_magnitude_bits<Scalar>(binary_floating_point_traits<Scalar>::magnitude(value));
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_zero_or_subnormal_magnitude_impl(const Scalar& value, false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_zero_or_subnormal_magnitude_impl(const Scalar& value,
+                                                                                         false_type) {
   return numext::abs(value) < (std::numeric_limits<Scalar>::min)();
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_zero_or_subnormal_magnitude(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_zero_or_subnormal_magnitude(const Scalar& value) {
   return is_zero_or_subnormal_magnitude_impl(value,
                                              bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
@@ -267,18 +270,18 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_zero_or_subnormal_magnitude(const 
 // The larger of two non-negative values, such as two recovered maxima, read from the representation for float and
 // double: an arithmetic maximum (a compiler may lower it to fmaxnm) flushes subnormal operands to zero under FTZ/DAZ.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar max_preserving_subnormals_impl(const Scalar& a, const Scalar& b,
-                                                                            true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar max_preserving_subnormals_impl(const Scalar& a, const Scalar& b,
+                                                                                      true_type) {
   using Binary = binary_floating_point_traits<Scalar>;
   return numext::bit_cast<Scalar>(larger_magnitude_bits<Scalar>(Binary::magnitude(a), Binary::magnitude(b)));
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar max_preserving_subnormals_impl(const Scalar& a, const Scalar& b,
-                                                                            false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar max_preserving_subnormals_impl(const Scalar& a, const Scalar& b,
+                                                                                      false_type) {
   return numext::maxi(a, b);
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar max_preserving_subnormals(const Scalar& a, const Scalar& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar max_preserving_subnormals(const Scalar& a, const Scalar& b) {
   return max_preserving_subnormals_impl(a, b, bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
 
@@ -286,30 +289,32 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar max_preserving_subnormals(const Sca
 // negative subnormal as zero under DAZ, and an abs() that widens (MSVC 19.29 takes abs(float) through double) flushes
 // a subnormal result under FTZ when it narrows back.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar abs_preserving_subnormals_impl(const Scalar& value, true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar abs_preserving_subnormals_impl(const Scalar& value, true_type) {
   return numext::bit_cast<Scalar>(binary_floating_point_traits<Scalar>::magnitude(value));
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar abs_preserving_subnormals_impl(const Scalar& value, false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar abs_preserving_subnormals_impl(const Scalar& value, false_type) {
   return numext::abs(value);
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar abs_preserving_subnormals(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar abs_preserving_subnormals(const Scalar& value) {
   return abs_preserving_subnormals_impl(value,
                                         bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_negative_preserving_subnormals_impl(const Scalar& value, true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_negative_preserving_subnormals_impl(const Scalar& value,
+                                                                                            true_type) {
   using Binary = binary_floating_point_traits<Scalar>;
   return (Binary::bits(value) & Binary::kSignBit) != 0 && !is_zero_magnitude_bits<Scalar>(Binary::magnitude(value));
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_negative_preserving_subnormals_impl(const Scalar& value, false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_negative_preserving_subnormals_impl(const Scalar& value,
+                                                                                            false_type) {
   return value < Scalar(0);
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_negative_preserving_subnormals(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_negative_preserving_subnormals(const Scalar& value) {
   return is_negative_preserving_subnormals_impl(
       value, bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
@@ -317,7 +322,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_negative_preserving_subnormals(con
 // The position of the largest magnitude of a real vector with at least one coefficient, read from the representation
 // and out of line like the other bit classifications.
 template <typename Scalar, typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE Index index_of_largest_magnitude(const DenseBase<Derived>& src) {
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr Index index_of_largest_magnitude(const DenseBase<Derived>& src) {
   using Binary = binary_floating_point_traits<Scalar>;
   using Bits = typename Binary::Bits;
   const evaluator<Derived> coeffs(src.derived());
@@ -337,40 +342,42 @@ EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE Index index_of_largest_magnitude(const Dense
 // reach, the other scalars through the C library. frexp's exponent is e with 2^(e - 1) <= |value| < 2^e, 0 for a
 // zero.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar ldexp_preserving_subnormals_impl(const Scalar& value, int exponent,
-                                                                              true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar ldexp_preserving_subnormals_impl(const Scalar& value,
+                                                                                        int exponent, true_type) {
   return scale_binary_by_exponent(value, exponent);
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar ldexp_preserving_subnormals_impl(const Scalar& value, int exponent,
-                                                                              false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar ldexp_preserving_subnormals_impl(const Scalar& value,
+                                                                                        int exponent, false_type) {
   return numext::ldexp(value, exponent);
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar ldexp_preserving_subnormals(const Scalar& value, int exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar ldexp_preserving_subnormals(const Scalar& value, int exponent) {
   return ldexp_preserving_subnormals_impl(value, exponent,
                                           bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int frexp_exponent_preserving_subnormals_impl(const Scalar& value, true_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr int frexp_exponent_preserving_subnormals_impl(const Scalar& value,
+                                                                                              true_type) {
   return binary_frexp_exponent(value);
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int frexp_exponent_preserving_subnormals_impl(const Scalar& value, false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr int frexp_exponent_preserving_subnormals_impl(const Scalar& value,
+                                                                                              false_type) {
   int exponent = 0;
   EIGEN_USING_STD(frexp);
   frexp(value, &exponent);
   return exponent;
 }
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int frexp_exponent_preserving_subnormals(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr int frexp_exponent_preserving_subnormals(const Scalar& value) {
   return frexp_exponent_preserving_subnormals_impl(
       value, bool_constant<use_subnormal_preserving_scaling<Scalar, Scalar>::value>());
 }
 // The significand in [0.5, 1), with the sign of value, and its exponent.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar frexp_preserving_subnormals(const Scalar& value, int& exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar frexp_preserving_subnormals(const Scalar& value, int& exponent) {
   exponent = frexp_exponent_preserving_subnormals(value);
   return ldexp_preserving_subnormals(value, -exponent);
 }
@@ -380,50 +387,52 @@ struct safe_scaling_operations {
  private:
   using Factors = safe_scaling_factors<Scalar>;
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool needs_subnormal_recovery(const Scalar& value) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool needs_subnormal_recovery(const Scalar& value) {
     using Binary = binary_floating_point_traits<Scalar>;
     using Bits = typename Binary::Bits;
     constexpr Bits kThreshold = Bits(subnormal_recovery_exponent() + Binary::kExponentBias) << Binary::kFractionBits;
     return Binary::magnitude(value) - Bits(1) < kThreshold - Bits(1);
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool is_identity(const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool is_identity(const Factors& factors) {
     return factors.scale == Scalar(1) && factors.invScale == Scalar(1);
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool has_normal_reciprocal(const Scalar&, const Scalar&, false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool has_normal_reciprocal(const Scalar&, const Scalar&,
+                                                                                    false_type) {
     return false;
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool has_normal_reciprocal(const Scalar& value, const Scalar& normalMin,
-                                                                          true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool has_normal_reciprocal(const Scalar& value,
+                                                                                    const Scalar& normalMin,
+                                                                                    true_type) {
     return value >= normalMin && value <= Scalar(1) / normalMin;
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool is_positive_finite(const Scalar& value, false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool is_positive_finite(const Scalar& value, false_type) {
     return value > Scalar(0) && value <= NumTraits<Scalar>::highest();
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool is_positive_finite(const Scalar& value, true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool is_positive_finite(const Scalar& value, true_type) {
     using Binary = binary_floating_point_traits<Scalar>;
     const typename Binary::Bits bits = Binary::bits(value);
     return bits > 0 && bits < Binary::kExponentMask;
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Factors select_factors(const Scalar& maxCoeff) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Factors select_factors(const Scalar& maxCoeff) {
     using IsIeeeBinary = bool_constant<std::is_same<Scalar, float>::value || std::is_same<Scalar, double>::value>;
     if (!is_positive_finite(maxCoeff, IsIeeeBinary())) return Factors{};
     return safe_scaling<Scalar, IsPowerOfTwo_>::compute_floor_factors(maxCoeff);
   }
 
   template <typename Src, typename Func>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void with_scaled_impl(const Src& src, const Scalar&,
-                                                                     const Factors& factors, const Func& func,
-                                                                     false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void with_scaled_impl(const Src& src, const Scalar&,
+                                                                               const Factors& factors, const Func& func,
+                                                                               false_type) {
     if (is_identity(factors)) {
       // Keep the copy distinct from multiplication by one, which flushes subnormals under FTZ.
       const Src* unscaled = &src;
-      EIGEN_OPTIMIZATION_BARRIER(unscaled);
+      if (!is_constant_evaluated()) optimization_barrier_function(unscaled);
       func(*unscaled);
     } else EIGEN_IF_CONSTEXPR (IsPowerOfTwo_)
       func(src * factors.invScale);
@@ -432,9 +441,9 @@ struct safe_scaling_operations {
   }
 
   template <typename Src, typename Func>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void with_scaled_impl(const Src& src, const Scalar& maxCoeff,
-                                                                     const Factors& factors, const Func& func,
-                                                                     true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void with_scaled_impl(const Src& src, const Scalar& maxCoeff,
+                                                                               const Factors& factors, const Func& func,
+                                                                               true_type) {
     if (!is_identity(factors) && needs_subnormal_recovery(maxCoeff))
       func(src.unaryExpr(scale_by_power_of_two_op<Scalar>(factors.invScale)));
     else
@@ -442,16 +451,17 @@ struct safe_scaling_operations {
   }
 
   template <typename Dest, typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void unscale_to_impl(Dest& dest, const Src& src, const Scalar&,
-                                                                    const Factors& factors, false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void unscale_to_impl(Dest& dest, const Src& src, const Scalar&,
+                                                                              const Factors& factors, false_type) {
     unscale_to(dest, src, factors);
   }
 
   // Below the recovery threshold, unscaling rounds coefficients that are significant relative to maxCoeff into the
   // subnormal range, where FTZ/DAZ arithmetic would zero them.
   template <typename Dest, typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void unscale_to_impl(Dest& dest, const Src& src, const Scalar& maxCoeff,
-                                                                    const Factors& factors, true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void unscale_to_impl(Dest& dest, const Src& src,
+                                                                              const Scalar& maxCoeff,
+                                                                              const Factors& factors, true_type) {
     if (!is_identity(factors) && needs_subnormal_recovery(maxCoeff))
       dest = src.unaryExpr(scale_by_power_of_two_op<Scalar>(factors.scale));
     else
@@ -459,15 +469,16 @@ struct safe_scaling_operations {
   }
 
   template <typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar recover_flushed_max_coeff_impl(const Src&, const Scalar& maxCoeff,
-                                                                                     false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar recover_flushed_max_coeff_impl(const Src&,
+                                                                                               const Scalar& maxCoeff,
+                                                                                               false_type) {
     return maxCoeff;
   }
 
   template <typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar recover_flushed_max_coeff_impl(const Src& src,
-                                                                                     const Scalar& maxCoeff,
-                                                                                     true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar recover_flushed_max_coeff_impl(const Src& src,
+                                                                                               const Scalar& maxCoeff,
+                                                                                               true_type) {
     using Binary = binary_floating_point_traits<Scalar>;
     using Bits = typename Binary::Bits;
     if (!is_zero_or_subnormal_magnitude(maxCoeff)) return maxCoeff;
@@ -485,20 +496,20 @@ struct safe_scaling_operations {
   }
 
   template <typename Derived>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Index recover_flushed_max_coeff_index_impl(const DenseBase<Derived>&,
-                                                                                          Index position, false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Index recover_flushed_max_coeff_index_impl(
+      const DenseBase<Derived>&, Index position, false_type) {
     return position;
   }
 
   template <typename Derived>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Index recover_flushed_max_coeff_index_impl(const DenseBase<Derived>& src,
-                                                                                          Index, true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Index recover_flushed_max_coeff_index_impl(
+      const DenseBase<Derived>& src, Index, true_type) {
     return index_of_largest_magnitude<Scalar>(src);
   }
 
  public:
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Factors
-  compute_ceiling_factors_with_normal_reciprocal(const Scalar& value) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Factors compute_ceiling_factors_with_normal_reciprocal(
+      const Scalar& value) {
     Factors factors = safe_scaling<Scalar, IsPowerOfTwo_>::compute_ceiling_factors(value);
     EIGEN_IF_CONSTEXPR (!IsPowerOfTwo_) {
       if (factors.invScale > NumTraits<Scalar>::highest()) {
@@ -509,7 +520,7 @@ struct safe_scaling_operations {
     return factors;
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool try_compute_ceiling_factors_with_normal_reciprocal(
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool try_compute_ceiling_factors_with_normal_reciprocal(
       const Scalar& value, const Scalar& normalMin, Factors& factors) {
     if (!IsPowerOfTwo_ &&
         !has_normal_reciprocal(value, normalMin, bool_constant<std::is_floating_point<Scalar>::value>()))
@@ -521,8 +532,8 @@ struct safe_scaling_operations {
   // Dispatch once per expression; ordinary scaling retains packet access. The callback consumes the lazy
   // expression before its operands expire, without requiring a common C++ type for the different paths.
   template <typename Src, typename Func>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Factors with_scaled(const Src& src, const Scalar& maxCoeff,
-                                                                   const Func& func) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Factors with_scaled(const Src& src, const Scalar& maxCoeff,
+                                                                             const Func& func) {
     const Factors factors = select_factors(maxCoeff);
     constexpr bool kPreserveSubnormalInputs =
         IsPowerOfTwo_ && use_subnormal_preserving_scaling<Scalar, typename Src::Scalar>::value;
@@ -531,10 +542,11 @@ struct safe_scaling_operations {
   }
 
   template <typename Dest, typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void unscale_to(Dest&& dest, const Src& src, const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void unscale_to(Dest&& dest, const Src& src,
+                                                                         const Factors& factors) {
     if (factors.scale == Scalar(1)) {
       const Src* unscaled = &src;
-      EIGEN_OPTIMIZATION_BARRIER(unscaled);
+      if (!is_constant_evaluated()) optimization_barrier_function(unscaled);
       dest = *unscaled;
       return;
     }
@@ -542,21 +554,24 @@ struct safe_scaling_operations {
   }
 
   template <typename ValueType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void unscale_in_place(ValueType& value, const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void unscale_in_place(ValueType& value,
+                                                                               const Factors& factors) {
     if (factors.scale == Scalar(1)) return;
     value *= factors.scale;
   }
 
   template <typename MatrixType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void unscale_in_place(MatrixType& matrix, const Scalar& maxCoeff,
-                                                                     const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void unscale_in_place(MatrixType& matrix,
+                                                                               const Scalar& maxCoeff,
+                                                                               const Factors& factors) {
     if (factors.scale == Scalar(1)) return;
     unscale_to(matrix, matrix, maxCoeff, factors);
   }
 
   template <typename Dest, typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void unscale_to(Dest&& dest, const Src& src, const Scalar& maxCoeff,
-                                                               const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void unscale_to(Dest&& dest, const Src& src,
+                                                                         const Scalar& maxCoeff,
+                                                                         const Factors& factors) {
     constexpr bool kPreserveSubnormalOutputs =
         IsPowerOfTwo_ && use_subnormal_preserving_scaling<Scalar, typename Src::Scalar>::value;
     unscale_to_impl(dest, src, maxCoeff, factors, bool_constant<kPreserveSubnormalOutputs>());
@@ -574,8 +589,8 @@ struct safe_scaling_operations {
   // maxCoeff from the representation. Any subnormal maximum, including the largest real or imaginary magnitude of a
   // complex matrix, selects the same factors as the true one.
   template <typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar recover_flushed_max_coeff(const Src& src,
-                                                                                const Scalar& maxCoeff) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar recover_flushed_max_coeff(const Src& src,
+                                                                                          const Scalar& maxCoeff) {
     constexpr bool kPreserveSubnormalInputs =
         IsPowerOfTwo_ && use_subnormal_preserving_scaling<Scalar, typename Src::Scalar>::value;
     return recover_flushed_max_coeff_impl(src, maxCoeff, bool_constant<kPreserveSubnormalInputs>());
@@ -584,7 +599,7 @@ struct safe_scaling_operations {
   // max_ij max(|Re a_ij|, |Im a_ij|), propagating NaN and recovered like recover_flushed_max_coeff(); zero for an
   // empty src. Unlike max_ij |a_ij|, it is finite for every finite src, and it is within a factor sqrt(2) of it.
   template <typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar max_abs_component(const Src& src) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar max_abs_component(const Src& src) {
     if (src.size() == 0) return Scalar(0);
     return recover_flushed_max_coeff(src, src.realView().cwiseAbs().template maxCoeff<PropagateNaN>());
   }
@@ -593,29 +608,30 @@ struct safe_scaling_operations {
   // rescanned from the representation like recover_flushed_max_coeff(); the position maxCoeff() reported where there
   // is no representation path.
   template <typename Derived>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Index recover_flushed_max_coeff_index(const DenseBase<Derived>& src,
-                                                                                     Index position) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Index recover_flushed_max_coeff_index(
+      const DenseBase<Derived>& src, Index position) {
     constexpr bool kPreserveSubnormalInputs =
         IsPowerOfTwo_ && use_subnormal_preserving_scaling<Scalar, typename Derived::Scalar>::value;
     return recover_flushed_max_coeff_index_impl(src, position, bool_constant<kPreserveSubnormalInputs>());
   }
 
   template <typename MatrixType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Factors scale_in_place(MatrixType& matrix, const Scalar& maxCoeff) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Factors scale_in_place(MatrixType& matrix,
+                                                                                const Scalar& maxCoeff) {
     const Factors factors = select_factors(maxCoeff);
     scale_in_place(matrix, maxCoeff, factors);
     return factors;
   }
 
   template <typename MatrixType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void scale_in_place(MatrixType& matrix, const Scalar& maxCoeff,
-                                                                   const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void scale_in_place(MatrixType& matrix, const Scalar& maxCoeff,
+                                                                             const Factors& factors) {
     if (!is_identity(factors)) scale_to(matrix, matrix, maxCoeff, factors);
   }
 
   template <typename Dest, typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE void scale_to(Dest& dest, const Src& src, const Scalar& maxCoeff,
-                                                             const Factors& factors) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr void scale_to(Dest& dest, const Src& src,
+                                                                       const Scalar& maxCoeff, const Factors& factors) {
     constexpr bool kPreserveSubnormalInputs =
         IsPowerOfTwo_ && use_subnormal_preserving_scaling<Scalar, typename Src::Scalar>::value;
     with_scaled_impl(
@@ -623,7 +639,8 @@ struct safe_scaling_operations {
   }
 
   template <typename Dest, typename Src>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Factors scale_to(Dest& dest, const Src& src, const Scalar& maxCoeff) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Factors scale_to(Dest& dest, const Src& src,
+                                                                          const Scalar& maxCoeff) {
     const Factors factors = select_factors(maxCoeff);
     scale_to(dest, src, maxCoeff, factors);
     return factors;
@@ -632,11 +649,12 @@ struct safe_scaling_operations {
 
 template <typename Scalar, bool>
 struct safe_scaling : safe_scaling_operations<Scalar, false> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE safe_scaling_factors<Scalar> compute_floor_factors(const Scalar& value) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr safe_scaling_factors<Scalar> compute_floor_factors(
+      const Scalar& value) {
     return {value, Scalar(1)};
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE safe_scaling_factors<Scalar> compute_ceiling_factors(
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr safe_scaling_factors<Scalar> compute_ceiling_factors(
       const Scalar& value) {
     return {value, Scalar(1) / value};
   }
@@ -649,7 +667,7 @@ struct safe_scaling<Scalar, true> : safe_scaling_operations<Scalar, true> {
   using Bits = typename Binary::Bits;
 
   template <bool RoundUp>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE safe_scaling_factors<Scalar> compute_power_of_two_factors(
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr safe_scaling_factors<Scalar> compute_power_of_two_factors(
       const Scalar& value) {
     constexpr Bits kMaxScale = Binary::kMaxFiniteExponentBits - Binary::kExponentUnit;
     Bits scaleBits = RoundUp ? numext::bit_cast<Bits>(numext::ceil_power_of_two(value))
@@ -661,11 +679,12 @@ struct safe_scaling<Scalar, true> : safe_scaling_operations<Scalar, true> {
   }
 
  public:
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE safe_scaling_factors<Scalar> compute_floor_factors(const Scalar& value) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr safe_scaling_factors<Scalar> compute_floor_factors(
+      const Scalar& value) {
     return compute_power_of_two_factors<false>(value);
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE safe_scaling_factors<Scalar> compute_ceiling_factors(
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr safe_scaling_factors<Scalar> compute_ceiling_factors(
       const Scalar& value) {
     return compute_power_of_two_factors<true>(value);
   }

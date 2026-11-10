@@ -110,7 +110,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void twoprod(const Scalar& x, const Scalar
 // This is Algorithm 3 from Jean-Michel Muller, "Elementary Functions",
 // 3rd edition, Birkh\"auser, 2016.
 template <typename Packet, bool PreventReassociation = false>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void veltkamp_splitting(const Packet& x, Packet& x_hi, Packet& x_lo) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void veltkamp_splitting(const Packet& x, Packet& x_hi, Packet& x_lo) {
   using Scalar = typename unpacket_traits<Packet>::type;
   constexpr int shift = (NumTraits<Scalar>::digits() + 1) / 2;
   const Scalar shift_scale = Scalar(uint64_t(1) << shift);  // Scalar constructor not necessarily constexpr.
@@ -126,8 +126,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void veltkamp_splitting(const Packet& x, P
 // A version of twoprod that takes x, y, and fl(x*y) as input and returns the p_lo such that
 // x * y = xy + p_lo holds exactly. PreventReassociation preserves the separately rounded operations.
 template <typename Packet, bool PreventReassociation = false, std::enable_if_t<!has_fast_fma<Packet>::value, int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet twoprod_low(const Packet& x, const Packet& y, const Packet& xy) {
-  Packet x_hi, x_lo, y_hi, y_lo;
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet twoprod_low(const Packet& x, const Packet& y, const Packet& xy) {
+  Packet x_hi{}, x_lo{}, y_hi{}, y_lo{};
   veltkamp_splitting<Packet, PreventReassociation>(x, x_hi, x_lo);
   veltkamp_splitting<Packet, PreventReassociation>(y, y_hi, y_lo);
 

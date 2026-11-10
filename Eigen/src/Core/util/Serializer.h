@@ -37,7 +37,7 @@ class Serializer<T, std::enable_if_t<std::is_trivially_copyable<T>::value && std
    * \param value the value to serialize.
    * \return the required size.
    */
-  EIGEN_DEVICE_FUNC size_t size(const T& value) const { return sizeof(value); }
+  EIGEN_DEVICE_FUNC constexpr size_t size(const T& value) const { return sizeof(value); }
 
   /**
    * Serializes a value to a byte buffer.
@@ -82,7 +82,9 @@ class Serializer<DenseBase<Derived>, void> {
     typename Derived::Index cols;
   };
 
-  EIGEN_DEVICE_FUNC size_t size(const Derived& value) const { return sizeof(Header) + sizeof(Scalar) * value.size(); }
+  EIGEN_DEVICE_FUNC constexpr size_t size(const Derived& value) const {
+    return sizeof(Header) + sizeof(Scalar) * value.size();
+  }
 
   EIGEN_DEVICE_FUNC uint8_t* serialize(uint8_t* dest, uint8_t* end, const Derived& value) const {
     if (EIGEN_PREDICT_FALSE(dest == nullptr)) return nullptr;
@@ -102,7 +104,7 @@ class Serializer<DenseBase<Derived>, void> {
     if (EIGEN_PREDICT_FALSE(src == nullptr)) return nullptr;
     if (EIGEN_PREDICT_FALSE(src + sizeof(Header) > end)) return nullptr;
     const size_t header_bytes = sizeof(Header);
-    Header header;
+    Header header{};
     EIGEN_USING_STD(memcpy)
     memcpy(&header, src, header_bytes);
     src += header_bytes;

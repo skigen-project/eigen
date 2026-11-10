@@ -1160,6 +1160,51 @@ struct check_sqrt_impl {
   }
 };
 
+// Constant evaluation computes real sqrt exactly. Its result must be the correctly rounded one, which the double sqrt
+// gives for T = double and, rounded once more, for every T whose precision p satisfies 2p + 2 <= 53.
+template <typename T>
+void check_constant_evaluated_sqrt() {
+  // Without a constexpr bit_cast (e.g., GCC 10), constant evaluation falls back to Newton's iteration.
+  if (!internal::has_exact_constexpr_sqrt<T>::value) return;
+  using Binary = internal::binary_floating_point_traits<T>;
+  using Bits = typename Binary::Bits;
+  const auto check = [](Bits bits) {
+    const T x = numext::bit_cast<T>(bits);
+    const T expected = static_cast<T>(std::sqrt(static_cast<double>(x)));
+    VERIFY_IS_EQUAL(numext::bit_cast<Bits>(internal::real_sqrt(x)), numext::bit_cast<Bits>(expected));
+  };
+  const Bits infinityBits = Binary::kExponentMask;
+  if (sizeof(T) <= 2) {
+    for (Bits bits = 1; bits < infinityBits; ++bits) check(bits);
+    return;
+  }
+  for (Bits bits = 1; bits < 4096; ++bits) check(bits);
+  for (Bits bits = Binary::kExponentUnit - 2048; bits < Binary::kExponentUnit + 2048; ++bits) check(bits);
+  for (int i = 0; i < 100000; ++i) check(internal::random<Bits>(1, infinityBits - 1));
+  for (int k = 1; k < 4096; ++k) VERIFY_IS_EQUAL(internal::real_sqrt(T(k) * T(k)), T(k));
+}
+
+// The Newton fallback scales x by powers of 4 into [1/4, 4], so it stays within 1 ulp across the whole range.
+template <typename T>
+void check_newton_sqrt() {
+  using Binary = internal::binary_floating_point_traits<T>;
+  using Bits = typename Binary::Bits;
+  const auto check = [](Bits bits) {
+    const T x = numext::bit_cast<T>(bits);
+    const Bits expected = numext::bit_cast<Bits>(static_cast<T>(std::sqrt(static_cast<double>(x))));
+    const Bits actual = numext::bit_cast<Bits>(internal::real_sqrt_newton(x));
+    VERIFY(numext::maxi(actual, expected) - numext::mini(actual, expected) <= 1);
+  };
+  const Bits infinityBits = Binary::kExponentMask;
+  if (sizeof(T) <= 2) {
+    for (Bits bits = 1; bits < infinityBits; ++bits) check(bits);
+    return;
+  }
+  for (Bits bits = 1; bits < 4096; ++bits) check(bits);
+  for (Bits bits = infinityBits - 4096; bits < infinityBits; ++bits) check(bits);
+  for (int i = 0; i < 100000; ++i) check(internal::random<Bits>(1, infinityBits - 1));
+}
+
 template <typename T>
 struct check_sqrt_impl<std::complex<T>> {
   static void run() {
@@ -1761,6 +1806,14 @@ EIGEN_DECLARE_TEST(numext) {
     CALL_SUBTEST(check_sqrt<double>());
     CALL_SUBTEST(check_sqrt<std::complex<float>>());
     CALL_SUBTEST(check_sqrt<std::complex<double>>());
+    CALL_SUBTEST(check_constant_evaluated_sqrt<half>());
+    CALL_SUBTEST(check_constant_evaluated_sqrt<bfloat16>());
+    CALL_SUBTEST(check_constant_evaluated_sqrt<float>());
+    CALL_SUBTEST(check_constant_evaluated_sqrt<double>());
+    CALL_SUBTEST(check_newton_sqrt<half>());
+    CALL_SUBTEST(check_newton_sqrt<bfloat16>());
+    CALL_SUBTEST(check_newton_sqrt<float>());
+    CALL_SUBTEST(check_newton_sqrt<double>());
 
     CALL_SUBTEST(check_rsqrt<float>());
     CALL_SUBTEST(check_rsqrt<double>());

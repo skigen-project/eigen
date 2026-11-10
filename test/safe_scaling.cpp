@@ -545,6 +545,36 @@ void check_flush_to_zero_modes() {
   VERIFY_IS_EQUAL(resultsFlushed(), resultsBefore);
 }
 
+// The representation-based helpers are usable in constant expressions: denorm_min = 2^(min_exponent - digits).
+template <typename Scalar>
+constexpr bool check_binary_scaling_constexpr() {
+  using Limits = std::numeric_limits<Scalar>;
+  using Bits = typename internal::binary_floating_point_traits<Scalar>::Bits;
+  using Scaling = internal::safe_scaling<Scalar>;
+  constexpr Scalar kDenormMin = Limits::denorm_min();
+  constexpr int kDenormExponent = Limits::min_exponent - Limits::digits;
+  static_assert(internal::scale_binary_by_exponent(Scalar(1), kDenormExponent) == kDenormMin, "");
+  static_assert(internal::scale_binary_by_exponent(kDenormMin, Limits::digits - 1) == (Limits::min)(), "");
+  // 3 * 2^(kDenormExponent - 1) = 1.5 denorm_min rounds to even.
+  static_assert(internal::scale_binary_by_exponent(Scalar(3), kDenormExponent - 1) == 2 * kDenormMin, "");
+  static_assert(internal::scale_binary_by_exponent(Scalar(1), 4 * Limits::max_exponent) == Limits::infinity(), "");
+  static_assert(numext::bit_cast<Bits>(internal::scale_binary_by_exponent(Scalar(-1), -4 * Limits::max_exponent)) ==
+                    numext::bit_cast<Bits>(Scalar(-0.0)),
+                "");
+  static_assert(internal::binary_frexp_exponent(kDenormMin) == kDenormExponent + 1, "");
+  static_assert(internal::binary_frexp_exponent(Scalar(0)) == 0 && internal::binary_frexp_exponent(Scalar(1)) == 1, "");
+  static_assert(internal::is_subnormal_magnitude(-kDenormMin) && !internal::is_subnormal_magnitude((Limits::min)()),
+                "");
+  static_assert(numext::is_exactly_zero_no_flush(Scalar(-0.0)) && !numext::is_exactly_zero_no_flush(kDenormMin), "");
+  static_assert(Scaling::compute_floor_factors(Scalar(3)).scale == Scalar(2) &&
+                    Scaling::compute_floor_factors(Scalar(3)).invScale == Scalar(0.5),
+                "");
+  static_assert(Scaling::compute_ceiling_factors(Scalar(3)).scale == Scalar(4), "");
+  return true;
+}
+static_assert(check_binary_scaling_constexpr<float>(), "");
+static_assert(check_binary_scaling_constexpr<double>(), "");
+
 // value * 2^exponent through integer significands agrees bit for bit with the correctly rounded ldexp for every input
 // class and every exponent that changes the result, and keeps doing so in every flush-to-zero mode, where the
 // references are taken beforehand. Beyond the exponent range it saturates to the signed zero or infinity ldexp returns.

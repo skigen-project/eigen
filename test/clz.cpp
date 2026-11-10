@@ -87,6 +87,33 @@ void test_clz_ctz_random() {
   }
 }
 
+// The intrinsic specializations take a portable path during constant evaluation.
+template <typename T>
+constexpr bool clz_ctz_constexpr() {
+  constexpr int kNumBits = sizeof(T) * CHAR_BIT;
+  constexpr T kAllOnes = Eigen::NumTraits<T>::highest();
+  static_assert(Eigen::internal::clz(T(0)) == kNumBits && Eigen::internal::ctz(T(0)) == kNumBits, "");
+  static_assert(Eigen::internal::clz(T(1)) == kNumBits - 1 && Eigen::internal::ctz(T(1)) == 0, "");
+  static_assert(Eigen::internal::clz(T(kAllOnes >> 1)) == 1 && Eigen::internal::ctz(T(T(1) << 3)) == 3, "");
+  static_assert(Eigen::internal::popcount(T(0)) == 0 && Eigen::internal::popcount(kAllOnes) == kNumBits, "");
+  static_assert(Eigen::internal::popcount(T(0x5a)) == 4, "");
+  // GCC and Clang use builtins for every width, so check the portable path directly.
+  using Portable = Eigen::internal::count_bits_portable<T>;
+  static_assert(Portable::clz(T(0)) == kNumBits && Portable::ctz(T(0)) == kNumBits, "");
+  static_assert(Portable::clz(T(1)) == kNumBits - 1 && Portable::ctz(T(1)) == 0, "");
+  static_assert(Portable::clz(kAllOnes) == 0 && Portable::ctz(T(T(1) << (kNumBits - 1))) == kNumBits - 1, "");
+  static_assert(Portable::clz(T(kAllOnes >> 1)) == 1 && Portable::ctz(T(T(1) << 3)) == 3, "");
+  static_assert(Portable::popcount(kAllOnes) == kNumBits && Portable::popcount(T(0x5a)) == 4, "");
+  // Signed types count the bits of their two's complement representation.
+  using SignedPortable = Eigen::internal::count_bits_portable<std::make_signed_t<T>>;
+  static_assert(SignedPortable::clz(-1) == 0 && SignedPortable::popcount(-1) == kNumBits, "");
+  return true;
+}
+static_assert(clz_ctz_constexpr<uint8_t>(), "");
+static_assert(clz_ctz_constexpr<uint16_t>(), "");
+static_assert(clz_ctz_constexpr<uint32_t>(), "");
+static_assert(clz_ctz_constexpr<uint64_t>(), "");
+
 EIGEN_DECLARE_TEST(clz) {
   CALL_SUBTEST_1(test_clz_ctz<uint8_t>());
   CALL_SUBTEST_2(test_clz_ctz<uint16_t>());
