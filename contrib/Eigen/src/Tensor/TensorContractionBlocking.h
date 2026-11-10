@@ -55,9 +55,9 @@ class TensorContractionBlocking {
     kc_ = (rhs_packet_size <= 8 || kc_ <= rhs_packet_size) ? kc_ : (kc_ / rhs_packet_size) * rhs_packet_size;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE StorageIndex kc() const { return kc_; }
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE StorageIndex mc() const { return mc_; }
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE StorageIndex nc() const { return nc_; }
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr StorageIndex kc() const { return kc_; }
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr StorageIndex mc() const { return mc_; }
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr StorageIndex nc() const { return nc_; }
 
  private:
   StorageIndex kc_;

@@ -68,9 +68,11 @@ class TensorLayoutSwapOp : public TensorBase<TensorLayoutSwapOp<XprType>, WriteA
   using StorageKind = typename Eigen::internal::traits<TensorLayoutSwapOp>::StorageKind;
   using Index = typename Eigen::internal::traits<TensorLayoutSwapOp>::Index;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorLayoutSwapOp(const XprType& expr) : m_xpr(expr) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorLayoutSwapOp(const XprType& expr) : m_xpr(expr) {}
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename XprType::Nested>& expression() const { return m_xpr; }
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename XprType::Nested>& expression() const {
+    return m_xpr;
+  }
 
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(TensorLayoutSwapOp)
  protected:
@@ -121,63 +123,71 @@ struct TensorEvaluator<const TensorLayoutSwapOp<ArgType>, Device> {
   using ArgTensorBlock = typename TensorEvaluator<ArgType, Device>::TensorBlock;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device) : m_impl(op.expression(), device) {
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device)
+      : m_impl(op.expression(), device) {
     for (int i = 0; i < NumDims; ++i) {
       m_dimensions[i] = m_impl.dimensions()[NumDims - 1 - i];
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType data) { return m_impl.evalSubExprsIfNeeded(data); }
-  EIGEN_STRONG_INLINE void cleanup() { m_impl.cleanup(); }
+  EIGEN_STRONG_INLINE constexpr bool evalSubExprsIfNeeded(EvaluatorPointerType data) {
+    return m_impl.evalSubExprsIfNeeded(data);
+  }
+  EIGEN_STRONG_INLINE constexpr void cleanup() { m_impl.cleanup(); }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const { return m_impl.coeff(index); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index index) const {
+    return m_impl.coeff(index);
+  }
 
   template <int LoadMode>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE PacketReturnType packet(Index index) const {
     return m_impl.template packet<LoadMode>(index);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool vectorized) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool vectorized) const {
     return m_impl.costPerCoeff(vectorized);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE internal::TensorBlockResourceRequirements getResourceRequirements() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr internal::TensorBlockResourceRequirements getResourceRequirements()
+      const {
     return getResourceRequirementsImpl(std::integral_constant<bool, ForwardBlocksToArg>());
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                          bool root_of_expr_ast = false) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
+                                                                    bool root_of_expr_ast = false) const {
     return blockImpl(desc, scratch, root_of_expr_ast, std::integral_constant<bool, ForwardBlocksToArg>());
   }
 
-  EIGEN_DEVICE_FUNC typename Storage::Type data() const { return constCast(m_impl.data()); }
+  EIGEN_DEVICE_FUNC constexpr typename Storage::Type data() const { return constCast(m_impl.data()); }
 
-  const TensorEvaluator<ArgType, Device>& impl() const { return m_impl; }
+  constexpr const TensorEvaluator<ArgType, Device>& impl() const { return m_impl; }
 
  protected:
   // Sizes or strides of this expression in the argument's index order.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE DSizes<Index, NumDims> reversed(const DSizes<Index, NumDims>& sizes) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr DSizes<Index, NumDims> reversed(
+      const DSizes<Index, NumDims>& sizes) {
     DSizes<Index, NumDims> result;
     for (int i = 0; i < NumDims; ++i) result[i] = sizes[NumDims - 1 - i];
     return result;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE internal::TensorBlockResourceRequirements getResourceRequirementsImpl(
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr internal::TensorBlockResourceRequirements getResourceRequirementsImpl(
       std::true_type /*forward_to_arg*/) const {
     return m_impl.getResourceRequirements();
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE internal::TensorBlockResourceRequirements getResourceRequirementsImpl(
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr internal::TensorBlockResourceRequirements getResourceRequirementsImpl(
       std::false_type /*forward_to_arg*/) const {
     return internal::TensorBlockResourceRequirements::any();
   }
 
   // The argument owns a flat buffer this expression is a plain view of.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock blockImpl(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                              bool /*root_of_expr_ast*/,
-                                                              std::false_type /*forward_to_arg*/) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock blockImpl(TensorBlockDesc& desc,
+                                                                        TensorBlockScratch& scratch,
+                                                                        bool /*root_of_expr_ast*/,
+                                                                        std::false_type /*forward_to_arg*/) const {
     eigen_assert(m_impl.data() != nullptr);
     return TensorBlock::materialize(m_impl.data(), m_dimensions, desc, scratch);
   }
@@ -185,9 +195,10 @@ struct TensorEvaluator<const TensorLayoutSwapOp<ArgType>, Device> {
   // Forward the block request to the argument: reversing the descriptor's
   // dimensions maps this block exactly onto an argument block at the same
   // flat offset, and the swapped layout makes the two flat buffers identical.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock blockImpl(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                              bool root_of_expr_ast,
-                                                              std::true_type /*forward_to_arg*/) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock blockImpl(TensorBlockDesc& desc,
+                                                                        TensorBlockScratch& scratch,
+                                                                        bool root_of_expr_ast,
+                                                                        std::true_type /*forward_to_arg*/) const {
     const DSizes<Index, NumDims> arg_dims = reversed(desc.dimensions());
     TensorBlockDesc arg_desc(desc.offset(), arg_dims);
 
@@ -262,9 +273,9 @@ struct TensorEvaluator<TensorLayoutSwapOp<ArgType>, Device>
   using TensorBlockDesc = typename Base::TensorBlockDesc;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType& coeffRef(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType& coeffRef(Index index) const {
     return this->m_impl.coeffRef(index);
   }
   template <int StoreMode>
@@ -273,7 +284,8 @@ struct TensorEvaluator<TensorLayoutSwapOp<ArgType>, Device>
   }
 
   template <typename TensorBlock>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void writeBlock(const TensorBlockDesc& desc, const TensorBlock& block) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void writeBlock(const TensorBlockDesc& desc,
+                                                                  const TensorBlock& block) {
     eigen_assert(this->m_impl.data() != NULL);
 
     // Dense strides of the swapped dimensions in this layout are exactly the

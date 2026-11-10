@@ -35,16 +35,18 @@ struct eval<TensorChippingOp<DimId, XprType>, Eigen::Dense> {
 
 template <DenseIndex DimId>
 struct DimensionId {
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DimensionId(DenseIndex dim) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DimensionId(DenseIndex dim) {
     EIGEN_UNUSED_VARIABLE(dim);
     eigen_assert(dim == DimId);
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseIndex actualDim() const { return DimId; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseIndex actualDim() const { return DimId; }
 };
 template <>
 struct DimensionId<Dynamic> {
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DimensionId(DenseIndex dim) : actual_dim(dim) { eigen_assert(dim >= 0); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseIndex actualDim() const { return actual_dim; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DimensionId(DenseIndex dim) : actual_dim(dim) {
+    eigen_assert(dim >= 0);
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseIndex actualDim() const { return actual_dim; }
 
  private:
   const DenseIndex actual_dim;
@@ -162,15 +164,18 @@ class TensorChippingOp : public TensorBase<TensorChippingOp<DimId, XprType> > {
   using StorageKind = typename Eigen::internal::traits<TensorChippingOp>::StorageKind;
   using Index = typename Eigen::internal::traits<TensorChippingOp>::Index;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorChippingOp(const XprType& expr, const Index offset, const Index dim)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorChippingOp(const XprType& expr, const Index offset,
+                                                                   const Index dim)
       : m_xpr(expr), m_offset(offset), m_dim(dim) {
     eigen_assert(dim < XprType::NumDimensions && dim >= 0 && "Chip_Dim_out_of_range");
   }
 
-  EIGEN_DEVICE_FUNC const Index offset() const { return m_offset; }
-  EIGEN_DEVICE_FUNC const Index dim() const { return m_dim.actualDim(); }
+  EIGEN_DEVICE_FUNC constexpr const Index offset() const { return m_offset; }
+  EIGEN_DEVICE_FUNC constexpr const Index dim() const { return m_dim.actualDim(); }
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename XprType::Nested>& expression() const { return m_xpr; }
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename XprType::Nested>& expression() const {
+    return m_xpr;
+  }
 
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(TensorChippingOp)
 
@@ -227,7 +232,7 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
   using TensorBlock = typename internal::TensorMaterializedBlock<ScalarNoConst, NumDims, Layout, Index>;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device)
       : m_impl(op.expression(), device), m_dim(op.dim()), m_device(device) {
     EIGEN_STATIC_ASSERT((NumInputDims >= 1), YOU_MADE_A_PROGRAMMING_MISTAKE);
 
@@ -280,9 +285,9 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType) {
+  EIGEN_STRONG_INLINE constexpr bool evalSubExprsIfNeeded(EvaluatorPointerType) {
     m_impl.evalSubExprsIfNeeded(nullptr);
     return true;
   }
@@ -294,9 +299,9 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
   }
 #endif  // EIGEN_USE_THREADS
 
-  EIGEN_STRONG_INLINE void cleanup() { m_impl.cleanup(); }
+  EIGEN_STRONG_INLINE constexpr void cleanup() { m_impl.cleanup(); }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index index) const {
     return m_impl.coeff(srcCoeff(index));
   }
 
@@ -443,7 +448,7 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
     return internal::pload<PacketReturnTypeT>(values);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool vectorized) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool vectorized) const {
     double cost = 0;
     if (isOuterChipping()) {
       cost += TensorOpCost::AddCost<Index>();
@@ -462,8 +467,8 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
         internal::TensorBlockResourceRequirements::skewed<Scalar>(target_size), m_impl.getResourceRequirements());
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                          bool root_of_expr_ast = false) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
+                                                                    bool root_of_expr_ast = false) const {
     const Index chip_dim = m_dim.actualDim();
 
     DSizes<Index, NumInputDims> input_block_dims;
@@ -511,7 +516,7 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename Storage::Type data() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename Storage::Type data() const {
     typename Storage::Type result = constCast(m_impl.data());
     if (isOuterChipping() && result) {
       return result + m_inputOffset;
@@ -521,7 +526,7 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
   }
 
  protected:
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index srcCoeff(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index srcCoeff(Index index) const {
     EIGEN_IF_CONSTEXPR (IsInnerChipping) {
       return srcCoeffInnerChipping(index);
     } else EIGEN_IF_CONSTEXPR (IsOuterChipping) {
@@ -539,13 +544,13 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index srcCoeffInnerChipping(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index srcCoeffInnerChipping(Index index) const {
     // m_stride is equal to 1, so let's avoid the integer division.
     eigen_assert(m_stride == 1);
     return index * m_inputStride + m_inputOffset;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index srcCoeffOuterChipping(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index srcCoeffOuterChipping(Index index) const {
     // m_stride > index (or m_stride == m_inputStride when chipped dim has size 1).
     eigen_assert(m_stride > index || m_stride == m_inputStride);
     return index + m_inputOffset;
@@ -571,11 +576,11 @@ struct TensorEvaluator<const TensorChippingOp<DimId, ArgType>, Device> {
         m_impl, srcCoeffOuterChipping(index));
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool isInnerChipping() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool isInnerChipping() const {
     return IsInnerChipping || m_isEffectivelyInnerChipping;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool isOuterChipping() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool isOuterChipping() const {
     return IsOuterChipping || m_isEffectivelyOuterChipping;
   }
 
@@ -622,9 +627,9 @@ struct TensorEvaluator<TensorChippingOp<DimId, ArgType>, Device>
   using TensorBlockDesc = internal::TensorBlockDescriptor<NumDims, Index>;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType& coeffRef(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType& coeffRef(Index index) const {
     return this->m_impl.coeffRef(this->srcCoeff(index));
   }
 
@@ -664,7 +669,8 @@ struct TensorEvaluator<TensorChippingOp<DimId, ArgType>, Device>
   }
 
   template <typename TensorBlock>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void writeBlock(const TensorBlockDesc& desc, const TensorBlock& block) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void writeBlock(const TensorBlockDesc& desc,
+                                                                  const TensorBlock& block) {
     eigen_assert(this->m_impl.data() != nullptr);
 
     const Index chip_dim = this->m_dim.actualDim();

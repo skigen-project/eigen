@@ -67,8 +67,8 @@ struct TensorContractionBlockMemAllocator {
   using BlockMemHandle = void*;
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC static BlockMemHandle allocate(Device& d, const Index bm, const Index bk, const Index bn,
-                                                   LhsScalar** lhs_block, RhsScalar** rhs_block) {
+  EIGEN_DEVICE_FUNC static constexpr BlockMemHandle allocate(Device& d, const Index bm, const Index bk, const Index bn,
+                                                             LhsScalar** lhs_block, RhsScalar** rhs_block) {
     eigen_assert(lhs_block);
     eigen_assert(rhs_block);
     BlockSizes sz = ComputeLhsRhsBlockSizes(bm, bk, bn);
@@ -79,10 +79,11 @@ struct TensorContractionBlockMemAllocator {
   }
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC static BlockMemHandle allocateSlices(Device& d, const Index bm, const Index bk, const Index bn,
-                                                         const Index num_lhs, const Index num_rhs,
-                                                         const Index num_slices, std::vector<LhsScalar*>* lhs_blocks,
-                                                         std::vector<RhsScalar*>* rhs_blocks) {
+  EIGEN_DEVICE_FUNC static constexpr BlockMemHandle allocateSlices(Device& d, const Index bm, const Index bk,
+                                                                   const Index bn, const Index num_lhs,
+                                                                   const Index num_rhs, const Index num_slices,
+                                                                   std::vector<LhsScalar*>* lhs_blocks,
+                                                                   std::vector<RhsScalar*>* rhs_blocks) {
     eigen_assert(num_slices > 0);
     eigen_assert(num_lhs >= 0 && num_rhs >= 0);
     eigen_assert(num_lhs == 0 || lhs_blocks);
@@ -109,7 +110,7 @@ struct TensorContractionBlockMemAllocator {
   }
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC static void deallocate(Device& d, BlockMemHandle handle) {
+  EIGEN_DEVICE_FUNC static EIGEN_CONSTEXPR20 void deallocate(Device& d, BlockMemHandle handle) {
     d.deallocate(handle);
   }
 
@@ -118,9 +119,10 @@ struct TensorContractionBlockMemAllocator {
     Index lhs_size;
     Index rhs_size;
   };
-  EIGEN_DEVICE_FUNC static BlockSizes ComputeLhsRhsBlockSizes(const Index bm, const Index bk, const Index bn) {
+  EIGEN_DEVICE_FUNC static constexpr BlockSizes ComputeLhsRhsBlockSizes(const Index bm, const Index bk,
+                                                                        const Index bn) {
     Index align = numext::maxi(EIGEN_MAX_ALIGN_BYTES, 1);
-    BlockSizes sz;
+    BlockSizes sz{};
     sz.lhs_size = numext::div_ceil<Index>(bm * bk * sizeof(LhsScalar), align) * align;
     sz.rhs_size = numext::div_ceil<Index>(bn * bk * sizeof(RhsScalar), align) * align;
     return sz;
@@ -243,8 +245,8 @@ struct TensorContractionKernel {
   // (otherwise beta should be always equal to 1).
   static constexpr bool HasBeta = false;
 
-  EIGEN_DEVICE_FUNC TensorContractionKernel(StorageIndex m_, StorageIndex k_, StorageIndex n_, StorageIndex bm_,
-                                            StorageIndex bk_, StorageIndex bn_)
+  EIGEN_DEVICE_FUNC constexpr TensorContractionKernel(StorageIndex m_, StorageIndex k_, StorageIndex n_,
+                                                      StorageIndex bm_, StorageIndex bk_, StorageIndex bn_)
       : m(m_), k(k_), n(n_), bm(bm_), bk(bk_), bn(bn_) {}
 
   // Pack blocks of Lhs and Rhs into contiguous blocks in memory.
@@ -267,19 +269,20 @@ struct TensorContractionKernel {
                                            /*ConjugateLhs*/ false, /*ConjugateRhs*/ false>;
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC BlockMemHandle allocate(Device& d, LhsBlock* lhs_block, RhsBlock* rhs_block) {
+  EIGEN_DEVICE_FUNC constexpr BlockMemHandle allocate(Device& d, LhsBlock* lhs_block, RhsBlock* rhs_block) {
     return BlockMemAllocator::allocate(d, bm, bk, bn, lhs_block, rhs_block);
   }
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC BlockMemHandle allocateSlices(Device& d, const StorageIndex num_lhs, const StorageIndex num_rhs,
-                                                  const StorageIndex num_slices, std::vector<LhsBlock>* lhs_blocks,
-                                                  std::vector<RhsBlock>* rhs_blocks) {
+  EIGEN_DEVICE_FUNC constexpr BlockMemHandle allocateSlices(Device& d, const StorageIndex num_lhs,
+                                                            const StorageIndex num_rhs, const StorageIndex num_slices,
+                                                            std::vector<LhsBlock>* lhs_blocks,
+                                                            std::vector<RhsBlock>* rhs_blocks) {
     return BlockMemAllocator::allocateSlices(d, bm, bk, bn, num_lhs, num_rhs, num_slices, lhs_blocks, rhs_blocks);
   }
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC static void deallocate(Device& d, const BlockMemHandle& handle) {
+  EIGEN_DEVICE_FUNC static constexpr void deallocate(Device& d, const BlockMemHandle& handle) {
     BlockMemAllocator::deallocate(d, handle);
   }
 
@@ -301,7 +304,7 @@ struct TensorContractionKernel {
     // Default GEBP kernel does not support beta.
     EIGEN_ONLY_USED_FOR_DEBUG(beta);
     eigen_assert(beta == ResScalar(1));
-    static constexpr int kComputeStrideFromBlockDimensions = -1;
+    constexpr int kComputeStrideFromBlockDimensions = -1;
     GebpKernel()(output_mapper, lhsBlock, rhsBlock, rows, depth, cols, alpha,
                  /*strideA*/ kComputeStrideFromBlockDimensions,
                  /*strideB*/ kComputeStrideFromBlockDimensions,
@@ -325,8 +328,9 @@ struct TensorContractionKernel {
 // rhs_inner_dim_reordered), passing them as compile-time bool_constant
 // tags to the callable `fn`.
 template <typename Func>
-EIGEN_STRONG_INLINE void tensor_contraction_dispatch(Func&& fn, bool lhs_inner_dim_contiguous,
-                                                     bool rhs_inner_dim_contiguous, bool rhs_inner_dim_reordered) {
+EIGEN_STRONG_INLINE constexpr void tensor_contraction_dispatch(Func&& fn, bool lhs_inner_dim_contiguous,
+                                                               bool rhs_inner_dim_contiguous,
+                                                               bool rhs_inner_dim_reordered) {
   if (lhs_inner_dim_contiguous) {
     if (rhs_inner_dim_contiguous) {
       if (rhs_inner_dim_reordered)
@@ -405,8 +409,8 @@ struct NoOpOutputKernel {
    * \param[in] num_cols Number of available columns
    */
   template <typename Index, typename Scalar>
-  EIGEN_ALWAYS_INLINE void operator()(const internal::blas_data_mapper<Scalar, Index, ColMajor>&,
-                                      const TensorContractionParams&, Index, Index, Index, Index) const {}
+  EIGEN_ALWAYS_INLINE constexpr void operator()(const internal::blas_data_mapper<Scalar, Index, ColMajor>&,
+                                                const TensorContractionParams&, Index, Index, Index, Index) const {}
 };
 
 /** Tensor contraction class.
@@ -424,23 +428,23 @@ class TensorContractionOp
   using StorageKind = typename Eigen::internal::traits<TensorContractionOp>::StorageKind;
   using Index = typename Eigen::internal::traits<TensorContractionOp>::Index;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorContractionOp(const LhsXprType& lhs, const RhsXprType& rhs,
-                                                            const Indices& dims,
-                                                            const OutputKernelType& output_kernel = OutputKernelType())
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorContractionOp(
+      const LhsXprType& lhs, const RhsXprType& rhs, const Indices& dims,
+      const OutputKernelType& output_kernel = OutputKernelType())
       : m_lhs_xpr(lhs), m_rhs_xpr(rhs), m_indices(dims), m_output_kernel(output_kernel) {}
 
-  EIGEN_DEVICE_FUNC const Indices& indices() const { return m_indices; }
+  EIGEN_DEVICE_FUNC constexpr const Indices& indices() const { return m_indices; }
 
   /** \returns the nested expressions */
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename LhsXprType::Nested>& lhsExpression() const {
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename LhsXprType::Nested>& lhsExpression() const {
     return m_lhs_xpr;
   }
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename RhsXprType::Nested>& rhsExpression() const {
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename RhsXprType::Nested>& rhsExpression() const {
     return m_rhs_xpr;
   }
 
-  EIGEN_DEVICE_FUNC const OutputKernelType& outputKernel() const { return m_output_kernel; }
+  EIGEN_DEVICE_FUNC constexpr const OutputKernelType& outputKernel() const { return m_output_kernel; }
 
  protected:
   typename LhsXprType::Nested m_lhs_xpr;
@@ -462,7 +466,7 @@ struct GemvDirectDispatcher {
 template <int StorageOrder, bool MatrixIsRight>
 struct GemvDirectDispatcher<false, StorageOrder, MatrixIsRight> {
   template <typename Evaluator, typename Scalar>
-  static bool run(const Evaluator*, Scalar*) {
+  static constexpr bool run(const Evaluator*, Scalar*) {
     return false;
   }
 };
@@ -518,7 +522,7 @@ struct TensorContractionEvaluatorBase {
 
   using Dimensions = DSizes<Index, NumDims>;
 
-  EIGEN_STRONG_INLINE TensorContractionEvaluatorBase(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE constexpr TensorContractionEvaluatorBase(const XprType& op, const Device& device)
       : m_leftImpl(choose(Cond<static_cast<int>(Layout) == static_cast<int>(ColMajor)>(), op.lhsExpression(),
                           op.rhsExpression()),
                    device),
@@ -534,7 +538,7 @@ struct TensorContractionEvaluatorBase {
 
     DSizes<Index, LDims> eval_left_dims;
     DSizes<Index, RDims> eval_right_dims;
-    array<IndexPair<Index>, ContractDims> eval_op_indices;
+    array<IndexPair<Index>, ContractDims> eval_op_indices{};
     EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {
       // For ColMajor, we keep using the existing dimensions
       for (int i = 0; i < LDims; i++) {
@@ -576,13 +580,13 @@ struct TensorContractionEvaluatorBase {
       }
     }
 
-    array<Index, LDims> lhs_strides;
+    array<Index, LDims> lhs_strides{};
     lhs_strides[0] = 1;
     for (int i = 0; i < LDims - 1; ++i) {
       lhs_strides[i + 1] = lhs_strides[i] * eval_left_dims[i];
     }
 
-    array<Index, RDims> rhs_strides;
+    array<Index, RDims> rhs_strides{};
     rhs_strides[0] = 1;
     for (int i = 0; i < RDims - 1; ++i) {
       rhs_strides[i + 1] = rhs_strides[i] * eval_right_dims[i];
@@ -700,9 +704,9 @@ struct TensorContractionEvaluatorBase {
     m_tensor_contraction_params.swapped_arguments = static_cast<int>(Layout) == RowMajor;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType data) {
+  EIGEN_STRONG_INLINE EIGEN_CONSTEXPR20 bool evalSubExprsIfNeeded(EvaluatorPointerType data) {
     m_leftImpl.evalSubExprsIfNeeded(nullptr);
     // The executor does not call cleanup() when evaluation throws, so release the operands and the result here.
     EIGEN_TRY { m_rightImpl.evalSubExprsIfNeeded(nullptr); }
@@ -745,7 +749,7 @@ struct TensorContractionEvaluatorBase {
   }
 #endif  // EIGEN_USE_THREADS
 
-  EIGEN_DEVICE_FUNC void evalTo(Scalar* buffer) const {
+  EIGEN_DEVICE_FUNC constexpr void evalTo(Scalar* buffer) const {
     static_cast<const Derived*>(this)->template evalProduct<Unaligned>(buffer);
   }
 
@@ -757,9 +761,10 @@ struct TensorContractionEvaluatorBase {
 #endif  // EIGEN_USE_THREADS
 
   template <typename Func>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static void dispatchContraction(Func&& fn, bool lhs_inner_dim_contiguous,
-                                                                        bool rhs_inner_dim_contiguous,
-                                                                        bool rhs_inner_dim_reordered) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static constexpr void dispatchContraction(Func&& fn,
+                                                                                  bool lhs_inner_dim_contiguous,
+                                                                                  bool rhs_inner_dim_contiguous,
+                                                                                  bool rhs_inner_dim_reordered) {
     // m_rhs_inner_dim_reordered is only ever set when ContractDims > 1 and
     // !m_rhs_inner_dim_contiguous. Canonicalizing rhs_r at compile time avoids
     // instantiating unreachable contractions (reducing 8 combinations to 4 when
@@ -774,7 +779,7 @@ struct TensorContractionEvaluatorBase {
   }
 
   template <bool lhs_inner_dim_contiguous, bool rhs_inner_dim_contiguous, bool rhs_inner_dim_reordered, int Alignment>
-  void evalProductSequential(Scalar* buffer) const {
+  constexpr void evalProductSequential(Scalar* buffer) const {
     if (this->m_i_size == 0 || this->m_j_size == 0) {
       return;
     }
@@ -784,6 +789,11 @@ struct TensorContractionEvaluatorBase {
       using OutputMapper = internal::blas_data_mapper<Scalar, Index, ColMajor>;
       this->m_output_kernel(OutputMapper(buffer, this->m_i_size), this->m_tensor_contraction_params,
                             static_cast<Index>(0), static_cast<Index>(0), this->m_i_size, this->m_j_size);
+      return;
+    }
+    if (internal::is_constant_evaluated()) {
+      this->template evalProductCoeffwise<lhs_inner_dim_contiguous, rhs_inner_dim_contiguous, rhs_inner_dim_reordered>(
+          buffer);
       return;
     }
     // Gemv-shape contractions (output is a vector) get a direct GEMV kernel
@@ -837,6 +847,38 @@ struct TensorContractionEvaluatorBase {
     }
     this->template evalGemm<lhs_inner_dim_contiguous, rhs_inner_dim_contiguous, rhs_inner_dim_reordered, Alignment>(
         buffer);
+  }
+
+  // The GEMV and GEBP kernels use packet math, so constant evaluation forms each output coefficient as a dot product
+  // over the contracted index.
+  template <bool lhs_inner_dim_contiguous, bool rhs_inner_dim_contiguous, bool rhs_inner_dim_reordered>
+  EIGEN_DEVICE_FUNC constexpr void evalProductCoeffwise(Scalar* buffer) const {
+    using LhsScalar = std::remove_const_t<typename EvalLeftArgType::Scalar>;
+    using RhsScalar = std::remove_const_t<typename EvalRightArgType::Scalar>;
+    using LeftEvaluator = TensorEvaluator<EvalLeftArgType, Device>;
+    using RightEvaluator = TensorEvaluator<EvalRightArgType, Device>;
+    const int lhs_packet_size = internal::unpacket_traits<typename LeftEvaluator::PacketReturnType>::size;
+    const int rhs_packet_size = internal::unpacket_traits<typename RightEvaluator::PacketReturnType>::size;
+    using LhsMapper =
+        internal::TensorContractionInputMapper<LhsScalar, Index, internal::Lhs, LeftEvaluator, left_nocontract_t,
+                                               contract_t, lhs_packet_size, lhs_inner_dim_contiguous, false, Unaligned>;
+    using RhsMapper =
+        internal::TensorContractionInputMapper<RhsScalar, Index, internal::Rhs, RightEvaluator, right_nocontract_t,
+                                               contract_t, rhs_packet_size, rhs_inner_dim_contiguous,
+                                               rhs_inner_dim_reordered, Unaligned>;
+    using OutputMapper = internal::blas_data_mapper<Scalar, Index, ColMajor>;
+
+    const LhsMapper lhs(m_leftImpl, m_left_nocontract_strides, m_i_strides, m_left_contracting_strides, m_k_strides);
+    const RhsMapper rhs(m_rightImpl, m_right_nocontract_strides, m_j_strides, m_right_contracting_strides, m_k_strides);
+    for (Index j = 0; j < m_j_size; ++j) {
+      for (Index i = 0; i < m_i_size; ++i) {
+        Scalar sum(0);
+        for (Index k = 0; k < m_k_size; ++k) sum += Scalar(lhs(i, k)) * Scalar(rhs(k, j));
+        buffer[i + j * m_i_size] = sum;
+      }
+    }
+    m_output_kernel(OutputMapper(buffer, m_i_size), m_tensor_contraction_params, static_cast<Index>(0),
+                    static_cast<Index>(0), m_i_size, m_j_size);
   }
 
   template <bool lhs_inner_dim_contiguous, bool rhs_inner_dim_contiguous, bool rhs_inner_dim_reordered, int Alignment>
@@ -932,7 +974,7 @@ struct TensorContractionEvaluatorBase {
 #if !defined(EIGEN_HIPCC)
   EIGEN_DEVICE_FUNC
 #endif
-      void
+      constexpr void
       evalGemm(Scalar* buffer) const {
     // columns in left side, rows in right side
     const Index k = this->m_k_size;
@@ -941,15 +983,15 @@ struct TensorContractionEvaluatorBase {
   }
 
   template <bool lhs_inner_dim_contiguous, bool rhs_inner_dim_contiguous, bool rhs_inner_dim_reordered, int Alignment>
-  EIGEN_DEVICE_FUNC void evalGemmPartialWithoutOutputKernel(Scalar* buffer, Index k_start, Index k_end,
-                                                            int num_threads) const {
+  EIGEN_DEVICE_FUNC constexpr void evalGemmPartialWithoutOutputKernel(Scalar* buffer, Index k_start, Index k_end,
+                                                                      int num_threads) const {
     evalGemmPartial<lhs_inner_dim_contiguous, rhs_inner_dim_contiguous, rhs_inner_dim_reordered, Alignment,
                     /*use_output_kernel*/ false>(buffer, k_start, k_end, num_threads);
   }
 
   template <bool lhs_inner_dim_contiguous, bool rhs_inner_dim_contiguous, bool rhs_inner_dim_reordered, int Alignment,
             bool use_output_kernel>
-  EIGEN_DEVICE_FUNC void evalGemmPartial(Scalar* buffer, Index k_start, Index k_end, int num_threads) const {
+  EIGEN_DEVICE_FUNC constexpr void evalGemmPartial(Scalar* buffer, Index k_start, Index k_end, int num_threads) const {
     eigen_assert(k_end >= k_start && k_start >= 0 && k_end <= this->m_k_size);
     // columns in slice on left side, rows on right side
     const Index k_slice = k_end - k_start;
@@ -1014,8 +1056,8 @@ struct TensorContractionEvaluatorBase {
     using LhsBlock = typename TensorContractionKernel::LhsBlock;
     using RhsBlock = typename TensorContractionKernel::RhsBlock;
 
-    LhsBlock blockA;
-    RhsBlock blockB;
+    LhsBlock blockA{};
+    RhsBlock blockB{};
 
     TensorContractionKernel kernel(m, k_slice, n, mc, kc, nc);
 
@@ -1026,7 +1068,7 @@ struct TensorContractionEvaluatorBase {
       TensorContractionKernel& kernel;
       const Device& device;
       const BlockMemHandle& mem;
-      EIGEN_DEVICE_FUNC ~PackedMemGuard() { kernel.deallocate(device, mem); }
+      EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR20 ~PackedMemGuard() { kernel.deallocate(device, mem); }
     } packed_mem_guard{kernel, this->m_device, packed_mem};
 
     // If a contraction kernel does not support beta, explicitly initialize
@@ -1067,15 +1109,15 @@ struct TensorContractionEvaluatorBase {
     }
   }
 
-  EIGEN_STRONG_INLINE void cleanup() {
+  EIGEN_STRONG_INLINE constexpr void cleanup() {
     m_leftImpl.cleanup();
     m_rightImpl.cleanup();
     releaseResult();
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const { return m_result[index]; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index index) const { return m_result[index]; }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool) const {
     return TensorOpCost(sizeof(CoeffReturnType), 0, 0);
   }
 
@@ -1084,7 +1126,7 @@ struct TensorContractionEvaluatorBase {
     return internal::ploadt<PacketReturnType, LoadMode>(m_result + index);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EvaluatorPointerType data() const { return m_result; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr EvaluatorPointerType data() const { return m_result; }
 
   // Required so a contraction can be composed with operators whose own
   // getResourceRequirements() forwards into m_impl (TensorPaddingOp,
@@ -1093,7 +1135,8 @@ struct TensorContractionEvaluatorBase {
   // Pad's BlockAccess is gated on m_impl.RawAccess (which is true here)
   // and instantiating Pad's getResourceRequirements then requires this
   // method on the operand evaluator.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE internal::TensorBlockResourceRequirements getResourceRequirements() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr internal::TensorBlockResourceRequirements getResourceRequirements()
+      const {
     return internal::TensorBlockResourceRequirements::any();
   }
 
@@ -1101,7 +1144,7 @@ struct TensorContractionEvaluatorBase {
   // The temporary result is written by assignment (fill, gebp), so scalars that require initialization must be
   // constructed first. The GPU evaluator allocates m_result itself without constructing it, so cleanup() destructs only
   // what was constructed here.
-  EIGEN_STRONG_INLINE void constructResult() {
+  EIGEN_STRONG_INLINE EIGEN_CONSTEXPR20 void constructResult() {
     EIGEN_IF_CONSTEXPR (NumTraits<Scalar>::RequireInitialization) {
       EIGEN_TRY { internal::default_construct_elements_of_array(m_result, dimensions().TotalSize()); }
       EIGEN_CATCH(...) {
@@ -1113,7 +1156,7 @@ struct TensorContractionEvaluatorBase {
     }
   }
 
-  EIGEN_STRONG_INLINE void releaseResult() {
+  EIGEN_STRONG_INLINE constexpr void releaseResult() {
     if (m_result != nullptr) {
       EIGEN_IF_CONSTEXPR (NumTraits<Scalar>::RequireInitialization) {
         if (m_result_constructed) internal::destruct_elements_of_array(m_result, dimensions().TotalSize());
@@ -1197,10 +1240,10 @@ struct TensorEvaluator<const TensorContractionOp<Indices, LeftArgType, RightArgT
   // Could we use NumDimensions here?
   using Dimensions = DSizes<Index, NumDims>;
 
-  TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
+  constexpr TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
 
   template <int Alignment>
-  void evalProduct(Scalar* buffer) const {
+  constexpr void evalProduct(Scalar* buffer) const {
     Base::dispatchContraction(
         [&](auto lhs_c, auto rhs_c, auto rhs_r) {
           this->template evalProductSequential<lhs_c(), rhs_c(), rhs_r(), Alignment>(buffer);

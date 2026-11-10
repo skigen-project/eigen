@@ -19,7 +19,7 @@ namespace Eigen {
 template <bool IsReal>
 struct MakeComplex {
   template <typename T>
-  EIGEN_DEVICE_FUNC T operator()(const T& val) const {
+  EIGEN_DEVICE_FUNC constexpr T operator()(const T& val) const {
     return val;
   }
 };
@@ -27,7 +27,7 @@ struct MakeComplex {
 template <>
 struct MakeComplex<true> {
   template <typename T>
-  EIGEN_DEVICE_FUNC internal::make_complex_t<T> operator()(const T& val) const {
+  EIGEN_DEVICE_FUNC constexpr internal::make_complex_t<T> operator()(const T& val) const {
     return internal::make_complex_t<T>(val, T(0));
   }
 };
@@ -35,7 +35,7 @@ struct MakeComplex<true> {
 template <int ResultType>
 struct PartOf {
   template <typename T>
-  T operator()(const T& val) const {
+  constexpr T operator()(const T& val) const {
     return val;
   }
 };
@@ -43,7 +43,7 @@ struct PartOf {
 template <>
 struct PartOf<RealPart> {
   template <typename T, typename EnableIf = std::enable_if_t<NumTraits<T>::IsComplex>>
-  typename NumTraits<T>::Real operator()(const T& val) const {
+  constexpr typename NumTraits<T>::Real operator()(const T& val) const {
     return Eigen::numext::real(val);
   }
 };
@@ -51,7 +51,7 @@ struct PartOf<RealPart> {
 template <>
 struct PartOf<ImagPart> {
   template <typename T, typename EnableIf = std::enable_if_t<NumTraits<T>::IsComplex>>
-  typename NumTraits<T>::Real operator()(const T& val) const {
+  constexpr typename NumTraits<T>::Real operator()(const T& val) const {
     return Eigen::numext::imag(val);
   }
 };
@@ -109,11 +109,14 @@ class TensorFFTOp : public TensorBase<TensorFFTOp<FFT, XprType, FFTResultType, F
   using StorageKind = typename Eigen::internal::traits<TensorFFTOp>::StorageKind;
   using Index = typename Eigen::internal::traits<TensorFFTOp>::Index;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorFFTOp(const XprType& expr, const FFT& fft) : m_xpr(expr), m_fft(fft) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorFFTOp(const XprType& expr, const FFT& fft)
+      : m_xpr(expr), m_fft(fft) {}
 
-  EIGEN_DEVICE_FUNC const FFT& fft() const { return m_fft; }
+  EIGEN_DEVICE_FUNC constexpr const FFT& fft() const { return m_fft; }
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename XprType::Nested>& expression() const { return m_xpr; }
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename XprType::Nested>& expression() const {
+    return m_xpr;
+  }
 
  protected:
   typename XprType::Nested m_xpr;
@@ -163,7 +166,7 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
       typename internal::TensorMaterializedBlock<std::remove_const_t<CoeffReturnType>, NumDims, Layout, Index>;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device)
       : m_fft(op.fft()), m_impl(op.expression(), device), m_data(nullptr), m_device(device) {
     const typename TensorEvaluator<ArgType, Device>::Dimensions& input_dims = m_impl.dimensions();
     for (int i = 0; i < NumDims; ++i) {
@@ -185,9 +188,9 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     m_size = m_dimensions.TotalSize();
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType data) {
+  EIGEN_STRONG_INLINE constexpr bool evalSubExprsIfNeeded(EvaluatorPointerType data) {
     m_impl.evalSubExprsIfNeeded(nullptr);
     if (data) {
       evalToBuf(data);
@@ -200,7 +203,7 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     }
   }
 
-  EIGEN_STRONG_INLINE void cleanup() {
+  EIGEN_STRONG_INLINE constexpr void cleanup() {
     if (m_data) {
       m_device.deallocate(m_data);
       m_data = nullptr;
@@ -208,31 +211,32 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     m_impl.cleanup();
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE CoeffReturnType coeff(Index index) const { return m_data[index]; }
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr CoeffReturnType coeff(Index index) const { return m_data[index]; }
 
   template <int LoadMode>
   EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PacketReturnType packet(Index index) const {
     return internal::ploadt<PacketReturnType, LoadMode>(m_data + index);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool vectorized) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool vectorized) const {
     return TensorOpCost(sizeof(CoeffReturnType), 0, 0, vectorized, PacketSize);
   }
 
-  EIGEN_DEVICE_FUNC EvaluatorPointerType data() const { return m_data; }
+  EIGEN_DEVICE_FUNC constexpr EvaluatorPointerType data() const { return m_data; }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE internal::TensorBlockResourceRequirements getResourceRequirements() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr internal::TensorBlockResourceRequirements getResourceRequirements()
+      const {
     return internal::TensorBlockResourceRequirements::any();
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                          bool /*root_of_expr_ast*/ = false) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
+                                                                    bool /*root_of_expr_ast*/ = false) const {
     eigen_assert(m_data != nullptr);
     return TensorBlock::materialize(m_data, m_dimensions, desc, scratch);
   }
 
  private:
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void evalToBuf(EvaluatorPointerType data) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void evalToBuf(EvaluatorPointerType data) {
     const bool write_to_out = std::is_same<OutputScalar, ComplexScalar>::value;
     ComplexScalar* buf =
         write_to_out ? (ComplexScalar*)data : (ComplexScalar*)m_device.allocate(sizeof(ComplexScalar) * m_size);
@@ -336,19 +340,19 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static bool isPowerOfTwo(Index x) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr static bool isPowerOfTwo(Index x) {
     eigen_assert(x > 0);
     return !(x & (x - 1));
   }
 
   // The composite number for padding, used in Bluestein's FFT algorithm
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static Index findGoodComposite(Index n) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr static Index findGoodComposite(Index n) {
     Index i = 2;
     while (i < 2 * n - 1) i *= 2;
     return i;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static Index getLog2(Index m) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr static Index getLog2(Index m) {
     Index log2m = 0;
     while (m >>= 1) log2m++;
     return log2m;
@@ -357,8 +361,9 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
   // Build the b-sequence and forward-FFT it once per dim. It depends only on
   // (line_len, good_composite, FFTDir), so the result is shared across all
   // lines — the main win for batched non-power-of-two transforms.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void precompute_bluestein_b(ComplexScalar* b_fft, Index n, Index m, Index log_m,
-                                                                    const ComplexScalar* pos_j_base_powered) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void precompute_bluestein_b(ComplexScalar* b_fft, Index n, Index m,
+                                                                              Index log_m,
+                                                                              const ComplexScalar* pos_j_base_powered) {
     internal::conj_if<FFTDir == FFT_REVERSE> cj;
     for (Index i = 0; i < n; ++i) {
       b_fft[i] = cj(pos_j_base_powered[i]);
@@ -374,8 +379,8 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
   }
 
   // Call Cooley Tukey algorithm directly; line_len must be a power of 2.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void processDataLineCooleyTukey(ComplexScalar* line_buf, Index line_len,
-                                                                        Index log_len) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void processDataLineCooleyTukey(ComplexScalar* line_buf,
+                                                                                  Index line_len, Index log_len) {
     eigen_assert(isPowerOfTwo(line_len));
     scramble_FFT(line_buf, line_len);
     compute_1D_Butterfly<FFTDir>(line_buf, line_len, log_len);
@@ -384,10 +389,9 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
   // Bluestein's algorithm: turn an arbitrary-length transform into three
   // length-m power-of-two transforms (m = good_composite >= 2*line_len). The
   // forward-FFT of b is taken as input (precomputed once per dim).
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void processDataLineBluestein(ComplexScalar* line_buf, Index line_len,
-                                                                      Index good_composite, Index log_m,
-                                                                      ComplexScalar* a, const ComplexScalar* b_fft,
-                                                                      const ComplexScalar* pos_j_base_powered) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void processDataLineBluestein(
+      ComplexScalar* line_buf, Index line_len, Index good_composite, Index log_m, ComplexScalar* a,
+      const ComplexScalar* b_fft, const ComplexScalar* pos_j_base_powered) {
     const Index n = line_len;
     const Index m = good_composite;
     // Data-side chirp is conjugated for forward, not for reverse — opposite
@@ -417,7 +421,7 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static void scramble_FFT(ComplexScalar* data, Index n) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr static void scramble_FFT(ComplexScalar* data, Index n) {
     eigen_assert(isPowerOfTwo(n));
     Index j = 1;
     for (Index i = 1; i < n; ++i) {
@@ -434,7 +438,7 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
   }
 
   template <int Dir>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void butterfly_2(ComplexScalar* data) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void butterfly_2(ComplexScalar* data) {
     ComplexScalar tmp = data[1];
     data[1] = data[0] - data[1];
     data[0] += tmp;
@@ -442,20 +446,20 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
 
   // Closed-form ±i multiplications: (re, im) * (0, ±1) without a generic
   // complex multiply. Dispatched via mul_pm_i<Dir> at the radix-{4,8} leaves.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static ComplexScalar mul_neg_i(const ComplexScalar& c) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static constexpr ComplexScalar mul_neg_i(const ComplexScalar& c) {
     return ComplexScalar(c.imag(), -c.real());
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static ComplexScalar mul_pos_i(const ComplexScalar& c) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static constexpr ComplexScalar mul_pos_i(const ComplexScalar& c) {
     return ComplexScalar(-c.imag(), c.real());
   }
   template <int Dir>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static ComplexScalar mul_pm_i(const ComplexScalar& c) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE static constexpr ComplexScalar mul_pm_i(const ComplexScalar& c) {
     return (Dir == FFT_FORWARD) ? mul_neg_i(c) : mul_pos_i(c);
   }
 
   template <int Dir>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void butterfly_4(ComplexScalar* data) {
-    ComplexScalar tmp[4];
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void butterfly_4(ComplexScalar* data) {
+    ComplexScalar tmp[4] = {};
     tmp[0] = data[0] + data[1];
     tmp[1] = data[0] - data[1];
     tmp[2] = data[2] + data[3];
@@ -468,8 +472,8 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
 
   template <int Dir>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void butterfly_8(ComplexScalar* data) {
-    ComplexScalar tmp_1[8];
-    ComplexScalar tmp_2[8];
+    ComplexScalar tmp_1[8] = {};
+    ComplexScalar tmp_2[8] = {};
 
     tmp_1[0] = data[0] + data[1];
     tmp_1[1] = data[0] - data[1];
@@ -552,7 +556,7 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     constexpr Index kBatch = (CPacketSize >= 4) ? CPacketSize : Index(4);
     if (CPacketSize >= 2 && CPacketSize <= kMaxBatch && kBatch <= n2) {
       // ramp[k] = wp_one^k — built once, reused for every batch and every line.
-      alignas(alignof(CPacket)) ComplexScalar ramp[kMaxBatch];
+      alignas(alignof(CPacket)) ComplexScalar ramp[kMaxBatch] = {};
       ramp[0] = ComplexScalar(1, 0);
       for (Index k = 1; k < kBatch; ++k) ramp[k] = internal::pmul(ramp[k - 1], wp_one);
       const ComplexScalar wp_one_batch = internal::pmul(ramp[kBatch - 1], wp_one);
@@ -629,7 +633,8 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
   }
 
   template <int Dir>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void compute_1D_Butterfly(ComplexScalar* data, Index n, Index n_power_of_2) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void compute_1D_Butterfly(ComplexScalar* data, Index n,
+                                                                            Index n_power_of_2) {
     eigen_assert(isPowerOfTwo(n));
     if (n > 8) {
       compute_1D_Butterfly<Dir>(data, n / 2, n_power_of_2 - 1);
@@ -644,7 +649,7 @@ struct TensorEvaluator<const TensorFFTOp<FFT, ArgType, FFTResultType, FFTDir>, D
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index getBaseOffsetFromIndex(Index index, Index omitted_dim) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index getBaseOffsetFromIndex(Index index, Index omitted_dim) const {
     Index result = 0;
 
     EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {

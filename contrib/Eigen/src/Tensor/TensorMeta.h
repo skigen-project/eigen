@@ -102,7 +102,7 @@ struct DivOp {
 template <typename Index, Index start, Index end, Index step, template <class Indx, Indx...> class StepOp>
 struct static_for {
   template <typename UnaryOperator>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void loop(UnaryOperator op) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void loop(UnaryOperator op) {
     op(start);
     static_for<Index, StepOp<Index, start, step>::Value, end, step, StepOp>::loop(op);
   }
@@ -110,7 +110,7 @@ struct static_for {
 template <typename Index, Index end, Index step, template <class Indx, Indx...> class StepOp>
 struct static_for<Index, end, end, step, StepOp> {
   template <typename UnaryOperator>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void loop(UnaryOperator) {}
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void loop(UnaryOperator) {}
 };
 
 template <typename OutScalar, typename Device, bool Vectorizable>
@@ -125,7 +125,9 @@ struct Vectorise<OutScalar, Device, true> {
   using PacketReturnType = typename Eigen::PacketType<OutScalar, Device>::type;
 };
 
-static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Index roundUp(Index x, Index y) { return ((((x) + (y)-1) / (y)) * (y)); }
+static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr Index roundUp(Index x, Index y) {
+  return ((((x) + (y)-1) / (y)) * (y));
+}
 
 }  // namespace internal
 }  // namespace TensorSycl
@@ -217,7 +219,7 @@ struct Pair {
 
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Pair(const U& f, const V& s) : first(f), second(s) {}
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swap(Pair& rhs) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(Pair& rhs) {
     using numext::swap;
     swap(first, rhs.first);
     swap(second, rhs.second);
@@ -240,7 +242,7 @@ struct IndexPair {
   constexpr EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE IndexPair() = default;
   constexpr EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE IndexPair(Idx f, Idx s) : first(f), second(s) {}
 
-  EIGEN_DEVICE_FUNC void set(IndexPair<Idx> val) {
+  EIGEN_DEVICE_FUNC constexpr void set(IndexPair<Idx> val) {
     first = val.first;
     second = val.second;
   }

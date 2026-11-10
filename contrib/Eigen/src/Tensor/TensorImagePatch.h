@@ -60,12 +60,10 @@ class TensorImagePatchOp : public TensorBase<TensorImagePatchOp<Rows, Cols, XprT
   using StorageKind = typename Eigen::internal::traits<TensorImagePatchOp>::StorageKind;
   using Index = typename Eigen::internal::traits<TensorImagePatchOp>::Index;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorImagePatchOp(const XprType& expr, DenseIndex patch_rows,
-                                                           DenseIndex patch_cols, DenseIndex row_strides,
-                                                           DenseIndex col_strides, DenseIndex in_row_strides,
-                                                           DenseIndex in_col_strides, DenseIndex row_inflate_strides,
-                                                           DenseIndex col_inflate_strides, PaddingType padding_type,
-                                                           Scalar padding_value)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorImagePatchOp(
+      const XprType& expr, DenseIndex patch_rows, DenseIndex patch_cols, DenseIndex row_strides, DenseIndex col_strides,
+      DenseIndex in_row_strides, DenseIndex in_col_strides, DenseIndex row_inflate_strides,
+      DenseIndex col_inflate_strides, PaddingType padding_type, Scalar padding_value)
       : m_xpr(expr),
         m_patch_rows(patch_rows),
         m_patch_cols(patch_cols),
@@ -83,13 +81,11 @@ class TensorImagePatchOp : public TensorBase<TensorImagePatchOp<Rows, Cols, XprT
         m_padding_type(padding_type),
         m_padding_value(padding_value) {}
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorImagePatchOp(const XprType& expr, DenseIndex patch_rows,
-                                                           DenseIndex patch_cols, DenseIndex row_strides,
-                                                           DenseIndex col_strides, DenseIndex in_row_strides,
-                                                           DenseIndex in_col_strides, DenseIndex row_inflate_strides,
-                                                           DenseIndex col_inflate_strides, DenseIndex padding_top,
-                                                           DenseIndex padding_bottom, DenseIndex padding_left,
-                                                           DenseIndex padding_right, Scalar padding_value)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorImagePatchOp(
+      const XprType& expr, DenseIndex patch_rows, DenseIndex patch_cols, DenseIndex row_strides, DenseIndex col_strides,
+      DenseIndex in_row_strides, DenseIndex in_col_strides, DenseIndex row_inflate_strides,
+      DenseIndex col_inflate_strides, DenseIndex padding_top, DenseIndex padding_bottom, DenseIndex padding_left,
+      DenseIndex padding_right, Scalar padding_value)
       : m_xpr(expr),
         m_patch_rows(patch_rows),
         m_patch_cols(patch_cols),
@@ -107,23 +103,25 @@ class TensorImagePatchOp : public TensorBase<TensorImagePatchOp<Rows, Cols, XprT
         m_padding_type(PADDING_VALID),
         m_padding_value(padding_value) {}
 
-  EIGEN_DEVICE_FUNC DenseIndex patch_rows() const { return m_patch_rows; }
-  EIGEN_DEVICE_FUNC DenseIndex patch_cols() const { return m_patch_cols; }
-  EIGEN_DEVICE_FUNC DenseIndex row_strides() const { return m_row_strides; }
-  EIGEN_DEVICE_FUNC DenseIndex col_strides() const { return m_col_strides; }
-  EIGEN_DEVICE_FUNC DenseIndex in_row_strides() const { return m_in_row_strides; }
-  EIGEN_DEVICE_FUNC DenseIndex in_col_strides() const { return m_in_col_strides; }
-  EIGEN_DEVICE_FUNC DenseIndex row_inflate_strides() const { return m_row_inflate_strides; }
-  EIGEN_DEVICE_FUNC DenseIndex col_inflate_strides() const { return m_col_inflate_strides; }
-  EIGEN_DEVICE_FUNC bool padding_explicit() const { return m_padding_explicit; }
-  EIGEN_DEVICE_FUNC DenseIndex padding_top() const { return m_padding_top; }
-  EIGEN_DEVICE_FUNC DenseIndex padding_bottom() const { return m_padding_bottom; }
-  EIGEN_DEVICE_FUNC DenseIndex padding_left() const { return m_padding_left; }
-  EIGEN_DEVICE_FUNC DenseIndex padding_right() const { return m_padding_right; }
-  EIGEN_DEVICE_FUNC PaddingType padding_type() const { return m_padding_type; }
-  EIGEN_DEVICE_FUNC Scalar padding_value() const { return m_padding_value; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex patch_rows() const { return m_patch_rows; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex patch_cols() const { return m_patch_cols; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex row_strides() const { return m_row_strides; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex col_strides() const { return m_col_strides; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex in_row_strides() const { return m_in_row_strides; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex in_col_strides() const { return m_in_col_strides; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex row_inflate_strides() const { return m_row_inflate_strides; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex col_inflate_strides() const { return m_col_inflate_strides; }
+  EIGEN_DEVICE_FUNC constexpr bool padding_explicit() const { return m_padding_explicit; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex padding_top() const { return m_padding_top; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex padding_bottom() const { return m_padding_bottom; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex padding_left() const { return m_padding_left; }
+  EIGEN_DEVICE_FUNC constexpr DenseIndex padding_right() const { return m_padding_right; }
+  EIGEN_DEVICE_FUNC constexpr PaddingType padding_type() const { return m_padding_type; }
+  EIGEN_DEVICE_FUNC constexpr Scalar padding_value() const { return m_padding_value; }
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename XprType::Nested>& expression() const { return m_xpr; }
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename XprType::Nested>& expression() const {
+    return m_xpr;
+  }
 
  protected:
   typename XprType::Nested m_xpr;
@@ -182,7 +180,7 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
   using TensorBlock = typename internal::TensorMaterializedBlock<Scalar, NumDims, Layout, Index>;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device)
       : m_device(device), m_impl(op.expression(), device) {
     EIGEN_STATIC_ASSERT((NumDims >= 4), YOU_MADE_A_PROGRAMMING_MISTAKE);
 
@@ -330,9 +328,9 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType /*data*/) {
+  EIGEN_STRONG_INLINE constexpr bool evalSubExprsIfNeeded(EvaluatorPointerType /*data*/) {
     m_impl.evalSubExprsIfNeeded(nullptr);
     return true;
   }
@@ -344,11 +342,11 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
   }
 #endif  // EIGEN_USE_THREADS
 
-  EIGEN_STRONG_INLINE void cleanup() { m_impl.cleanup(); }
+  EIGEN_STRONG_INLINE constexpr void cleanup() { m_impl.cleanup(); }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index index) const {
     // Other ways to index this element.
-    Index otherIndex, patch2DIndex;
+    Index otherIndex = 0, patch2DIndex = 0;
     EIGEN_IF_CONSTEXPR (NumDims == 4) {
       otherIndex = 0;
       patch2DIndex = index / m_fastPatchStride;
@@ -546,8 +544,8 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
   // copying the (always input-contiguous) depth run or filling it with the
   // padding value. All per-coordinate index math and bounds checks are
   // amortized over a whole depth run instead of paid per coefficient.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                          bool /*root_of_expr_ast*/ = false) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
+                                                                    bool /*root_of_expr_ast*/ = false) const {
     constexpr bool is_col_major = static_cast<int>(Layout) == static_cast<int>(ColMajor);
 
     if (desc.size() == 0) {
@@ -559,7 +557,7 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
 
     // Output coordinates of the block's corner.
     const DSizes<Index, NumDims> output_strides = internal::strides<Layout>(m_dimensions);
-    array<Index, NumDims> coords;
+    array<Index, NumDims> coords{};
     Index remaining = desc.offset();
     EIGEN_IF_CONSTEXPR (is_col_major) {
       for (int i = NumDims - 1; i > 0; --i) {
@@ -592,9 +590,9 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
 
     // Odometer over the remaining (batch etc.) dimensions, tracking the input
     // offset they contribute.
-    array<Index, NumDims> other_sizes;
-    array<Index, NumDims> other_src_stride;
-    array<Index, NumDims> other_count;
+    array<Index, NumDims> other_sizes{};
+    array<Index, NumDims> other_src_stride{};
+    array<Index, NumDims> other_count{};
     int num_other = 0;
     Index src_other = 0;
     {
@@ -679,21 +677,23 @@ struct TensorEvaluator<const TensorImagePatchOp<Rows, Cols, ArgType>, Device> {
     return block_storage.AsTensorMaterializedBlock();
   }
 
-  EIGEN_DEVICE_FUNC EvaluatorPointerType data() const { return nullptr; }
+  EIGEN_DEVICE_FUNC constexpr EvaluatorPointerType data() const { return nullptr; }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const TensorEvaluator<ArgType, Device>& impl() const { return m_impl; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index rowPaddingTop() const { return m_rowPaddingTop; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index colPaddingLeft() const { return m_colPaddingLeft; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index outputRows() const { return m_outputRows; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index outputCols() const { return m_outputCols; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index userRowStride() const { return m_row_strides; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index userColStride() const { return m_col_strides; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index userInRowStride() const { return m_in_row_strides; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index userInColStride() const { return m_in_col_strides; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index rowInflateStride() const { return m_row_inflate_strides; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index colInflateStride() const { return m_col_inflate_strides; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const TensorEvaluator<ArgType, Device>& impl() const {
+    return m_impl;
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rowPaddingTop() const { return m_rowPaddingTop; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index colPaddingLeft() const { return m_colPaddingLeft; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index outputRows() const { return m_outputRows; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index outputCols() const { return m_outputCols; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index userRowStride() const { return m_row_strides; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index userColStride() const { return m_col_strides; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index userInRowStride() const { return m_in_row_strides; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index userInColStride() const { return m_in_col_strides; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rowInflateStride() const { return m_row_inflate_strides; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index colInflateStride() const { return m_col_inflate_strides; }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool vectorized) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool vectorized) const {
     // Estimate for the non-padding code path with CoordAccess=false:
     // 5 TensorIntDivisor divs (otherStride, patchStride, outputDepth, outputRows, colStride),
     // 12 muls (index arithmetic), 8 adds/subs (offsets, padding checks).
