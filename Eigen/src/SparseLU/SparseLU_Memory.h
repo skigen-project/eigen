@@ -40,7 +40,7 @@ namespace internal {
 
 enum { LUNoMarker = 3 };
 enum { emptyIdxLU = -1 };
-inline Index LUnumTempV(Index& m, Index& w, Index& t, Index& b) { return (std::max)(m, (t + b) * w); }
+constexpr Index LUnumTempV(Index& m, Index& w, Index& t, Index& b) { return (std::max)(m, (t + b) * w); }
 
 /**
  * Expand the existing storage to accommodate more fill-ins
@@ -52,8 +52,8 @@ inline Index LUnumTempV(Index& m, Index& w, Index& t, Index& b) { return (std::m
  */
 template <typename Scalar, typename StorageIndex>
 template <typename VectorType>
-Index SparseLUImpl<Scalar, StorageIndex>::expand(VectorType& vec, Index& length, Index nbElts, Index keep_prev,
-                                                 Index& num_expansions) {
+EIGEN_CONSTEXPR20 Index SparseLUImpl<Scalar, StorageIndex>::expand(VectorType& vec, Index& length, Index nbElts,
+                                                                   Index keep_prev, Index& num_expansions) {
   float alpha = 1.5;  // Ratio of the memory increase
   Index new_len;      // New size of the allocated memory
 
@@ -132,8 +132,8 @@ Index SparseLUImpl<Scalar, StorageIndex>::expand(VectorType& vec, Index& length,
  * factorization with the same pattern and the same row permutation
  */
 template <typename Scalar, typename StorageIndex>
-Index SparseLUImpl<Scalar, StorageIndex>::memInit(Index m, Index n, Index annz, Index lwork, Index fillratio,
-                                                  Index panel_size, GlobalLU_t& glu) {
+constexpr Index SparseLUImpl<Scalar, StorageIndex>::memInit(Index m, Index n, Index annz, Index lwork, Index fillratio,
+                                                            Index panel_size, GlobalLU_t& glu) {
   Index& num_expansions = glu.num_expansions;  // No memory expansions so far
   num_expansions = 0;
   // estimated number of nonzeros in U; at least one, since the allocation loop below exits only once every buffer is
@@ -141,10 +141,10 @@ Index SparseLUImpl<Scalar, StorageIndex>::memInit(Index m, Index n, Index annz, 
   glu.nzumax = glu.nzlumax = n == 0 ? Index(1) : (std::max)(Index(1), (std::min)(fillratio * (annz + 1) / n, m) * n);
   glu.nzlmax = (std::max)(Index(4), fillratio) * (annz + 1) / 4;             // estimated  nnz in L factor
   // Return the estimated size to the user if necessary
-  Index tempSpace;
+  Index tempSpace = 0;
   tempSpace = (2 * panel_size + 4 + LUNoMarker) * m * sizeof(Index) + (panel_size + 1) * m * sizeof(Scalar);
   if (lwork == emptyIdxLU) {
-    Index estimated_size;
+    Index estimated_size = 0;
     estimated_size = (5 * n + 5) * sizeof(Index) + tempSpace + (glu.nzlmax + glu.nzumax) * sizeof(Index) +
                      (glu.nzlumax + glu.nzumax) * sizeof(Scalar) + n;
     return estimated_size;
@@ -189,9 +189,9 @@ Index SparseLUImpl<Scalar, StorageIndex>::memInit(Index m, Index n, Index annz, 
  */
 template <typename Scalar, typename StorageIndex>
 template <typename VectorType>
-Index SparseLUImpl<Scalar, StorageIndex>::memXpand(VectorType& vec, Index& maxlen, Index nbElts, MemType memtype,
-                                                   Index& num_expansions) {
-  Index failed_size;
+constexpr Index SparseLUImpl<Scalar, StorageIndex>::memXpand(VectorType& vec, Index& maxlen, Index nbElts,
+                                                             MemType memtype, Index& num_expansions) {
+  Index failed_size = 0;
   if (memtype == USUB)
     failed_size = this->expand<VectorType>(vec, maxlen, nbElts, 1, num_expansions);
   else

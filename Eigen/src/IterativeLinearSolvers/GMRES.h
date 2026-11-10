@@ -58,8 +58,8 @@ namespace internal {
  *
  */
 template <typename MatrixType, typename Rhs, typename Dest, typename Preconditioner>
-bool gmres(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond, Index& iters,
-           const Index& restart_, typename Dest::RealScalar& tol_error) {
+constexpr bool gmres(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond, Index& iters,
+                     const Index& restart_, typename Dest::RealScalar& tol_error) {
   using RealScalar = typename Dest::RealScalar;
   using Scalar = typename Dest::Scalar;
   using VectorType = Matrix<Scalar, Dynamic, 1>;
@@ -280,7 +280,7 @@ class GMRES : public IterativeSolverBase<GMRES<MatrixType_, Preconditioner_> > {
 
  public:
   /** Default constructor. */
-  GMRES() : Base(), m_restart(30) {}
+  constexpr GMRES() : Base(), m_restart(30) {}
 
   /** Initialize the solver with matrix \a A for further \c Ax=b solving.
    *
@@ -293,20 +293,20 @@ class GMRES : public IterativeSolverBase<GMRES<MatrixType_, Preconditioner_> > {
    * matrix A, or modify a copy of A.
    */
   template <typename MatrixDerived>
-  explicit GMRES(const EigenBase<MatrixDerived>& A) : Base(A.derived()), m_restart(30) {}
+  constexpr explicit GMRES(const EigenBase<MatrixDerived>& A) : Base(A.derived()), m_restart(30) {}
 
   /** Get the number of iterations after that a restart is performed.
    */
-  Index get_restart() const { return m_restart; }
+  constexpr Index get_restart() const { return m_restart; }
 
   /** Set the number of iterations after that a restart is performed.
    *  \param restart   number of iterations for a restart, default is 30.
    */
-  void set_restart(const Index restart) { m_restart = restart; }
+  constexpr void set_restart(const Index restart) { m_restart = restart; }
 
   /** \internal */
   template <typename Rhs, typename Dest>
-  void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
+  constexpr void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
     m_iterations = Base::maxIterations();
     m_error = Base::m_tolerance;
     bool ret = internal::gmres(matrix(), b, x, Base::m_preconditioner, m_iterations, m_restart, m_error);

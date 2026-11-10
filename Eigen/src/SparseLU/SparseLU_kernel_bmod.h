@@ -34,98 +34,105 @@ struct LU_kernel_bmod {
    * \param no_zeros Number of nonzeros elements before the diagonal part of the supernode
    */
   template <typename BlockScalarVector, typename ScalarVector, typename IndexVector>
-  static EIGEN_DONT_INLINE void run(const Index segsize, BlockScalarVector& dense, ScalarVector& tempv,
-                                    ScalarVector& lusup, Index& luptr, const Index lda, const Index nrow,
-                                    IndexVector& lsub, const Index lptr, const Index no_zeros);
+  static constexpr void run(const Index segsize, BlockScalarVector& dense, ScalarVector& tempv, ScalarVector& lusup,
+                            Index& luptr, const Index lda, const Index nrow, IndexVector& lsub, const Index lptr,
+                            const Index no_zeros);
 };
 
 template <int SegSizeAtCompileTime>
 template <typename BlockScalarVector, typename ScalarVector, typename IndexVector>
-EIGEN_DONT_INLINE void LU_kernel_bmod<SegSizeAtCompileTime>::run(const Index segsize, BlockScalarVector& dense,
-                                                                 ScalarVector& tempv, ScalarVector& lusup, Index& luptr,
-                                                                 const Index lda, const Index nrow, IndexVector& lsub,
-                                                                 const Index lptr, const Index no_zeros) {
-  using Scalar = typename ScalarVector::Scalar;
-  // First, copy U[*,j] segment from dense(*) to tempv(*)
-  // The result of triangular solve is in tempv[*];
-  // The result of matrix-vector update is in dense[*]
-  Index isub = lptr + no_zeros;
-  Index i;
-  Index irow;
-  for (i = 0; i < ((SegSizeAtCompileTime == Dynamic) ? segsize : SegSizeAtCompileTime); i++) {
-    irow = lsub(isub);
-    tempv(i) = dense(irow);
-    ++isub;
-  }
-  // Dense triangular solve -- start effective triangle
-  luptr += lda * no_zeros + no_zeros;
-  // Form Eigen matrix and vector
-  Map<Matrix<Scalar, SegSizeAtCompileTime, SegSizeAtCompileTime, ColMajor>, 0, OuterStride<> > A(
-      &(lusup.data()[luptr]), segsize, segsize, OuterStride<>(lda));
-  Map<Matrix<Scalar, SegSizeAtCompileTime, 1> > u(tempv.data(), segsize);
+constexpr void LU_kernel_bmod<SegSizeAtCompileTime>::run(const Index segsize, BlockScalarVector& dense,
+                                                         ScalarVector& tempv, ScalarVector& lusup, Index& luptr,
+                                                         const Index lda, const Index nrow, IndexVector& lsub,
+                                                         const Index lptr, const Index no_zeros) {
+  internal::noinline_invoke([&] {
+    using Scalar = typename ScalarVector::Scalar;
+    // First, copy U[*,j] segment from dense(*) to tempv(*)
+    // The result of triangular solve is in tempv[*];
+    // The result of matrix-vector update is in dense[*]
+    Index isub = lptr + no_zeros;
+    Index i = 0;
+    Index irow = 0;
+    for (i = 0; i < ((SegSizeAtCompileTime == Dynamic) ? segsize : SegSizeAtCompileTime); i++) {
+      irow = lsub(isub);
+      tempv(i) = dense(irow);
+      ++isub;
+    }
+    // Dense triangular solve -- start effective triangle
+    luptr += lda * no_zeros + no_zeros;
+    // Form Eigen matrix and vector
+    Map<Matrix<Scalar, SegSizeAtCompileTime, SegSizeAtCompileTime, ColMajor>, 0, OuterStride<> > A(
+        &(lusup.data()[luptr]), segsize, segsize, OuterStride<>(lda));
+    Map<Matrix<Scalar, SegSizeAtCompileTime, 1> > u(tempv.data(), segsize);
 
-  u = A.template triangularView<UnitLower>().solve(u);
+    u = A.template triangularView<UnitLower>().solve(u);
 
-  // Dense matrix-vector product y <-- B*x
-  luptr += segsize;
-  const Index PacketSize = internal::packet_traits<Scalar>::size;
-  Index ldl = internal::first_multiple(nrow, PacketSize);
-  Map<Matrix<Scalar, Dynamic, SegSizeAtCompileTime, ColMajor>, 0, OuterStride<> > B(&(lusup.data()[luptr]), nrow,
-                                                                                    segsize, OuterStride<>(lda));
-  Index aligned_offset = internal::first_default_aligned(tempv.data() + segsize, PacketSize);
-  Index aligned_with_B_offset = (PacketSize - internal::first_default_aligned(B.data(), PacketSize)) % PacketSize;
-  Map<Matrix<Scalar, Dynamic, 1>, 0, OuterStride<> > l(tempv.data() + segsize + aligned_offset + aligned_with_B_offset,
-                                                       nrow, OuterStride<>(ldl));
+    // Dense matrix-vector product y <-- B*x
+    luptr += segsize;
+    const Index PacketSize = internal::packet_traits<Scalar>::size;
+    Index ldl = internal::first_multiple(nrow, PacketSize);
+    Map<Matrix<Scalar, Dynamic, SegSizeAtCompileTime, ColMajor>, 0, OuterStride<> > B(&(lusup.data()[luptr]), nrow,
+                                                                                      segsize, OuterStride<>(lda));
+    // The offsets only align l for packet access, which constant evaluation does not use; tempv has room for any
+    // offset below PacketSize.
+    bool align = !internal::is_constant_evaluated();
+    Index aligned_offset = align ? internal::first_default_aligned(tempv.data() + segsize, PacketSize) : 0;
+    Index aligned_with_B_offset =
+        align ? (PacketSize - internal::first_default_aligned(B.data(), PacketSize)) % PacketSize : 0;
+    Map<Matrix<Scalar, Dynamic, 1>, 0, OuterStride<> > l(
+        tempv.data() + segsize + aligned_offset + aligned_with_B_offset, nrow, OuterStride<>(ldl));
 
-  l.noalias() = B * u;
+    l.noalias() = B * u;
 
-  // Scatter tempv[] into SPA dense[] as a temporary storage
-  isub = lptr + no_zeros;
-  for (i = 0; i < ((SegSizeAtCompileTime == Dynamic) ? segsize : SegSizeAtCompileTime); i++) {
-    irow = lsub(isub++);
-    dense(irow) = tempv(i);
-  }
+    // Scatter tempv[] into SPA dense[] as a temporary storage
+    isub = lptr + no_zeros;
+    for (i = 0; i < ((SegSizeAtCompileTime == Dynamic) ? segsize : SegSizeAtCompileTime); i++) {
+      irow = lsub(isub++);
+      dense(irow) = tempv(i);
+    }
 
-  // Scatter l into SPA dense[]
-  for (i = sparse_scatter_sub_packets(dense.data(), lsub.data() + isub, l); i < nrow; i++) {
-    irow = lsub(isub + i);
-    dense(irow) -= l(i);
-  }
+    // Scatter l into SPA dense[]
+    for (i = sparse_scatter_sub_packets(dense.data(), lsub.data() + isub, l); i < nrow; i++) {
+      irow = lsub(isub + i);
+      dense(irow) -= l(i);
+    }
+  });
 }
 
 template <>
 struct LU_kernel_bmod<1> {
   template <typename BlockScalarVector, typename ScalarVector, typename IndexVector>
-  static EIGEN_DONT_INLINE void run(const Index /*segsize*/, BlockScalarVector& dense, ScalarVector& /*tempv*/,
-                                    ScalarVector& lusup, Index& luptr, const Index lda, const Index nrow,
-                                    IndexVector& lsub, const Index lptr, const Index no_zeros);
+  static constexpr void run(const Index /*segsize*/, BlockScalarVector& dense, ScalarVector& /*tempv*/,
+                            ScalarVector& lusup, Index& luptr, const Index lda, const Index nrow, IndexVector& lsub,
+                            const Index lptr, const Index no_zeros);
 };
 
 template <typename BlockScalarVector, typename ScalarVector, typename IndexVector>
-EIGEN_DONT_INLINE void LU_kernel_bmod<1>::run(const Index /*segsize*/, BlockScalarVector& dense,
-                                              ScalarVector& /*tempv*/, ScalarVector& lusup, Index& luptr,
-                                              const Index lda, const Index nrow, IndexVector& lsub, const Index lptr,
-                                              const Index no_zeros) {
-  using Scalar = typename ScalarVector::Scalar;
-  using StorageIndex = typename IndexVector::Scalar;
-  Scalar f = dense(lsub(lptr + no_zeros));
-  luptr += lda * no_zeros + no_zeros + 1;
-  const Scalar* a(lusup.data() + luptr);
-  const StorageIndex* irow(lsub.data() + lptr + no_zeros + 1);
-  Index i = 0;
-  for (; i + 1 < nrow; i += 2) {
-    Index i0 = *(irow++);
-    Index i1 = *(irow++);
-    Scalar a0 = *(a++);
-    Scalar a1 = *(a++);
-    Scalar d0 = dense.coeff(i0);
-    Scalar d1 = dense.coeff(i1);
-    d0 -= f * a0;
-    d1 -= f * a1;
-    dense.coeffRef(i0) = d0;
-    dense.coeffRef(i1) = d1;
-  }
-  if (i < nrow) dense.coeffRef(*(irow++)) -= f * *(a++);
+constexpr void LU_kernel_bmod<1>::run(const Index /*segsize*/, BlockScalarVector& dense, ScalarVector& /*tempv*/,
+                                      ScalarVector& lusup, Index& luptr, const Index lda, const Index nrow,
+                                      IndexVector& lsub, const Index lptr, const Index no_zeros) {
+  internal::noinline_invoke([&] {
+    using Scalar = typename ScalarVector::Scalar;
+    using StorageIndex = typename IndexVector::Scalar;
+    Scalar f = dense(lsub(lptr + no_zeros));
+    luptr += lda * no_zeros + no_zeros + 1;
+    const Scalar* a(lusup.data() + luptr);
+    const StorageIndex* irow(lsub.data() + lptr + no_zeros + 1);
+    Index i = 0;
+    for (; i + 1 < nrow; i += 2) {
+      Index i0 = *(irow++);
+      Index i1 = *(irow++);
+      Scalar a0 = *(a++);
+      Scalar a1 = *(a++);
+      Scalar d0 = dense.coeff(i0);
+      Scalar d1 = dense.coeff(i1);
+      d0 -= f * a0;
+      d1 -= f * a1;
+      dense.coeffRef(i0) = d0;
+      dense.coeffRef(i1) = d1;
+    }
+    if (i < nrow) dense.coeffRef(*(irow++)) -= f * *(a++);
+  });
 }
 
 }  // end namespace internal

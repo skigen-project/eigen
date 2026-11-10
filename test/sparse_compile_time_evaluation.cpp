@@ -57,6 +57,55 @@ constexpr bool sparse_basics() {
 
 static_assert(sparse_basics());
 
+constexpr bool direct_solvers() {
+  const SparseMatrix<double> a = laplacian<SparseMatrix<double>>(6);
+  const VectorXd b = VectorXd::LinSpaced(6, 1, 6);
+  const SimplicialLLT<SparseMatrix<double>> llt(a);
+  bool ok = llt.info() == Success && (a * llt.solve(b)).isApprox(b);
+  const SimplicialLDLT<SparseMatrix<double>> ldlt(a);
+  ok = ok && ldlt.info() == Success && (a * ldlt.solve(b)).isApprox(b);
+  SparseLU<SparseMatrix<double>> lu(a);
+  ok = ok && lu.info() == Success && (a * lu.solve(b)).isApprox(b);
+  SparseMatrix<double> c = a;
+  c.makeCompressed();
+  const SparseQR<SparseMatrix<double>, COLAMDOrdering<int>> qr(c);
+  ok = ok && qr.info() == Success && (a * qr.solve(b)).isApprox(b);
+  return ok;
+}
+
+static_assert(direct_solvers());
+
+// A dense n x n matrix with a_ij = 1/(1+|i-j|) + n delta_ij, which is symmetric positive definite.
+constexpr SparseMatrix<double> dense_spd(Index n) {
+  SparseMatrix<double> a(n, n);
+  a.reserve(VectorXi::Constant(n, int(n)));
+  for (Index j = 0; j < n; ++j)
+    for (Index i = 0; i < n; ++i) a.insert(i, j) = 1.0 / double(1 + (i > j ? i - j : j - i)) + (i == j ? n : 0);
+  a.makeCompressed();
+  return a;
+}
+
+// The first column of the factor has 32 entries below the diagonal, enough for the packet scatter, which constant
+// evaluation must skip.
+constexpr bool long_columns() {
+  const SparseMatrix<double> a = dense_spd(33);
+  const VectorXd b = VectorXd::LinSpaced(33, 1, 2);
+  const SimplicialLLT<SparseMatrix<double>, Lower, NaturalOrdering<int>> llt(a);
+  return llt.info() == Success && (a * llt.solve(b)).isApprox(b);
+}
+
+static_assert(long_columns());
+
+// Dense supernodes take SparseLU through its panel and kernel block updates.
+constexpr bool supernodes() {
+  const SparseMatrix<double> a = dense_spd(12);
+  const VectorXd b = VectorXd::LinSpaced(12, 1, 2);
+  SparseLU<SparseMatrix<double>, NaturalOrdering<int>> lu(a);
+  return lu.info() == Success && (a * lu.solve(b)).isApprox(b);
+}
+
+static_assert(supernodes());
+
 // An uncompressed matrix makes Ref<const SparseMatrix, StandardCompressedFormat> hold a compressed copy, and a block
 // of rows of a column-major matrix iterates across its outer vectors.
 constexpr bool refs_and_blocks() {
@@ -95,6 +144,52 @@ constexpr bool iterator_equality_and_map_assignment() {
 }
 
 static_assert(iterator_equality_and_map_assignment());
+
+// The sizes keep each evaluation within the compilers' default constexpr step limits.
+template <typename Solver, Index n = 8>
+constexpr bool iterative_solver() {
+  const SparseMatrix<double> a = laplacian<SparseMatrix<double>>(n);
+  const VectorXd b = VectorXd::LinSpaced(n, 1, double(n));
+  Solver solver;
+  solver.setTolerance(1e-12);
+  solver.compute(a);
+  const VectorXd x = solver.solve(b);
+  return solver.info() == Success && (a * x).isApprox(b, 1e-10);
+}
+
+static_assert(iterative_solver<ConjugateGradient<SparseMatrix<double>, Lower | Upper>>());
+static_assert(iterative_solver<BiCGSTAB<SparseMatrix<double>>>());
+static_assert(iterative_solver<LeastSquaresConjugateGradient<SparseMatrix<double>>>());
+static_assert(iterative_solver<GMRES<SparseMatrix<double>>>());
+static_assert(iterative_solver<DGMRES<SparseMatrix<double>>>());
+static_assert(iterative_solver<IDRS<SparseMatrix<double>>, 4>());
+static_assert(iterative_solver<IDRSTABL<SparseMatrix<double>>>());
+static_assert(iterative_solver<BiCGSTABL<SparseMatrix<double>>>());
+static_assert(iterative_solver<MINRES<SparseMatrix<double>, Lower | Upper>>());
+static_assert(iterative_solver<BiCGSTAB<SparseMatrix<double>, IncompleteLUT<double>>>());
+static_assert(iterative_solver<ConjugateGradient<SparseMatrix<double>, Lower, IncompleteCholesky<double>>>());
+static_assert(iterative_solver<LSMR<SparseMatrix<double>>>());
+static_assert(iterative_solver<BiCGSTAB<SparseMatrix<double>, IdentityPreconditioner>>());
+static_assert(iterative_solver<BiCGSTAB<SparseMatrix<double>, IncompleteLU<double>>>());
+
+// Starting from the exact solution, CG converges without iterating; IterScaling equilibrates rows and columns to
+// unit infinity norm.
+constexpr bool solve_with_guess_and_scaling() {
+  const SparseMatrix<double> a = laplacian<SparseMatrix<double>>(5);
+  const VectorXd x0 = VectorXd::LinSpaced(5, 1, 5);
+  const VectorXd b = a * x0;
+  ConjugateGradient<SparseMatrix<double>, Lower | Upper> cg(a);
+  const VectorXd x = cg.solveWithGuess(b, x0);
+  bool ok = cg.info() == Success && cg.iterations() == 0 && x.isApprox(x0);
+  SparseMatrix<double> scaled = a;
+  IterScaling<SparseMatrix<double>> scaling;
+  scaling.computeRef(scaled);
+  const MatrixXd reference = scaling.LeftScaling().asDiagonal() * MatrixXd(a) * scaling.RightScaling().asDiagonal();
+  ok = ok && MatrixXd(scaled).isApprox(reference);
+  return ok && (MatrixXd(scaled).cwiseAbs().rowwise().maxCoeff().array() - 1).abs().maxCoeff() < 1e-6;
+}
+
+static_assert(solve_with_guess_and_scaling());
 
 // Each sparse expression is checked against the same expression on the dense copy.
 constexpr bool sparse_expressions() {
@@ -144,6 +239,18 @@ constexpr bool sparse_triangular_solve() {
 }
 
 static_assert(sparse_triangular_solve());
+
+// The non-Hermitian factorizations of a symmetric matrix agree with the Hermitian ones for real scalars.
+constexpr bool non_hermitian_simplicial() {
+  const SparseMatrix<double> a = laplacian<SparseMatrix<double>>(6);
+  const VectorXd b = VectorXd::LinSpaced(6, 1, 6);
+  const SimplicialNonHermitianLLT<SparseMatrix<double>> llt(a);
+  const SimplicialNonHermitianLDLT<SparseMatrix<double>> ldlt(a);
+  return llt.info() == Success && (a * llt.solve(b)).isApprox(b) && ldlt.info() == Success &&
+         (a * ldlt.solve(b)).isApprox(b);
+}
+
+static_assert(non_hermitian_simplicial());
 
 // Blocks of the tiled 4x4 dense matrix, with the zero (0, 1) block left out.
 constexpr bool block_sparse() {

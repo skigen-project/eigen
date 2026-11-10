@@ -30,14 +30,14 @@ namespace Eigen {
 namespace internal {
 
 template <typename T>
-inline T amd_flip(const T& i) {
+constexpr T amd_flip(const T& i) {
   return -i - 2;
 }
 
 /* clear w */
 template <typename StorageIndex>
-static StorageIndex cs_wclear(StorageIndex mark, StorageIndex lemax, StorageIndex* w, StorageIndex n) {
-  StorageIndex k;
+static constexpr StorageIndex cs_wclear(StorageIndex mark, StorageIndex lemax, StorageIndex* w, StorageIndex n) {
+  StorageIndex k = 0;
   if (mark < 2 || (mark + lemax < 0)) {
     for (k = 0; k < n; k++)
       if (w[k] != 0) w[k] = 1;
@@ -48,9 +48,9 @@ static StorageIndex cs_wclear(StorageIndex mark, StorageIndex lemax, StorageInde
 
 /* depth-first search and postorder of a tree rooted at node j */
 template <typename StorageIndex>
-StorageIndex cs_tdfs(StorageIndex j, StorageIndex k, StorageIndex* head, const StorageIndex* next, StorageIndex* post,
-                     StorageIndex* stack) {
-  StorageIndex i, p, top = 0;
+constexpr StorageIndex cs_tdfs(StorageIndex j, StorageIndex k, StorageIndex* head, const StorageIndex* next,
+                               StorageIndex* post, StorageIndex* stack) {
+  StorageIndex i = 0, p = 0, top = 0;
   if (!head || !next || !post || !stack) return (-1); /* check inputs */
   stack[0] = j;                                       /* place j on the stack */
   while (top >= 0)                                    /* while (stack is not empty) */
@@ -78,10 +78,12 @@ StorageIndex cs_tdfs(StorageIndex j, StorageIndex k, StorageIndex* head, const S
  * Note that the input matrix \a C must be complete, that is both the upper and lower parts have to be stored, as well
  * as the diagonal entries. On exit the values of C are destroyed */
 template <typename Scalar, typename StorageIndex>
-void minimum_degree_ordering(SparseMatrix<Scalar, ColMajor, StorageIndex>& C,
-                             PermutationMatrix<Dynamic, Dynamic, StorageIndex>& perm) {
-  StorageIndex d, dk, dext, lemax = 0, e, elenk, eln, i, j, k, k1, k2, k3, jlast, ln, dense, nzmax, mindeg = 0, nvi,
-                            nvj, nvk, mark, wnvi, ok, nel = 0, p, p1, p2, p3, p4, pj, pk, pk1, pk2, pn, q, t, h;
+constexpr void minimum_degree_ordering(SparseMatrix<Scalar, ColMajor, StorageIndex>& C,
+                                       PermutationMatrix<Dynamic, Dynamic, StorageIndex>& perm) {
+  StorageIndex d = 0, dk = 0, dext = 0, lemax = 0, e = 0, elenk = 0, eln = 0, i = 0, j = 0, k = 0, k1 = 0, k2 = 0,
+               k3 = 0, jlast = 0, ln = 0, dense = 0, nzmax = 0, mindeg = 0, nvi = 0, nvj = 0, nvk = 0, mark = 0,
+               wnvi = 0, ok = 0, nel = 0, p = 0, p1 = 0, p2 = 0, p3 = 0, p4 = 0, pj = 0, pk = 0, pk1 = 0, pk2 = 0,
+               pn = 0, q = 0, t = 0, h = 0;
 
   StorageIndex n = StorageIndex(C.cols());
   dense = std::max<StorageIndex>(16, StorageIndex(10 * numext::sqrt(double(n)))); /* find dense threshold */

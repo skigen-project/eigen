@@ -34,7 +34,7 @@ namespace internal {
    expense of more Mat*vec products \return false in the case of numerical issue, for example a break down of IDRS.
 */
 template <typename Vector, typename RealScalar>
-typename Vector::Scalar omega(const Vector& t, const Vector& s, RealScalar angle) {
+constexpr typename Vector::Scalar omega(const Vector& t, const Vector& s, RealScalar angle) {
   using Scalar = typename Vector::Scalar;
   const RealScalar ns = s.stableNorm();
   const RealScalar nt = t.stableNorm();
@@ -55,9 +55,9 @@ typename Vector::Scalar omega(const Vector& t, const Vector& s, RealScalar angle
 }
 
 template <typename MatrixType, typename Rhs, typename Dest, typename Preconditioner>
-bool idrs(const MatrixType& A, const Rhs& b, Dest& x, const Preconditioner& precond, Index& iter,
-          typename Dest::RealScalar& relres, Index S, bool smoothing, typename Dest::RealScalar angle,
-          bool replacement) {
+constexpr bool idrs(const MatrixType& A, const Rhs& b, Dest& x, const Preconditioner& precond, Index& iter,
+                    typename Dest::RealScalar& relres, Index S, bool smoothing, typename Dest::RealScalar angle,
+                    bool replacement) {
   using RealScalar = typename Dest::RealScalar;
   using Scalar = typename Dest::Scalar;
   using VectorType = Matrix<Scalar, Dynamic, 1>;
@@ -319,7 +319,7 @@ class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> > {
 
  public:
   /** Default constructor. */
-  IDRS() = default;
+  constexpr IDRS() = default;
 
   /**     Initialize the solver with matrix \a A for further \c Ax=b solving.
 
@@ -332,7 +332,7 @@ class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> > {
           matrix A, or modify a copy of A.
   */
   template <typename MatrixDerived>
-  explicit IDRS(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
+  constexpr explicit IDRS(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
 
   /** \internal */
   /**     Loops over the number of columns of b and does the following:
@@ -340,7 +340,7 @@ class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> > {
                   2. Calls the function that has the core solver routine
   */
   template <typename Rhs, typename Dest>
-  void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
+  constexpr void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
     m_iterations = Base::maxIterations();
     m_error = Base::m_tolerance;
 
@@ -351,7 +351,7 @@ class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> > {
   }
 
   /** Sets the parameter S, indicating the dimension of the shadow space. Default is 4*/
-  void setS(Index S) {
+  constexpr void setS(Index S) {
     if (S < 1) {
       S = 4;
     }
@@ -365,7 +365,7 @@ class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> > {
   operations. Although monotonic decrease of the residual norms is a
   desirable property, the rate of convergence of the unsmoothed process and
   the smoothed process is basically the same. Default is off */
-  void setSmoothing(bool smoothing) { m_smoothing = smoothing; }
+  constexpr void setSmoothing(bool smoothing) { m_smoothing = smoothing; }
 
   /** The angle must be a real scalar. In IDR(s), a value for the
   iteration parameter omega must be chosen in every s+1th step. The most
@@ -377,12 +377,12 @@ class IDRS : public IterativeSolverBase<IDRS<MatrixType_, Preconditioner_> > {
   between accurate computations and reduction of the residual norm. The
   parameter angle =0.7 (”maintaining the convergence strategy”)
   results in such a compromise. */
-  void setAngle(RealScalar angle) { m_angle = angle; }
+  constexpr void setAngle(RealScalar angle) { m_angle = angle; }
 
   /** The parameter replace is a logical that determines whether a
   residual replacement strategy is employed to increase the accuracy of the
   solution. */
-  void setResidualUpdate(bool update) { m_residual = update; }
+  constexpr void setResidualUpdate(bool update) { m_residual = update; }
 };
 
 }  // namespace Eigen

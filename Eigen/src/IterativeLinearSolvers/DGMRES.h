@@ -38,13 +38,13 @@ struct traits<DGMRES<MatrixType_, Preconditioner_> > {
  * TODO: Use modified QuickSplit or std::nth_element to get the smallest values
  */
 template <typename VectorType, typename IndexType>
-void sortWithPermutation(VectorType& vec, IndexType& perm, typename IndexType::Scalar& ncut) {
+constexpr void sortWithPermutation(VectorType& vec, IndexType& perm, typename IndexType::Scalar& ncut) {
   EIGEN_INTERNAL_ASSERT_SAME_SIZE(vec, perm);
   for (Index k = 0; k < ncut; k++) {
     bool flag = false;
     for (Index j = 0; j < vec.size() - 1; j++) {
       if (vec(perm(j)) < vec(perm(j + 1))) {
-        std::swap(perm(j), perm(j + 1));
+        numext::swap(perm(j), perm(j + 1));
         flag = true;
       }
     }
@@ -121,7 +121,7 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
   using ComplexVector = Matrix<ComplexScalar, Dynamic, 1>;
 
   /** Default constructor. */
-  DGMRES() : Base(), m_restart(30), m_neig(0), m_r(0), m_maxNeig(5), m_isDeflInitialized(false) {}
+  constexpr DGMRES() : Base(), m_restart(30), m_neig(0), m_r(0), m_maxNeig(5), m_isDeflInitialized(false) {}
 
   /** Initialize the solver with matrix \a A for further \c Ax=b solving.
    *
@@ -134,12 +134,12 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
    * matrix A, or modify a copy of A.
    */
   template <typename MatrixDerived>
-  explicit DGMRES(const EigenBase<MatrixDerived>& A)
+  constexpr explicit DGMRES(const EigenBase<MatrixDerived>& A)
       : Base(A.derived()), m_restart(30), m_neig(0), m_r(0), m_maxNeig(5), m_isDeflInitialized(false) {}
 
   /** \internal */
   template <typename Rhs, typename Dest>
-  void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
+  constexpr void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
     EIGEN_STATIC_ASSERT(Rhs::ColsAtCompileTime == 1 || Dest::ColsAtCompileTime == 1,
                         YOU_TRIED_CALLING_A_VECTOR_METHOD_ON_A_MATRIX);
 
@@ -152,17 +152,17 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
   /**
    * Get the restart value
    */
-  Index restart() const { return m_restart; }
+  constexpr Index restart() const { return m_restart; }
 
   /**
    * Set the restart value (default is 30)
    */
-  void set_restart(const Index restart) { m_restart = restart; }
+  constexpr void set_restart(const Index restart) { m_restart = restart; }
 
   /**
    * Set the number of eigenvalues to deflate at each restart
    */
-  void setEigenv(const Index neig) {
+  constexpr void setEigenv(const Index neig) {
     m_neig = internal::convert_index<StorageIndex>(neig);
     if (neig + 1 > m_maxNeig) m_maxNeig = neig + 1;  // To allow for complex conjugates
   }
@@ -170,32 +170,36 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
   /**
    * Get the size of the deflation subspace size
    */
-  Index deflSize() const { return m_r; }
+  constexpr Index deflSize() const { return m_r; }
 
   /**
    * Set the maximum size of the deflation subspace
    */
-  void setMaxEigenv(const Index maxNeig) { m_maxNeig = maxNeig; }
+  constexpr void setMaxEigenv(const Index maxNeig) { m_maxNeig = maxNeig; }
 
  protected:
   // DGMRES algorithm
   template <typename Rhs, typename Dest>
-  void dgmres(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond) const;
+  constexpr void dgmres(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond) const;
   // Perform one cycle of GMRES
   template <typename Dest>
-  Index dgmresCycle(const MatrixType& mat, const Preconditioner& precond, Dest& x, DenseVector& r0, RealScalar& beta,
-                    const RealScalar& normRhs, Index& nbIts) const;
+  constexpr Index dgmresCycle(const MatrixType& mat, const Preconditioner& precond, Dest& x, DenseVector& r0,
+                              RealScalar& beta, const RealScalar& normRhs, Index& nbIts) const;
   // Compute data to use for deflation
-  Index dgmresComputeDeflationData(const MatrixType& mat, const Preconditioner& precond, const Index& it,
-                                   StorageIndex& neig) const;
+  EIGEN_CONSTEXPR20 Index dgmresComputeDeflationData(const MatrixType& mat, const Preconditioner& precond,
+                                                     const Index& it, StorageIndex& neig) const;
   // Apply deflation to a vector
   template <typename RhsType, typename DestType>
-  Index dgmresApplyDeflation(const RhsType& In, DestType& Out) const;
+  constexpr Index dgmresApplyDeflation(const RhsType& In, DestType& Out) const;
   // Ritz vectors of the Hessenberg matrix; for a real conjugate pair, its real and imaginary parts in adjacent columns
-  const DenseMatrix& ritzVectors(const ComplexEigenSolver<DenseMatrix>& eigH) const { return eigH.eigenvectors(); }
-  const DenseMatrix& ritzVectors(const EigenSolver<DenseMatrix>& eigH) const { return eigH.pseudoEigenvectors(); }
+  constexpr const DenseMatrix& ritzVectors(const ComplexEigenSolver<DenseMatrix>& eigH) const {
+    return eigH.eigenvectors();
+  }
+  constexpr const DenseMatrix& ritzVectors(const EigenSolver<DenseMatrix>& eigH) const {
+    return eigH.pseudoEigenvectors();
+  }
   // Init data for deflation
-  void dgmresInitDeflation(Index& rows) const;
+  constexpr void dgmresInitDeflation(Index& rows) const;
   mutable DenseMatrix m_V;                  // Krylov basis vectors
   mutable DenseMatrix m_H;                  // Hessenberg matrix
   mutable DenseMatrix m_Hes;                // Initial hessenberg matrix without Givens rotations applied
@@ -222,8 +226,8 @@ class DGMRES : public IterativeSolverBase<DGMRES<MatrixType_, Preconditioner_> >
  */
 template <typename MatrixType_, typename Preconditioner_>
 template <typename Rhs, typename Dest>
-void DGMRES<MatrixType_, Preconditioner_>::dgmres(const MatrixType& mat, const Rhs& rhs, Dest& x,
-                                                  const Preconditioner& precond) const {
+constexpr void DGMRES<MatrixType_, Preconditioner_>::dgmres(const MatrixType& mat, const Rhs& rhs, Dest& x,
+                                                            const Preconditioner& precond) const {
   const RealScalar considerAsZero = (std::numeric_limits<RealScalar>::min)();
 
   // The deflation subspace is rebuilt for every right-hand side.
@@ -284,9 +288,9 @@ void DGMRES<MatrixType_, Preconditioner_>::dgmres(const MatrixType& mat, const R
  */
 template <typename MatrixType_, typename Preconditioner_>
 template <typename Dest>
-Index DGMRES<MatrixType_, Preconditioner_>::dgmresCycle(const MatrixType& mat, const Preconditioner& precond, Dest& x,
-                                                        DenseVector& r0, RealScalar& beta, const RealScalar& normRhs,
-                                                        Index& nbIts) const {
+constexpr Index DGMRES<MatrixType_, Preconditioner_>::dgmresCycle(const MatrixType& mat, const Preconditioner& precond,
+                                                                  Dest& x, DenseVector& r0, RealScalar& beta,
+                                                                  const RealScalar& normRhs, Index& nbIts) const {
   // Initialization
   DenseVector g(m_restart + 1);  // Right hand side of the least square problem
   g.setZero();
@@ -378,16 +382,17 @@ Index DGMRES<MatrixType_, Preconditioner_>::dgmresCycle(const MatrixType& mat, c
 }
 
 template <typename MatrixType_, typename Preconditioner_>
-void DGMRES<MatrixType_, Preconditioner_>::dgmresInitDeflation(Index& rows) const {
+constexpr void DGMRES<MatrixType_, Preconditioner_>::dgmresInitDeflation(Index& rows) const {
   m_U.resize(rows, m_maxNeig);
   m_MU.resize(rows, m_maxNeig);
   m_T.resize(m_maxNeig, m_maxNeig);
 }
 
 template <typename MatrixType_, typename Preconditioner_>
-Index DGMRES<MatrixType_, Preconditioner_>::dgmresComputeDeflationData(const MatrixType& mat,
-                                                                       const Preconditioner& precond, const Index& it,
-                                                                       StorageIndex& neig) const {
+EIGEN_CONSTEXPR20 Index DGMRES<MatrixType_, Preconditioner_>::dgmresComputeDeflationData(const MatrixType& mat,
+                                                                                         const Preconditioner& precond,
+                                                                                         const Index& it,
+                                                                                         StorageIndex& neig) const {
   // Ritz pairs of the Hessenberg matrix H; perm ends with the neig Ritz values of smallest modulus, smallest last
   std::conditional_t<NumTraits<Scalar>::IsComplex, ComplexEigenSolver<DenseMatrix>, EigenSolver<DenseMatrix> > eigH(
       m_Hes.topLeftCorner(it, it));
@@ -461,7 +466,7 @@ Index DGMRES<MatrixType_, Preconditioner_>::dgmresComputeDeflationData(const Mat
 }
 template <typename MatrixType_, typename Preconditioner_>
 template <typename RhsType, typename DestType>
-Index DGMRES<MatrixType_, Preconditioner_>::dgmresApplyDeflation(const RhsType& x, DestType& y) const {
+constexpr Index DGMRES<MatrixType_, Preconditioner_>::dgmresApplyDeflation(const RhsType& x, DestType& y) const {
   DenseVector x1 = m_U.leftCols(m_r).adjoint() * x;
   y = x + m_U.leftCols(m_r) * (m_lambdaN * m_luT.solve(x1) - x1);
   return 0;

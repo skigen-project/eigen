@@ -30,8 +30,8 @@ namespace internal {
  * \param tol_error On input the tolerance error, on output an estimation of the relative error.
  */
 template <typename MatrixType, typename Rhs, typename Dest, typename Preconditioner>
-EIGEN_DONT_INLINE void minres(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond,
-                              Index& iters, typename Dest::RealScalar& tol_error) {
+EIGEN_DONT_INLINE constexpr void minres(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond,
+                                        Index& iters, typename Dest::RealScalar& tol_error) {
   using RealScalar = typename Dest::RealScalar;
   using Scalar = typename Dest::Scalar;
   using VectorType = Matrix<Scalar, Dynamic, 1>;
@@ -213,7 +213,7 @@ class MINRES : public IterativeSolverBase<MINRES<MatrixType_, UpLo_, Preconditio
 
  public:
   /** Default constructor. */
-  MINRES() : Base() {}
+  constexpr MINRES() : Base() {}
 
   /** Initialize the solver with matrix \a A for further \c Ax=b solving.
    *
@@ -226,11 +226,11 @@ class MINRES : public IterativeSolverBase<MINRES<MatrixType_, UpLo_, Preconditio
    * matrix A, or modify a copy of A.
    */
   template <typename MatrixDerived>
-  explicit MINRES(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
+  constexpr explicit MINRES(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
 
   /** \internal */
   template <typename Rhs, typename Dest>
-  void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
+  constexpr void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
     using MatrixWrapper = typename Base::MatrixWrapper;
     using ActualMatrixType = typename Base::ActualMatrixType;
     enum {

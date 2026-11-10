@@ -38,9 +38,10 @@ class MappedSuperNodalMatrix {
   using ScalarVector = Matrix<Scalar, Dynamic, 1>;
 
  public:
-  MappedSuperNodalMatrix() {}
-  MappedSuperNodalMatrix(Index m, Index n, ScalarVector& nzval, IndexVector& nzval_colptr, IndexVector& rowind,
-                         IndexVector& rowind_colptr, IndexVector& col_to_sup, IndexVector& sup_to_col) {
+  EIGEN_CONSTEXPR20 MappedSuperNodalMatrix() {}
+  constexpr MappedSuperNodalMatrix(Index m, Index n, ScalarVector& nzval, IndexVector& nzval_colptr,
+                                   IndexVector& rowind, IndexVector& rowind_colptr, IndexVector& col_to_sup,
+                                   IndexVector& sup_to_col) {
     setInfos(m, n, nzval, nzval_colptr, rowind, rowind_colptr, col_to_sup, sup_to_col);
   }
 
@@ -50,8 +51,8 @@ class MappedSuperNodalMatrix {
    * FIXME This class will be modified such that it can be used in the course
    * of the factorization.
    */
-  void setInfos(Index m, Index n, ScalarVector& nzval, IndexVector& nzval_colptr, IndexVector& rowind,
-                IndexVector& rowind_colptr, IndexVector& col_to_sup, IndexVector& sup_to_col) {
+  constexpr void setInfos(Index m, Index n, ScalarVector& nzval, IndexVector& nzval_colptr, IndexVector& rowind,
+                          IndexVector& rowind_colptr, IndexVector& col_to_sup, IndexVector& sup_to_col) {
     m_row = m;
     m_col = n;
     m_nzval = nzval.data();
@@ -66,65 +67,65 @@ class MappedSuperNodalMatrix {
   /**
    * Number of rows
    */
-  Index rows() const { return m_row; }
+  constexpr Index rows() const { return m_row; }
 
   /**
    * Number of columns
    */
-  Index cols() const { return m_col; }
+  constexpr Index cols() const { return m_col; }
 
   /**
    * Return the array of nonzero values packed by column
    *
    * The size is nnz
    */
-  Scalar* valuePtr() { return m_nzval; }
+  constexpr Scalar* valuePtr() { return m_nzval; }
 
-  const Scalar* valuePtr() const { return m_nzval; }
+  constexpr const Scalar* valuePtr() const { return m_nzval; }
   /**
    * Return the pointers to the beginning of each column in \ref valuePtr()
    */
-  StorageIndex* colIndexPtr() { return m_nzval_colptr; }
+  constexpr StorageIndex* colIndexPtr() { return m_nzval_colptr; }
 
-  const StorageIndex* colIndexPtr() const { return m_nzval_colptr; }
+  constexpr const StorageIndex* colIndexPtr() const { return m_nzval_colptr; }
 
   /**
    * Return the array of compressed row indices of all supernodes
    */
-  StorageIndex* rowIndex() { return m_rowind; }
+  constexpr StorageIndex* rowIndex() { return m_rowind; }
 
-  const StorageIndex* rowIndex() const { return m_rowind; }
+  constexpr const StorageIndex* rowIndex() const { return m_rowind; }
 
   /**
    * Return the location in \em rowIndex() which starts each column
    */
-  StorageIndex* rowIndexPtr() { return m_rowind_colptr; }
+  constexpr StorageIndex* rowIndexPtr() { return m_rowind_colptr; }
 
-  const StorageIndex* rowIndexPtr() const { return m_rowind_colptr; }
+  constexpr const StorageIndex* rowIndexPtr() const { return m_rowind_colptr; }
 
   /**
    * Return the array of column-to-supernode mapping
    */
-  StorageIndex* colToSup() { return m_col_to_sup; }
+  constexpr StorageIndex* colToSup() { return m_col_to_sup; }
 
-  const StorageIndex* colToSup() const { return m_col_to_sup; }
+  constexpr const StorageIndex* colToSup() const { return m_col_to_sup; }
   /**
    * Return the array of supernode-to-column mapping
    */
-  StorageIndex* supToCol() { return m_sup_to_col; }
+  constexpr StorageIndex* supToCol() { return m_sup_to_col; }
 
-  const StorageIndex* supToCol() const { return m_sup_to_col; }
+  constexpr const StorageIndex* supToCol() const { return m_sup_to_col; }
 
   /**
    * Return the number of supernodes
    */
-  Index nsuper() const { return m_nsuper; }
+  constexpr Index nsuper() const { return m_nsuper; }
 
   class InnerIterator;
   template <typename Dest>
-  void solveInPlace(MatrixBase<Dest>& X) const;
+  constexpr void solveInPlace(MatrixBase<Dest>& X) const;
   template <bool Conjugate, typename Dest>
-  void solveTransposedInPlace(MatrixBase<Dest>& X) const;
+  constexpr void solveTransposedInPlace(MatrixBase<Dest>& X) const;
 
  protected:
   Index m_row;                    // Number of rows
@@ -136,8 +137,6 @@ class MappedSuperNodalMatrix {
   StorageIndex* m_rowind_colptr;  // rowind_colptr[j] stores the location in rowind[] which starts column j
   StorageIndex* m_col_to_sup;     // col_to_sup[j] is the supernode number to which column j belongs
   StorageIndex* m_sup_to_col;     // sup_to_col[s] points to the starting column of the s-th supernode
-
- private:
 };
 
 /**
@@ -147,7 +146,7 @@ class MappedSuperNodalMatrix {
 template <typename Scalar, typename StorageIndex>
 class MappedSuperNodalMatrix<Scalar, StorageIndex>::InnerIterator {
  public:
-  InnerIterator(const MappedSuperNodalMatrix& mat, Index outer)
+  constexpr InnerIterator(const MappedSuperNodalMatrix& mat, Index outer)
       : m_matrix(mat),
         m_outer(outer),
         m_supno(mat.colToSup()[outer]),
@@ -156,22 +155,22 @@ class MappedSuperNodalMatrix<Scalar, StorageIndex>::InnerIterator {
         m_endidval(mat.colIndexPtr()[outer + 1]),
         m_idrow(mat.rowIndexPtr()[mat.supToCol()[mat.colToSup()[outer]]]),
         m_endidrow(mat.rowIndexPtr()[mat.supToCol()[mat.colToSup()[outer]] + 1]) {}
-  inline InnerIterator& operator++() {
+  constexpr InnerIterator& operator++() {
     m_idval++;
     m_idrow++;
     return *this;
   }
-  inline Scalar value() const { return m_matrix.valuePtr()[m_idval]; }
+  constexpr Scalar value() const { return m_matrix.valuePtr()[m_idval]; }
 
-  inline Scalar& valueRef() { return const_cast<Scalar&>(m_matrix.valuePtr()[m_idval]); }
+  constexpr Scalar& valueRef() { return const_cast<Scalar&>(m_matrix.valuePtr()[m_idval]); }
 
-  inline Index index() const { return m_matrix.rowIndex()[m_idrow]; }
-  inline Index row() const { return index(); }
-  inline Index col() const { return m_outer; }
+  constexpr Index index() const { return m_matrix.rowIndex()[m_idrow]; }
+  constexpr Index row() const { return index(); }
+  constexpr Index col() const { return m_outer; }
 
-  inline Index supIndex() const { return m_supno; }
+  constexpr Index supIndex() const { return m_supno; }
 
-  inline operator bool() const {
+  constexpr operator bool() const {
     return ((m_idval < m_endidval) && (m_idval >= m_startidval) && (m_idrow < m_endidrow));
   }
 
@@ -192,7 +191,7 @@ class MappedSuperNodalMatrix<Scalar, StorageIndex>::InnerIterator {
  */
 template <typename Scalar, typename Index_>
 template <typename Dest>
-void MappedSuperNodalMatrix<Scalar, Index_>::solveInPlace(MatrixBase<Dest>& X) const {
+constexpr void MappedSuperNodalMatrix<Scalar, Index_>::solveInPlace(MatrixBase<Dest>& X) const {
   /* Explicit type conversion as the Index type of MatrixBase<Dest> may be wider than Index */
   Index n = int(X.rows());
   Index nrhs = Index(X.cols());
@@ -205,7 +204,7 @@ void MappedSuperNodalMatrix<Scalar, Index_>::solveInPlace(MatrixBase<Dest>& X) c
     Index nsupr = rowIndexPtr()[fsupc + 1] - istart;  // Number of rows in the current supernode
     Index nsupc = supToCol()[k + 1] - fsupc;          // Number of columns in the current supernode
     Index nrow = nsupr - nsupc;                       // Number of rows in the non-diagonal part of the supernode
-    Index irow;                                       // Current index row
+    Index irow = 0;                                   // Current index row
 
     if (nsupc == 1) {
       for (Index j = 0; j < nrhs; j++) {
@@ -227,8 +226,8 @@ void MappedSuperNodalMatrix<Scalar, Index_>::solveInPlace(MatrixBase<Dest>& X) c
       typename Dest::RowsBlockXpr U = X.derived().middleRows(fsupc, nsupc);
       U = A.template triangularView<UnitLower>().solve(U);
       // Matrix-vector product
-      new (&A) Map<const Matrix<Scalar, Dynamic, Dynamic, ColMajor>, 0, OuterStride<> >(&(Lval[luptr + nsupc]), nrow,
-                                                                                        nsupc, OuterStride<>(lda));
+      internal::destroy_at(&A);
+      internal::construct_at(&A, &(Lval[luptr + nsupc]), nrow, nsupc, OuterStride<>(lda));
       work.topRows(nrow).noalias() = A * U;
 
       // Begin Scatter
@@ -247,7 +246,7 @@ void MappedSuperNodalMatrix<Scalar, Index_>::solveInPlace(MatrixBase<Dest>& X) c
 
 template <typename Scalar, typename Index_>
 template <bool Conjugate, typename Dest>
-void MappedSuperNodalMatrix<Scalar, Index_>::solveTransposedInPlace(MatrixBase<Dest>& X) const {
+constexpr void MappedSuperNodalMatrix<Scalar, Index_>::solveTransposedInPlace(MatrixBase<Dest>& X) const {
   Index n = int(X.rows());
   Index nrhs = Index(X.cols());
   const Scalar* Lval = valuePtr();                                           // Nonzero values
@@ -259,7 +258,7 @@ void MappedSuperNodalMatrix<Scalar, Index_>::solveTransposedInPlace(MatrixBase<D
     Index nsupr = rowIndexPtr()[fsupc + 1] - istart;  // Number of rows in the current supernode
     Index nsupc = supToCol()[k + 1] - fsupc;          // Number of columns in the current supernode
     Index nrow = nsupr - nsupc;                       // Number of rows in the non-diagonal part of the supernode
-    Index irow;                                       // Current index row
+    Index irow = 0;                                   // Current index row
 
     if (nsupc == 1) {
       for (Index j = 0; j < nrhs; j++) {
@@ -295,8 +294,8 @@ void MappedSuperNodalMatrix<Scalar, Index_>::solveTransposedInPlace(MatrixBase<D
         U.noalias() -= A.transpose() * work.topRows(nrow);
 
       // Triangular solve (of transposed diagonal block)
-      new (&A) Map<const Matrix<Scalar, Dynamic, Dynamic, ColMajor>, 0, OuterStride<> >(&(Lval[luptr]), nsupc, nsupc,
-                                                                                        OuterStride<>(lda));
+      internal::destroy_at(&A);
+      internal::construct_at(&A, &(Lval[luptr]), nsupc, nsupc, OuterStride<>(lda));
       EIGEN_IF_CONSTEXPR (Conjugate)
         U = A.adjoint().template triangularView<UnitUpper>().solve(U);
       else

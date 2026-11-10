@@ -30,8 +30,8 @@ namespace internal {
  * \return false in the case of numerical issue, for example a break down of BiCGSTAB.
  */
 template <typename MatrixType, typename Rhs, typename Dest, typename Preconditioner>
-bool bicgstab(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond, Index& iters,
-              typename Dest::RealScalar& tol_error) {
+constexpr bool bicgstab(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond, Index& iters,
+                        typename Dest::RealScalar& tol_error) {
   using RealScalar = typename Dest::RealScalar;
   using Scalar = typename Dest::Scalar;
   using VectorType = Matrix<Scalar, Dynamic, 1>;
@@ -91,7 +91,7 @@ bool bicgstab(const MatrixType& mat, const Rhs& rhs, Dest& x, const Precondition
     RealScalar v_norm = v.stableNorm();
     if (Eigen::numext::abs(theta) / Eigen::numext::maxi(r0_norm, v_norm) < eps * Eigen::numext::mini(r0_norm, v_norm)) {
       r.noalias() = rhs - mat * x;
-      r0.setRandom();
+      r0 = internal::shadow_space_random<VectorType>(n, 1);
       r0_norm = r0.stableNorm();
       rho = Scalar(1);
       alpha = Scalar(0);
@@ -186,7 +186,7 @@ class BiCGSTAB : public IterativeSolverBase<BiCGSTAB<MatrixType_, Preconditioner
 
  public:
   /** Default constructor. */
-  BiCGSTAB() : Base() {}
+  EIGEN_CONSTEXPR20 BiCGSTAB() : Base() {}
 
   /** Initialize the solver with matrix \a A for further \c Ax=b solving.
    *
@@ -199,11 +199,11 @@ class BiCGSTAB : public IterativeSolverBase<BiCGSTAB<MatrixType_, Preconditioner
    * matrix A, or modify a copy of A.
    */
   template <typename MatrixDerived>
-  explicit BiCGSTAB(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
+  constexpr explicit BiCGSTAB(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
 
   /** \internal */
   template <typename Rhs, typename Dest>
-  void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
+  constexpr void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
     m_iterations = Base::maxIterations();
     m_error = Base::m_tolerance;
 

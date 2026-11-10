@@ -1235,6 +1235,14 @@ static_assert(umeyama_similarity());
 static_assert(numext::copysign(true, false));
 static_assert(numext::sign(std::complex<double>(3, 4)) == std::complex<double>(0.6, 0.8));
 
+constexpr bool colamd_default_knobs() {
+  double knobs[internal::Colamd::NKnobs] = {1, 2, 3};
+  internal::Colamd::set_defaults(knobs);
+  return knobs[internal::Colamd::DenseRow] == 0.5 && knobs[internal::Colamd::DenseCol] == 0.5 && knobs[2] == 0;
+}
+
+static_assert(colamd_default_knobs());
+
 // Run tests that aren't explicitly constexpr.
 constexpr bool test_nc() {
   assert_constexpr(nc_cast());

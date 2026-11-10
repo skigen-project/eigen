@@ -41,29 +41,29 @@ struct simpl_chol_helper {
     Index m_size;
 #ifndef EIGEN_NO_DEBUG
     const Index m_maxSize;
-    Stack(StorageIndex* data, StorageIndex size, StorageIndex maxSize)
+    constexpr Stack(StorageIndex* data, StorageIndex size, StorageIndex maxSize)
         : m_data(data), m_size(convert_index<Index>(size)), m_maxSize(convert_index<Index>(maxSize)) {
       eigen_assert(size >= 0);
       eigen_assert(maxSize >= size);
     }
 #else
-    Stack(StorageIndex* data, StorageIndex size, StorageIndex /*maxSize*/)
+    constexpr Stack(StorageIndex* data, StorageIndex size, StorageIndex /*maxSize*/)
         : m_data(data), m_size(convert_index<Index>(size)) {}
 #endif
-    bool empty() const { return m_size == 0; }
-    Index size() const { return m_size; }
-    StorageIndex back() const {
+    constexpr bool empty() const { return m_size == 0; }
+    constexpr Index size() const { return m_size; }
+    constexpr StorageIndex back() const {
       eigen_assert(m_size > 0);
       return m_data[m_size - 1];
     }
-    void push(const StorageIndex& value) {
+    constexpr void push(const StorageIndex& value) {
 #ifndef EIGEN_NO_DEBUG
       eigen_assert(m_size < m_maxSize);
 #endif
       m_data[m_size] = value;
       m_size++;
     }
-    void pop() {
+    constexpr void pop() {
       eigen_assert(m_size > 0);
       m_size--;
     }
@@ -72,9 +72,9 @@ struct simpl_chol_helper {
   // Implementation of a disjoint-set or union-find structure with path compression.
   struct DisjointSet {
     StorageIndex* m_set;
-    DisjointSet(StorageIndex* set, StorageIndex size) : m_set(set) { std::iota(set, set + size, 0); }
+    constexpr DisjointSet(StorageIndex* set, StorageIndex size) : m_set(set) { std::iota(set, set + size, 0); }
     // Find the set representative or root of `u`.
-    StorageIndex find(StorageIndex u) const {
+    constexpr StorageIndex find(StorageIndex u) const {
       eigen_assert(u != kEmpty);
       while (m_set[u] != u) {
         // manually unroll the loop by a factor of 2 to improve performance
@@ -83,7 +83,7 @@ struct simpl_chol_helper {
       return u;
     }
     // Perform full path compression such that each node from `u` to `v` points to `v`.
-    void compress(StorageIndex u, StorageIndex v) {
+    constexpr void compress(StorageIndex u, StorageIndex v) {
       eigen_assert(u != kEmpty);
       eigen_assert(v != kEmpty);
       while (m_set[u] != v) {
@@ -99,7 +99,7 @@ struct simpl_chol_helper {
   // The outer index array provides the size requirements of the inner index array.
 
   // Computes the outer index array of the higher adjacency matrix.
-  static void calc_hadj_outer(const StorageIndex size, const CholMatrixType& ap, StorageIndex* outerIndex) {
+  static constexpr void calc_hadj_outer(const StorageIndex size, const CholMatrixType& ap, StorageIndex* outerIndex) {
     for (StorageIndex j = 1; j < size; j++) {
       for (InnerIterator it(ap, convert_index<Index>(j)); it; ++it) {
         StorageIndex i = it.index();
@@ -110,8 +110,8 @@ struct simpl_chol_helper {
   }
 
   // inner index array
-  static void calc_hadj_inner(const StorageIndex size, const CholMatrixType& ap, const StorageIndex* outerIndex,
-                              StorageIndex* innerIndex, StorageIndex* tmp) {
+  static constexpr void calc_hadj_inner(const StorageIndex size, const CholMatrixType& ap,
+                                        const StorageIndex* outerIndex, StorageIndex* innerIndex, StorageIndex* tmp) {
     std::fill_n(tmp, size, 0);
 
     for (StorageIndex j = 1; j < size; j++) {
@@ -134,7 +134,8 @@ struct simpl_chol_helper {
   // Computes the elimination forest of the lower adjacency matrix, a compact representation of the sparse L factor.
   // The L factor may contain multiple elimination trees if a column contains only its diagonal element.
   // Each elimination tree is an n-ary tree in which each node points to its parent.
-  static void calc_etree(const StorageIndex size, const CholMatrixType& ap, StorageIndex* parent, StorageIndex* tmp) {
+  static constexpr void calc_etree(const StorageIndex size, const CholMatrixType& ap, StorageIndex* parent,
+                                   StorageIndex* tmp) {
     std::fill_n(parent, size, kEmpty);
 
     DisjointSet ancestor(tmp, size);
@@ -152,8 +153,8 @@ struct simpl_chol_helper {
   }
 
   // Computes the child pointers of the parent tree to facilitate a depth-first search traversal.
-  static void calc_lineage(const StorageIndex size, const StorageIndex* parent, StorageIndex* firstChild,
-                           StorageIndex* firstSibling) {
+  static constexpr void calc_lineage(const StorageIndex size, const StorageIndex* parent, StorageIndex* firstChild,
+                                     StorageIndex* firstSibling) {
     std::fill_n(firstChild, size, kEmpty);
     std::fill_n(firstSibling, size, kEmpty);
 
@@ -171,8 +172,8 @@ struct simpl_chol_helper {
   }
 
   // Computes a post-ordered traversal of the elimination tree.
-  static void calc_post(const StorageIndex size, const StorageIndex* parent, StorageIndex* firstChild,
-                        const StorageIndex* firstSibling, StorageIndex* post, StorageIndex* dfs) {
+  static constexpr void calc_post(const StorageIndex size, const StorageIndex* parent, StorageIndex* firstChild,
+                                  const StorageIndex* firstSibling, StorageIndex* post, StorageIndex* dfs) {
     Stack post_stack(post, 0, size);
     for (StorageIndex j = 0; j < size; j++) {
       if (parent[j] != kEmpty) continue;
@@ -202,9 +203,10 @@ struct simpl_chol_helper {
   // SIAM Journal on Matrix Analysis and Applications, 15(4), 1075-1091.
 
   // Computes the non-zero pattern of the L factor.
-  static void calc_colcount(const StorageIndex size, const StorageIndex* hadjOuter, const StorageIndex* hadjInner,
-                            const StorageIndex* parent, StorageIndex* prevLeaf, StorageIndex* tmp,
-                            const StorageIndex* post, StorageIndex* nonZerosPerCol, bool doLDLT) {
+  static constexpr void calc_colcount(const StorageIndex size, const StorageIndex* hadjOuter,
+                                      const StorageIndex* hadjInner, const StorageIndex* parent, StorageIndex* prevLeaf,
+                                      StorageIndex* tmp, const StorageIndex* post, StorageIndex* nonZerosPerCol,
+                                      bool doLDLT) {
     // initialize nonZerosPerCol with 1 for leaves, 0 for non-leaves
     std::fill_n(nonZerosPerCol, size, 1);
     for (StorageIndex j = 0; j < size; j++) {
@@ -243,15 +245,15 @@ struct simpl_chol_helper {
   }
 
   // Finalizes the non-zero pattern of the L factor and allocates the memory for the factorization.
-  static void init_matrix(const StorageIndex size, const StorageIndex* nonZerosPerCol, CholMatrixType& L) {
+  static constexpr void init_matrix(const StorageIndex size, const StorageIndex* nonZerosPerCol, CholMatrixType& L) {
     eigen_assert(L.outerIndexPtr()[0] == 0);
     std::partial_sum(nonZerosPerCol, nonZerosPerCol + size, L.outerIndexPtr() + 1);
     L.resizeNonZeros(convert_index<Index>(L.outerIndexPtr()[size]));
   }
 
   // Driver routine for the symbolic sparse Cholesky factorization.
-  static void run(const StorageIndex size, const CholMatrixType& ap, CholMatrixType& L, VectorI& parent,
-                  VectorI& workSpace, bool doLDLT) {
+  static constexpr void run(const StorageIndex size, const CholMatrixType& ap, CholMatrixType& L, VectorI& parent,
+                            VectorI& workSpace, bool doLDLT) {
     parent.resize(convert_index<Index>(size));
     workSpace.resize(4 * convert_index<Index>(size));
     L.resize(convert_index<Index>(size), convert_index<Index>(size));
@@ -287,7 +289,7 @@ constexpr StorageIndex simpl_chol_helper<Scalar, StorageIndex>::kEmpty;
 }  // namespace internal
 
 template <typename Derived>
-void SimplicialCholeskyBase<Derived>::analyzePattern_preordered(const CholMatrixType& ap, bool doLDLT) {
+constexpr void SimplicialCholeskyBase<Derived>::analyzePattern_preordered(const CholMatrixType& ap, bool doLDLT) {
   using Helper = internal::simpl_chol_helper<Scalar, StorageIndex>;
 
   eigen_assert(ap.innerSize() == ap.outerSize());
@@ -303,7 +305,7 @@ void SimplicialCholeskyBase<Derived>::analyzePattern_preordered(const CholMatrix
 
 template <typename Derived>
 template <bool DoLDLT, bool NonHermitian>
-void SimplicialCholeskyBase<Derived>::factorize_preordered(const CholMatrixType& ap) {
+constexpr void SimplicialCholeskyBase<Derived>::factorize_preordered(const CholMatrixType& ap) {
   EIGEN_IF_CONSTEXPR (internal::packet_traits<Scalar>::Vectorizable && internal::packet_traits<Scalar>::HasMul &&
                       internal::packet_traits<Scalar>::HasSub && !NumTraits<Scalar>::IsComplex) {
     const StorageIndex* outer = m_matrix.outerIndexPtr();
@@ -320,7 +322,7 @@ void SimplicialCholeskyBase<Derived>::factorize_preordered(const CholMatrixType&
 
 template <typename Derived>
 template <bool DoLDLT, bool NonHermitian, bool UsePackets>
-void SimplicialCholeskyBase<Derived>::factorize_preordered_impl(const CholMatrixType& ap) {
+constexpr void SimplicialCholeskyBase<Derived>::factorize_preordered_impl(const CholMatrixType& ap) {
   const StorageIndex size = StorageIndex(ap.rows());
 
   eigen_assert(m_analysisIsOk && "You must first call analyzePattern()");
@@ -350,7 +352,7 @@ void SimplicialCholeskyBase<Derived>::factorize_preordered_impl(const CholMatrix
       StorageIndex i = it.index();
       if (i <= k) {
         y[i] += getSymm(it.value()); /* scatter A(i,k) into Y (sum duplicates) */
-        Index len;
+        Index len = 0;
         for (len = 0; tags[i] != k; i = m_parent[internal::convert_index<Index>(i)]) {
           pattern[len++] = i; /* L(k,i) is nonzero */
           tags[i] = k;        /* mark i as visited */
@@ -370,7 +372,7 @@ void SimplicialCholeskyBase<Derived>::factorize_preordered_impl(const CholMatrix
       y[i] = Scalar(0);
 
       /* the nonzero entry L(k,i) */
-      Scalar l_ki;
+      Scalar l_ki{};
       EIGEN_IF_CONSTEXPR (DoLDLT)
         l_ki = yi / getDiag(m_diag[i]);
       else
@@ -395,7 +397,7 @@ void SimplicialCholeskyBase<Derived>::factorize_preordered_impl(const CholMatrix
     } else {
       Index p = internal::convert_index<Index>(Lp[k] + nonZerosPerCol[k]++);
       Li[p] = k; /* store L(k,k) = sqrt (d) in column k */
-      bool failed;
+      bool failed = false;
       EIGEN_IF_CONSTEXPR (NonHermitian) {
         failed = d == RealScalar(0);
       } else {
