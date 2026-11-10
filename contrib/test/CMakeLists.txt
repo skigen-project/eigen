@@ -145,6 +145,7 @@ ei_add_test(structured_kronecker_sum)
 ei_add_test(structured_kronecker_sparse_view)
 ei_add_test(bessel_functions)
 ei_add_test(special_functions)
+ei_add_test(special_functions_compile_time)
 ei_add_test(special_packetmath "-DEIGEN_FAST_MATH=1")
 
 if(EIGEN_TEST_SYCL)
