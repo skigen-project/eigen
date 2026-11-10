@@ -613,9 +613,8 @@ static void test_small_products() {
 #else
   constexpr bool kSmallProductEnabled = true;
 #endif
-  const Index size = internal::sme_neon_small_product<Scalar>::value;
   const Index thin = Index(32 / sizeof(Scalar));
-  // Both sides of the RHS bound for a thin LHS and of the size bound past it, a tall real LHS against three columns,
+  // Both sides of the RHS bound for a thin LHS and of the cost bound past it, a tall LHS against three columns,
   // then squares and thin shapes on either side.
   std::vector<std::array<Index, 3>> shapes;
   const Index rhs_depth =
@@ -624,10 +623,11 @@ static void test_small_products() {
   shapes.push_back({thin, 37, rhs_depth + 1});
   // Deeper than the blocking's kc, which packs into a buffer of its own.
   shapes.push_back({thin, 4, 2048});
-  for (Index n : {Index(16), Index(37)}) {
-    const Index k = size / ((thin + 1) * n);
-    shapes.push_back({thin + 1, n, k});
-    shapes.push_back({thin + 1, n, k + 1});
+  for (const auto& mn : std::vector<std::array<Index, 2>>{{thin + 1, 16}, {thin + 1, 37}, {24, 24}, {48, 3}}) {
+    Index k = 1;
+    while (k < 4096 && internal::sme_small_gemm_wins<Scalar>(mn[0], mn[1], k)) ++k;
+    if (k > 1) shapes.push_back({mn[0], mn[1], k - 1});
+    shapes.push_back({mn[0], mn[1], k});
   }
   shapes.push_back({3 * sme_mr<Scalar>(), 3, 16});
   for (Index s : {12, 17, 20, 25, 29, 31}) shapes.push_back({s, s, s});
@@ -650,7 +650,7 @@ static void test_small_products() {
   VERIFY(past > 0);
   // Sub-blocks of larger operands and a result with an inner stride.
   const Index m = thin + 3, n = 9, k = 33;
-  VERIFY_IS_EQUAL(internal::sme_small_gemm_wins<Scalar>(m, n, k), kSmallProductEnabled && m * n * k <= size);
+  VERIFY_IS_EQUAL(internal::sme_small_gemm_wins<Scalar>(m, n, k), kSmallProductEnabled);
   const SmeColMajorMat<Scalar> Abig = SmeColMajorMat<Scalar>::Random(m + 5, k + 2);
   const SmeRowMajorMat<Scalar> Bbig = SmeRowMajorMat<Scalar>::Random(k + 3, n + 4);
   const auto A = Abig.block(2, 1, m, k);
@@ -666,12 +666,20 @@ static void test_small_products() {
 
 template <typename TestIndex>
 static void test_small_product_overflow() {
-  // With a 65536 threshold, both the two-factor and three-factor products can wrap a 32-bit index to zero.
+  // With a 65536 threshold, products of the factors wrap a 32-bit index; the decision must not depend on its width.
+  for (const auto& s : std::vector<std::array<std::int64_t, 3>>{{65536, 65536, 1},
+                                                                {256, 256, 65536},
+                                                                {65536, 3, 65536},
+                                                                {16, 16, 256},
+                                                                {16, 16, 4096},
+                                                                {2, 4096, 16},
+                                                                {65537, 2, 2}})
+    VERIFY_IS_EQUAL(internal::sme_small_gemm_wins<float>(TestIndex(s[0]), TestIndex(s[1]), TestIndex(s[2])),
+                    internal::sme_small_gemm_wins<float>(s[0], s[1], s[2]));
   VERIFY(!internal::sme_small_gemm_wins<float>(TestIndex(65536), TestIndex(65536), TestIndex(1)));
   VERIFY(!internal::sme_small_gemm_wins<float>(TestIndex(256), TestIndex(256), TestIndex(65536)));
-  VERIFY(!internal::sme_small_gemm_wins<float>(TestIndex(16), TestIndex(16), TestIndex(257)));
 #if !defined(EIGEN_SME_NO_NEON_SMALL_BLOCKS) && !defined(EIGEN_SME_FORCE_NEON_SMALL_BLOCKS) && !defined(EIGEN_USE_BLAS)
-  VERIFY(internal::sme_small_gemm_wins<float>(TestIndex(16), TestIndex(16), TestIndex(256)));
+  VERIFY(internal::sme_small_gemm_wins<float>(TestIndex(16), TestIndex(16), TestIndex(16)));
 #endif
 }
 
