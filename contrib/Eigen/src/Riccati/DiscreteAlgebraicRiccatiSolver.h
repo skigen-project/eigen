@@ -117,7 +117,7 @@ struct riccati_qz<MatrixType, true> {
 
 /** \internal \returns the 1-norm (maximum absolute column sum) of \p m. */
 template <typename Derived>
-typename NumTraits<typename Derived::Scalar>::Real riccati_norm1(const MatrixBase<Derived>& m) {
+constexpr typename NumTraits<typename Derived::Scalar>::Real riccati_norm1(const MatrixBase<Derived>& m) {
   return m.size() == 0 ? typename NumTraits<typename Derived::Scalar>::Real(0)
                        : m.cwiseAbs().colwise().sum().maxCoeff();
 }
@@ -129,7 +129,7 @@ typename NumTraits<typename Derived::Scalar>::Real riccati_norm1(const MatrixBas
  * \f$ D = \mathrm{diag}(2^{e_i}) \f$.
  */
 template <typename RealMatrix>
-void riccati_balance_exponents(RealMatrix& M, VectorXi& exponents) {
+constexpr void riccati_balance_exponents(RealMatrix& M, VectorXi& exponents) {
   using RealScalar = typename RealMatrix::Scalar;
   const Index n = M.rows();
   const RealScalar radix(2);
@@ -189,7 +189,7 @@ void riccati_balance_exponents(RealMatrix& M, VectorXi& exponents) {
 }
 
 /** \internal Rounds \p d / 2 to the nearest integer, ties to even (as NumPy's round()). */
-inline int riccati_half_round_even(int d) {
+constexpr int riccati_half_round_even(int d) {
   const int q = (d >= 0) ? d / 2 : -((-d + 1) / 2);  // floor(d / 2)
   if (d % 2 == 0) return q;
   return (q % 2 == 0) ? q : q + 1;
@@ -265,7 +265,7 @@ class DiscreteAlgebraicRiccatiSolver {
   using RealScalar = typename NumTraits<Scalar>::Real;
 
   /** \brief Default constructor; the solver is initialized by calling compute(). */
-  DiscreteAlgebraicRiccatiSolver() = default;
+  constexpr DiscreteAlgebraicRiccatiSolver() = default;
 
   /** \brief Constructor; solves the discrete-time algebraic Riccati equation.
    *
@@ -273,8 +273,9 @@ class DiscreteAlgebraicRiccatiSolver {
    * const EigenBase<InputTypeQ>&, const EigenBase<InputTypeR>&, bool).
    */
   template <typename InputTypeA, typename InputTypeB, typename InputTypeQ, typename InputTypeR>
-  DiscreteAlgebraicRiccatiSolver(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
-                                 const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R, bool balance = true) {
+  constexpr DiscreteAlgebraicRiccatiSolver(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
+                                           const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
+                                           bool balance = true) {
     compute(A, B, Q, R, balance);
   }
 
@@ -286,9 +287,10 @@ class DiscreteAlgebraicRiccatiSolver {
    */
   template <typename InputTypeA, typename InputTypeB, typename InputTypeQ, typename InputTypeR, typename InputTypeE,
             typename InputTypeS>
-  DiscreteAlgebraicRiccatiSolver(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
-                                 const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
-                                 const EigenBase<InputTypeE>& E, const EigenBase<InputTypeS>& S, bool balance = true) {
+  constexpr DiscreteAlgebraicRiccatiSolver(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
+                                           const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
+                                           const EigenBase<InputTypeE>& E, const EigenBase<InputTypeS>& S,
+                                           bool balance = true) {
     compute(A, B, Q, R, E, S, balance);
   }
 
@@ -306,9 +308,9 @@ class DiscreteAlgebraicRiccatiSolver {
    * The result of the computation is reported by info().
    */
   template <typename InputTypeA, typename InputTypeB, typename InputTypeQ, typename InputTypeR>
-  DiscreteAlgebraicRiccatiSolver& compute(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
-                                          const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
-                                          bool balance = true) {
+  constexpr DiscreteAlgebraicRiccatiSolver& compute(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
+                                                    const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
+                                                    bool balance = true) {
     return computeImpl(A.derived(), B.derived(), Q.derived(), R.derived(), nullptr, nullptr, balance);
   }
 
@@ -330,10 +332,10 @@ class DiscreteAlgebraicRiccatiSolver {
    */
   template <typename InputTypeA, typename InputTypeB, typename InputTypeQ, typename InputTypeR, typename InputTypeE,
             typename InputTypeS>
-  DiscreteAlgebraicRiccatiSolver& compute(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
-                                          const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
-                                          const EigenBase<InputTypeE>& E, const EigenBase<InputTypeS>& S,
-                                          bool balance = true) {
+  constexpr DiscreteAlgebraicRiccatiSolver& compute(const EigenBase<InputTypeA>& A, const EigenBase<InputTypeB>& B,
+                                                    const EigenBase<InputTypeQ>& Q, const EigenBase<InputTypeR>& R,
+                                                    const EigenBase<InputTypeE>& E, const EigenBase<InputTypeS>& S,
+                                                    bool balance = true) {
     const DynamicMatrix e = E.derived();
     const DynamicMatrix s = S.derived();
     return computeImpl(A.derived(), B.derived(), Q.derived(), R.derived(), &e, &s, balance);
@@ -343,7 +345,7 @@ class DiscreteAlgebraicRiccatiSolver {
    *
    * \pre The solver has been initialized and info() returns \c Success.
    */
-  const MatrixType& solution() const {
+  constexpr const MatrixType& solution() const {
     eigen_assert(m_isInitialized && "DiscreteAlgebraicRiccatiSolver is not initialized.");
     eigen_assert(m_info == Success && "The Riccati equation could not be solved.");
     return m_X;
@@ -359,7 +361,7 @@ class DiscreteAlgebraicRiccatiSolver {
    *          (no stabilizing solution exists, the pencil has eigenvalues too close to the unit circle, or the
    *          solution would be too large to compute, see the class documentation).
    */
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "DiscreteAlgebraicRiccatiSolver is not initialized.");
     return m_info;
   }
@@ -369,18 +371,20 @@ class DiscreteAlgebraicRiccatiSolver {
   using RealDynamicMatrix = Matrix<RealScalar, Dynamic, Dynamic>;
   using RealVector = Matrix<RealScalar, Dynamic, 1>;
 
-  static bool isSelfAdjoint(const DynamicMatrix& M) {
+  static constexpr bool isSelfAdjoint(const DynamicMatrix& M) {
     return internal::riccati_norm1(M - M.adjoint()) <=
            RealScalar(100) * NumTraits<RealScalar>::epsilon() * internal::riccati_norm1(M);
   }
 
-  DiscreteAlgebraicRiccatiSolver& computeImpl(const DynamicMatrix& A, const DynamicMatrix& B, const DynamicMatrix& Q,
-                                              const DynamicMatrix& R, const DynamicMatrix* E, const DynamicMatrix* S,
-                                              bool balance);
+  constexpr DiscreteAlgebraicRiccatiSolver& computeImpl(const DynamicMatrix& A, const DynamicMatrix& B,
+                                                        const DynamicMatrix& Q, const DynamicMatrix& R,
+                                                        const DynamicMatrix* E, const DynamicMatrix* S, bool balance);
 
-  static ComputationInfo solvePencil(const DynamicMatrix& A, const DynamicMatrix& B, const DynamicMatrix& Q,
-                                     const DynamicMatrix& R, const DynamicMatrix* E, const DynamicMatrix* S,
-                                     bool balance, RealScalar rcondThreshold, DynamicMatrix& X, RealVector& balancing);
+  static EIGEN_CONSTEXPR20 ComputationInfo solvePencil(const DynamicMatrix& A, const DynamicMatrix& B,
+                                                       const DynamicMatrix& Q, const DynamicMatrix& R,
+                                                       const DynamicMatrix* E, const DynamicMatrix* S, bool balance,
+                                                       RealScalar rcondThreshold, DynamicMatrix& X,
+                                                       RealVector& balancing);
 
   // Backward error ratios of a solution on the original and on the balanced equation, see backwardErrorRatios().
   struct BackwardErrorRatios {
@@ -388,9 +392,10 @@ class DiscreteAlgebraicRiccatiSolver {
     RealScalar balanced;
   };
 
-  static BackwardErrorRatios backwardErrorRatios(const DynamicMatrix& A, const DynamicMatrix& B, const DynamicMatrix& Q,
-                                                 const DynamicMatrix& R, const DynamicMatrix* E, const DynamicMatrix* S,
-                                                 const DynamicMatrix& X, const RealVector& balancing);
+  static constexpr BackwardErrorRatios backwardErrorRatios(const DynamicMatrix& A, const DynamicMatrix& B,
+                                                           const DynamicMatrix& Q, const DynamicMatrix& R,
+                                                           const DynamicMatrix* E, const DynamicMatrix* S,
+                                                           const DynamicMatrix& X, const RealVector& balancing);
 
   MatrixType m_X;
   ComputationInfo m_info = InvalidInput;
@@ -398,7 +403,7 @@ class DiscreteAlgebraicRiccatiSolver {
 };
 
 template <typename MatrixType_>
-DiscreteAlgebraicRiccatiSolver<MatrixType_>& DiscreteAlgebraicRiccatiSolver<MatrixType_>::computeImpl(
+constexpr DiscreteAlgebraicRiccatiSolver<MatrixType_>& DiscreteAlgebraicRiccatiSolver<MatrixType_>::computeImpl(
     const DynamicMatrix& A, const DynamicMatrix& B, const DynamicMatrix& Q, const DynamicMatrix& R,
     const DynamicMatrix* E, const DynamicMatrix* S, bool balance) {
   const Index m = B.rows();
@@ -477,7 +482,7 @@ DiscreteAlgebraicRiccatiSolver<MatrixType_>& DiscreteAlgebraicRiccatiSolver<Matr
  * reported as infinity.
  */
 template <typename MatrixType_>
-typename DiscreteAlgebraicRiccatiSolver<MatrixType_>::BackwardErrorRatios
+constexpr typename DiscreteAlgebraicRiccatiSolver<MatrixType_>::BackwardErrorRatios
 DiscreteAlgebraicRiccatiSolver<MatrixType_>::backwardErrorRatios(const DynamicMatrix& A, const DynamicMatrix& B,
                                                                  const DynamicMatrix& Q, const DynamicMatrix& R,
                                                                  const DynamicMatrix* E, const DynamicMatrix* S,
@@ -496,7 +501,7 @@ DiscreteAlgebraicRiccatiSolver<MatrixType_>::backwardErrorRatios(const DynamicMa
   DynamicMatrix res = AXA - EXE - G + Q;
   if (numext::is_exactly_zero(res.norm())) return BackwardErrorRatios{RealScalar(0), RealScalar(0)};
 
-  BackwardErrorRatios ratios;
+  BackwardErrorRatios ratios{};
   const RealScalar normQ = Q.norm(), normEXE = EXE.norm();
   const RealScalar kappa = (normQ > RealScalar(0) && normEXE > normQ) ? normEXE / normQ : RealScalar(1);
   ratios.original = finite(res.norm() / (RealScalar(A.rows()) * eps * (AXA.norm() + normEXE + normQ) * kappa));
@@ -514,11 +519,10 @@ DiscreteAlgebraicRiccatiSolver<MatrixType_>::backwardErrorRatios(const DynamicMa
  * the selfadjoint solution.
  */
 template <typename MatrixType_>
-ComputationInfo DiscreteAlgebraicRiccatiSolver<MatrixType_>::solvePencil(const DynamicMatrix& A, const DynamicMatrix& B,
-                                                                         const DynamicMatrix& Q, const DynamicMatrix& R,
-                                                                         const DynamicMatrix* E, const DynamicMatrix* S,
-                                                                         bool balance, RealScalar rcondThreshold,
-                                                                         DynamicMatrix& X, RealVector& balancing) {
+EIGEN_CONSTEXPR20 ComputationInfo DiscreteAlgebraicRiccatiSolver<MatrixType_>::solvePencil(
+    const DynamicMatrix& A, const DynamicMatrix& B, const DynamicMatrix& Q, const DynamicMatrix& R,
+    const DynamicMatrix* E, const DynamicMatrix* S, bool balance, RealScalar rcondThreshold, DynamicMatrix& X,
+    RealVector& balancing) {
   const Index m = B.rows();
   const Index n = B.cols();
 

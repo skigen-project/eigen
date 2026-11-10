@@ -21,12 +21,10 @@
 namespace Eigen {
 
 template <typename FunctorType>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType>::minimizeOneStep(FVectorType &x) {
-  using std::abs;
-  using std::sqrt;
-  RealScalar temp, temp1, temp2;
-  RealScalar ratio;
-  RealScalar pnorm, xnorm, fnorm1, actred, dirder, prered;
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType>::minimizeOneStep(FVectorType &x) {
+  RealScalar temp{}, temp1{}, temp2{};
+  RealScalar ratio{};
+  RealScalar pnorm{}, xnorm{}, fnorm1{}, actred{}, dirder{}, prered{};
   eigen_assert(x.size() == n);  // check the caller is not cheating us
 
   temp = 0.0;
@@ -76,8 +74,8 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType>::minimizeOneStep
   if (m_fnorm != 0.)
     for (Index j = 0; j < n; ++j)
       if (m_wa2[m_permutation.indices()[j]] != 0.)
-        m_gnorm = (std::max)(m_gnorm, abs(m_rfactor.col(j).head(j + 1).dot(m_qtf.head(j + 1) / m_fnorm) /
-                                          m_wa2[m_permutation.indices()[j]]));
+        m_gnorm = (std::max)(m_gnorm, numext::abs(m_rfactor.col(j).head(j + 1).dot(m_qtf.head(j + 1) / m_fnorm) /
+                                                  m_wa2[m_permutation.indices()[j]]));
 
   /* test for convergence of the gradient norm. */
   if (m_gnorm <= m_gtol) {
@@ -113,7 +111,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType>::minimizeOneStep
     /* the scaled directional derivative. */
     m_wa3.noalias() = m_rfactor.template triangularView<Upper>() * (m_permutation.inverse() * m_wa1);
     temp1 = numext::abs2(m_wa3.stableNorm() / m_fnorm);
-    temp2 = numext::abs2(sqrt(m_par) * pnorm / m_fnorm);
+    temp2 = numext::abs2(numext::sqrt(m_par) * pnorm / m_fnorm);
     prered = temp1 + temp2 / Scalar(.5);
     dirder = -(temp1 + temp2);
 
@@ -147,11 +145,11 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType>::minimizeOneStep
     }
 
     /* tests for convergence. */
-    if (abs(actred) <= m_ftol && prered <= m_ftol && Scalar(.5) * ratio <= 1. && m_delta <= m_xtol * xnorm) {
+    if (numext::abs(actred) <= m_ftol && prered <= m_ftol && Scalar(.5) * ratio <= 1. && m_delta <= m_xtol * xnorm) {
       m_info = Success;
       return LevenbergMarquardtSpace::RelativeErrorAndReductionTooSmall;
     }
-    if (abs(actred) <= m_ftol && prered <= m_ftol && Scalar(.5) * ratio <= 1.) {
+    if (numext::abs(actred) <= m_ftol && prered <= m_ftol && Scalar(.5) * ratio <= 1.) {
       m_info = Success;
       return LevenbergMarquardtSpace::RelativeReductionTooSmall;
     }
@@ -165,7 +163,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType>::minimizeOneStep
       m_info = NoConvergence;
       return LevenbergMarquardtSpace::TooManyFunctionEvaluation;
     }
-    if (abs(actred) <= NumTraits<Scalar>::epsilon() && prered <= NumTraits<Scalar>::epsilon() &&
+    if (numext::abs(actred) <= NumTraits<Scalar>::epsilon() && prered <= NumTraits<Scalar>::epsilon() &&
         Scalar(.5) * ratio <= 1.) {
       m_info = Success;
       return LevenbergMarquardtSpace::FtolTooSmall;

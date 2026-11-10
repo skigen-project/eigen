@@ -21,7 +21,7 @@ namespace internal {
 // pre:  T.block(i,i,2,2) has complex conjugate eigenvalues
 // post: sqrtT.block(i,i,2,2) is square root of T.block(i,i,2,2)
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_2x2_diagonal_block(const MatrixType& T, Index i, ResultType& sqrtT) {
+constexpr void matrix_sqrt_quasi_triangular_2x2_diagonal_block(const MatrixType& T, Index i, ResultType& sqrtT) {
   // TODO: this 2x2 complex-conjugate eigenvalue case could reuse logic from EigenSolver if exposed.
   using Scalar = typename traits<MatrixType>::Scalar;
   Matrix<Scalar, 2, 2> block = T.template block<2, 2>(i, i);
@@ -34,7 +34,8 @@ void matrix_sqrt_quasi_triangular_2x2_diagonal_block(const MatrixType& T, Index 
 //       all blocks of sqrtT to left of and below (i,j) are correct
 // post: sqrtT(i,j) has the correct value
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_1x1_off_diagonal_block(const MatrixType& T, Index i, Index j, ResultType& sqrtT) {
+constexpr void matrix_sqrt_quasi_triangular_1x1_off_diagonal_block(const MatrixType& T, Index i, Index j,
+                                                                   ResultType& sqrtT) {
   using Scalar = typename traits<MatrixType>::Scalar;
   Scalar tmp = (sqrtT.row(i).segment(i + 1, j - i - 1) * sqrtT.col(j).segment(i + 1, j - i - 1)).value();
   sqrtT.coeffRef(i, j) = (T.coeff(i, j) - tmp) / (sqrtT.coeff(i, i) + sqrtT.coeff(j, j));
@@ -42,7 +43,8 @@ void matrix_sqrt_quasi_triangular_1x1_off_diagonal_block(const MatrixType& T, In
 
 // similar to matrix_sqrt_quasi_triangular_1x1_off_diagonal_block()
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_1x2_off_diagonal_block(const MatrixType& T, Index i, Index j, ResultType& sqrtT) {
+constexpr void matrix_sqrt_quasi_triangular_1x2_off_diagonal_block(const MatrixType& T, Index i, Index j,
+                                                                   ResultType& sqrtT) {
   using Scalar = typename traits<MatrixType>::Scalar;
   Matrix<Scalar, 1, 2> rhs = T.template block<1, 2>(i, j);
   if (j - i > 1) rhs.noalias() -= sqrtT.block(i, i + 1, 1, j - i - 1) * sqrtT.block(i + 1, j, j - i - 1, 2);
@@ -53,7 +55,8 @@ void matrix_sqrt_quasi_triangular_1x2_off_diagonal_block(const MatrixType& T, In
 
 // similar to matrix_sqrt_quasi_triangular_1x1_off_diagonal_block()
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_2x1_off_diagonal_block(const MatrixType& T, Index i, Index j, ResultType& sqrtT) {
+constexpr void matrix_sqrt_quasi_triangular_2x1_off_diagonal_block(const MatrixType& T, Index i, Index j,
+                                                                   ResultType& sqrtT) {
   using Scalar = typename traits<MatrixType>::Scalar;
   Matrix<Scalar, 2, 1> rhs = T.template block<2, 1>(i, j);
   if (j - i > 2) rhs.noalias() -= sqrtT.block(i, i + 2, 2, j - i - 2) * sqrtT.block(i + 2, j, j - i - 2, 1);
@@ -64,8 +67,8 @@ void matrix_sqrt_quasi_triangular_2x1_off_diagonal_block(const MatrixType& T, In
 
 // solves the equation A X + X B = C where all matrices are 2-by-2
 template <typename MatrixType>
-void matrix_sqrt_quasi_triangular_solve_auxiliary_equation(MatrixType& X, const MatrixType& A, const MatrixType& B,
-                                                           const MatrixType& C) {
+constexpr void matrix_sqrt_quasi_triangular_solve_auxiliary_equation(MatrixType& X, const MatrixType& A,
+                                                                     const MatrixType& B, const MatrixType& C) {
   using Scalar = typename traits<MatrixType>::Scalar;
   Matrix<Scalar, 4, 4> coeffMatrix = Matrix<Scalar, 4, 4>::Zero();
   coeffMatrix.coeffRef(0, 0) = A.coeff(0, 0) + B.coeff(0, 0);
@@ -98,7 +101,8 @@ void matrix_sqrt_quasi_triangular_solve_auxiliary_equation(MatrixType& X, const 
 
 // similar to matrix_sqrt_quasi_triangular_1x1_off_diagonal_block()
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_2x2_off_diagonal_block(const MatrixType& T, Index i, Index j, ResultType& sqrtT) {
+constexpr void matrix_sqrt_quasi_triangular_2x2_off_diagonal_block(const MatrixType& T, Index i, Index j,
+                                                                   ResultType& sqrtT) {
   using Scalar = typename traits<MatrixType>::Scalar;
   Matrix<Scalar, 2, 2> A = sqrtT.template block<2, 2>(i, i);
   Matrix<Scalar, 2, 2> B = sqrtT.template block<2, 2>(j, j);
@@ -112,13 +116,12 @@ void matrix_sqrt_quasi_triangular_2x2_off_diagonal_block(const MatrixType& T, In
 // pre:  T is quasi-upper-triangular and sqrtT is a zero matrix of the same size
 // post: the diagonal blocks of sqrtT are the square roots of the diagonal blocks of T
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_diagonal(const MatrixType& T, ResultType& sqrtT) {
-  using std::sqrt;
+constexpr void matrix_sqrt_quasi_triangular_diagonal(const MatrixType& T, ResultType& sqrtT) {
   const Index size = T.rows();
   for (Index i = 0; i < size; i++) {
     if (i == size - 1 || T.coeff(i + 1, i) == 0) {
       eigen_assert(T(i, i) >= 0);
-      sqrtT.coeffRef(i, i) = sqrt(T.coeff(i, i));
+      sqrtT.coeffRef(i, i) = numext::sqrt(T.coeff(i, i));
     } else {
       matrix_sqrt_quasi_triangular_2x2_diagonal_block(T, i, sqrtT);
       ++i;
@@ -129,7 +132,7 @@ void matrix_sqrt_quasi_triangular_diagonal(const MatrixType& T, ResultType& sqrt
 // pre:  T is quasi-upper-triangular and diagonal blocks of sqrtT are square root of diagonal blocks of T.
 // post: sqrtT is the square root of T.
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular_off_diagonal(const MatrixType& T, ResultType& sqrtT) {
+constexpr void matrix_sqrt_quasi_triangular_off_diagonal(const MatrixType& T, ResultType& sqrtT) {
   const Index size = T.rows();
   for (Index j = 1; j < size; j++) {
     if (T.coeff(j, j - 1) != 0)  // if T(j-1:j, j-1:j) is a 2-by-2 block
@@ -169,7 +172,7 @@ void matrix_sqrt_quasi_triangular_off_diagonal(const MatrixType& T, ResultType& 
  * \sa MatrixSquareRoot, MatrixSquareRootQuasiTriangular
  */
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_quasi_triangular(const MatrixType& arg, ResultType& result) {
+constexpr void matrix_sqrt_quasi_triangular(const MatrixType& arg, ResultType& result) {
   EIGEN_INTERNAL_ASSERT_SQUARE(arg);
   result.resize(arg.rows(), arg.cols());
   internal::matrix_sqrt_quasi_triangular_diagonal(arg, result);
@@ -191,8 +194,7 @@ void matrix_sqrt_quasi_triangular(const MatrixType& arg, ResultType& result) {
  * \sa MatrixSquareRoot, MatrixSquareRootQuasiTriangular
  */
 template <typename MatrixType, typename ResultType>
-void matrix_sqrt_triangular(const MatrixType& arg, ResultType& result) {
-  using std::sqrt;
+constexpr void matrix_sqrt_triangular(const MatrixType& arg, ResultType& result) {
   using Scalar = typename MatrixType::Scalar;
 
   EIGEN_INTERNAL_ASSERT_SQUARE(arg);
@@ -201,7 +203,7 @@ void matrix_sqrt_triangular(const MatrixType& arg, ResultType& result) {
   // This uses that the square root of triangular matrices can be computed directly.
   result.resize(arg.rows(), arg.cols());
   for (Index i = 0; i < arg.rows(); i++) {
-    result.coeffRef(i, i) = sqrt(arg.coeff(i, i));
+    result.coeffRef(i, i) = numext::sqrt(arg.coeff(i, i));
   }
   for (Index j = 1; j < arg.cols(); j++) {
     for (Index i = j - 1; i >= 0; i--) {
@@ -232,7 +234,7 @@ struct matrix_sqrt_compute {
    * See MatrixBase::sqrt() for details on how this computation is implemented.
    */
   template <typename ResultType>
-  static void run(const MatrixType& arg, ResultType& result);
+  static constexpr void run(const MatrixType& arg, ResultType& result);
 };
 
 // ********** Partial specialization for real matrices **********
@@ -241,7 +243,7 @@ template <typename MatrixType>
 struct matrix_sqrt_compute<MatrixType, 0> {
   using PlainType = typename MatrixType::PlainObject;
   template <typename ResultType>
-  static void run(const MatrixType& arg, ResultType& result) {
+  static constexpr void run(const MatrixType& arg, ResultType& result) {
     EIGEN_INTERNAL_ASSERT_SQUARE(arg);
 
     // Compute Schur decomposition of arg
@@ -264,7 +266,7 @@ template <typename MatrixType>
 struct matrix_sqrt_compute<MatrixType, 1> {
   using PlainType = typename MatrixType::PlainObject;
   template <typename ResultType>
-  static void run(const MatrixType& arg, ResultType& result) {
+  static constexpr void run(const MatrixType& arg, ResultType& result) {
     EIGEN_INTERNAL_ASSERT_SQUARE(arg);
 
     // Compute Schur decomposition of arg
@@ -306,7 +308,7 @@ class MatrixSquareRootReturnValue : public ReturnByValue<MatrixSquareRootReturnV
    * \param[in]  src  %Matrix (expression) forming the argument of the
    * matrix square root.
    */
-  explicit MatrixSquareRootReturnValue(const Derived& src) : m_src(src) {}
+  constexpr explicit MatrixSquareRootReturnValue(const Derived& src) : m_src(src) {}
 
   /** \brief Compute the matrix square root.
    *
@@ -314,15 +316,15 @@ class MatrixSquareRootReturnValue : public ReturnByValue<MatrixSquareRootReturnV
    * constructor.
    */
   template <typename ResultType>
-  inline void evalTo(ResultType& result) const {
+  constexpr void evalTo(ResultType& result) const {
     using DerivedEvalType = typename internal::nested_eval<Derived, 10>::type;
     using DerivedEvalTypeClean = internal::remove_all_t<DerivedEvalType>;
     DerivedEvalType tmp(m_src);
     internal::matrix_sqrt_compute<DerivedEvalTypeClean>::run(tmp, result);
   }
 
-  Index rows() const { return m_src.rows(); }
-  Index cols() const { return m_src.cols(); }
+  constexpr Index rows() const { return m_src.rows(); }
+  constexpr Index cols() const { return m_src.cols(); }
 
  protected:
   DerivedNested m_src;
@@ -336,7 +338,7 @@ struct traits<MatrixSquareRootReturnValue<Derived> > {
 }  // namespace internal
 
 template <typename Derived>
-const MatrixSquareRootReturnValue<Derived> MatrixBase<Derived>::sqrt() const {
+constexpr const MatrixSquareRootReturnValue<Derived> MatrixBase<Derived>::sqrt() const {
   EIGEN_INTERNAL_ASSERT_SQUARE(*this);
   return MatrixSquareRootReturnValue<Derived>(derived());
 }

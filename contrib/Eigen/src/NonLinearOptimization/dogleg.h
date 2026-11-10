@@ -12,11 +12,8 @@ namespace Eigen {
 namespace internal {
 
 template <typename Scalar>
-void dogleg(const Matrix<Scalar, Dynamic, Dynamic> &qrfac, const Matrix<Scalar, Dynamic, 1> &diag,
-            const Matrix<Scalar, Dynamic, 1> &qtb, Scalar delta, Matrix<Scalar, Dynamic, 1> &x) {
-  using std::abs;
-  using std::sqrt;
-
+EIGEN_CONSTEXPR20 void dogleg(const Matrix<Scalar, Dynamic, Dynamic>& qrfac, const Matrix<Scalar, Dynamic, 1>& diag,
+                              const Matrix<Scalar, Dynamic, 1>& qtb, Scalar delta, Matrix<Scalar, Dynamic, 1>& x) {
   using Index = DenseIndex;
 
   /* Local variables */
@@ -91,8 +88,8 @@ void dogleg(const Matrix<Scalar, Dynamic, Dynamic> &qrfac, const Matrix<Scalar, 
       bnorm = qtb.stableNorm();
       temp = bnorm / gnorm * (bnorm / qnorm) * (sgnorm / delta);
       temp = temp - delta / qnorm * numext::abs2(sgnorm / delta) +
-             sqrt(numext::abs2(temp - delta / qnorm) +
-                  (1. - numext::abs2(delta / qnorm)) * (1. - numext::abs2(sgnorm / delta)));
+             numext::sqrt(numext::abs2(temp - delta / qnorm) +
+                          (1. - numext::abs2(delta / qnorm)) * (1. - numext::abs2(sgnorm / delta)));
       alpha = delta / qnorm * (1. - numext::abs2(sgnorm / delta)) / temp;
     }
   }

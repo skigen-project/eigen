@@ -21,7 +21,7 @@ namespace Eigen {
 namespace internal {
 
 /** \brief Maximum distance allowed between eigenvalues to be considered "close". */
-static const float matrix_function_separation = 0.1f;
+static constexpr float matrix_function_separation = 0.1f;
 
 /** \ingroup MatrixFunctions_Module
  * \class MatrixFunctionAtomic
@@ -38,20 +38,20 @@ class MatrixFunctionAtomic {
   /** \brief Constructor
    * \param[in]  f  matrix function to compute.
    */
-  MatrixFunctionAtomic(StemFunction f) : m_f(f) {}
+  constexpr MatrixFunctionAtomic(StemFunction f) : m_f(f) {}
 
   /** \brief Compute matrix function of atomic matrix
    * \param[in]  A  argument of matrix function, should be upper triangular and atomic
    * \returns  f(A), the matrix function evaluated at the given matrix
    */
-  MatrixType compute(const MatrixType& A);
+  constexpr MatrixType compute(const MatrixType& A);
 
  private:
   StemFunction* m_f;
 };
 
 template <typename MatrixType>
-typename NumTraits<typename MatrixType::Scalar>::Real matrix_function_compute_mu(const MatrixType& A) {
+constexpr typename NumTraits<typename MatrixType::Scalar>::Real matrix_function_compute_mu(const MatrixType& A) {
   using VectorType = typename plain_col_type<MatrixType>::type;
   Index rows = A.rows();
   const MatrixType N = MatrixType::Identity(rows, rows) - A;
@@ -61,7 +61,7 @@ typename NumTraits<typename MatrixType::Scalar>::Real matrix_function_compute_mu
 }
 
 template <typename MatrixType>
-MatrixType MatrixFunctionAtomic<MatrixType>::compute(const MatrixType& A) {
+constexpr MatrixType MatrixFunctionAtomic<MatrixType>::compute(const MatrixType& A) {
   // TODO: Use that A is upper triangular
   using RealScalar = typename NumTraits<Scalar>::Real;
   Index rows = A.rows();
@@ -88,7 +88,7 @@ MatrixType MatrixFunctionAtomic<MatrixType>::compute(const MatrixType& A) {
       for (Index r = 0; r < rows; r++) {
         RealScalar mx = 0;
         for (Index i = 0; i < rows; i++)
-          mx = (std::max)(mx, std::abs(m_f(Ashifted(i, i) + avgEival, static_cast<int>(s + r))));
+          mx = (std::max)(mx, numext::abs(m_f(Ashifted(i, i) + avgEival, static_cast<int>(s + r))));
         if (r != 0) rfactorial *= RealScalar(r);
         delta = (std::max)(delta, RealScalar(mx / rfactorial));
       }
@@ -106,7 +106,7 @@ MatrixType MatrixFunctionAtomic<MatrixType>::compute(const MatrixType& A) {
  * \p key.
  */
 template <typename ListOfClusters>
-std::size_t matrix_function_find_cluster(Index key, const ListOfClusters& clusters) {
+constexpr std::size_t matrix_function_find_cluster(Index key, const ListOfClusters& clusters) {
   for (std::size_t i = 0; i < clusters.size(); ++i) {
     if (std::find(clusters[i].begin(), clusters[i].end(), key) != clusters[i].end()) return i;
   }
@@ -125,7 +125,7 @@ std::size_t matrix_function_find_cluster(Index key, const ListOfClusters& cluste
  * The implementation follows Algorithm 4.1 in the paper of Davies and Higham.
  */
 template <typename EivalsType, typename Cluster>
-void matrix_function_partition_eigenvalues(const EivalsType& eivals, std::vector<Cluster>& clusters) {
+constexpr void matrix_function_partition_eigenvalues(const EivalsType& eivals, std::vector<Cluster>& clusters) {
   using RealScalar = typename EivalsType::RealScalar;
   for (Index i = 0; i < eivals.rows(); ++i) {
     // Find cluster containing i-th ei'val, adding a new cluster if necessary
@@ -134,7 +134,7 @@ void matrix_function_partition_eigenvalues(const EivalsType& eivals, std::vector
 
     // Look for other element to add to the set
     for (Index j = i + 1; j < eivals.rows(); ++j) {
-      if (abs(eivals(j) - eivals(i)) <= RealScalar(matrix_function_separation) &&
+      if (numext::abs(eivals(j) - eivals(i)) <= RealScalar(matrix_function_separation) &&
           std::find(clusters[qi].begin(), clusters[qi].end(), j) == clusters[qi].end()) {
         const std::size_t qj = matrix_function_find_cluster(j, clusters);
         if (qj == clusters.size()) {
@@ -152,7 +152,8 @@ void matrix_function_partition_eigenvalues(const EivalsType& eivals, std::vector
 
 /** \brief Compute size of each cluster given a partitioning */
 template <typename ListOfClusters, typename Index>
-void matrix_function_compute_cluster_size(const ListOfClusters& clusters, Matrix<Index, Dynamic, 1>& clusterSize) {
+constexpr void matrix_function_compute_cluster_size(const ListOfClusters& clusters,
+                                                    Matrix<Index, Dynamic, 1>& clusterSize) {
   const Index numClusters = static_cast<Index>(clusters.size());
   clusterSize.setZero(numClusters);
   Index clusterIndex = 0;
@@ -164,7 +165,7 @@ void matrix_function_compute_cluster_size(const ListOfClusters& clusters, Matrix
 
 /** \brief Compute start of each block using clusterSize */
 template <typename VectorType>
-void matrix_function_compute_block_start(const VectorType& clusterSize, VectorType& blockStart) {
+constexpr void matrix_function_compute_block_start(const VectorType& clusterSize, VectorType& blockStart) {
   blockStart.resize(clusterSize.rows());
   if (clusterSize.rows() > 0) blockStart(0) = 0;
   for (Index i = 1; i < clusterSize.rows(); i++) {
@@ -174,7 +175,8 @@ void matrix_function_compute_block_start(const VectorType& clusterSize, VectorTy
 
 /** \brief Compute mapping of eigenvalue indices to cluster indices */
 template <typename EivalsType, typename ListOfClusters, typename VectorType>
-void matrix_function_compute_map(const EivalsType& eivals, const ListOfClusters& clusters, VectorType& eivalToCluster) {
+constexpr void matrix_function_compute_map(const EivalsType& eivals, const ListOfClusters& clusters,
+                                           VectorType& eivalToCluster) {
   eivalToCluster.resize(eivals.rows());
   Index clusterIndex = 0;
   for (typename ListOfClusters::const_iterator cluster = clusters.begin(); cluster != clusters.end(); ++cluster) {
@@ -189,8 +191,8 @@ void matrix_function_compute_map(const EivalsType& eivals, const ListOfClusters&
 
 /** \brief Compute permutation which groups ei'vals in same cluster together */
 template <typename DynVectorType, typename VectorType>
-void matrix_function_compute_permutation(const DynVectorType& blockStart, const DynVectorType& eivalToCluster,
-                                         VectorType& permutation) {
+constexpr void matrix_function_compute_permutation(const DynVectorType& blockStart, const DynVectorType& eivalToCluster,
+                                                   VectorType& permutation) {
   DynVectorType indexNextEntry = blockStart;
   permutation.resize(eivalToCluster.rows());
   for (Index i = 0; i < eivalToCluster.rows(); i++) {
@@ -202,9 +204,9 @@ void matrix_function_compute_permutation(const DynVectorType& blockStart, const 
 
 /** \brief Permute Schur decomposition in U and T according to permutation */
 template <typename VectorType, typename MatrixType>
-void matrix_function_permute_schur(VectorType& permutation, MatrixType& U, MatrixType& T) {
+constexpr void matrix_function_permute_schur(VectorType& permutation, MatrixType& U, MatrixType& T) {
   for (Index i = 0; i < permutation.rows() - 1; i++) {
-    Index j;
+    Index j = 0;
     for (j = i; j < permutation.rows(); j++) {
       if (permutation(j) == i) break;
     }
@@ -227,8 +229,9 @@ void matrix_function_permute_schur(VectorType& permutation, MatrixType& U, Matri
  * each diagonal block is computed by \p atomic. The off-diagonal parts of \p fT are set to zero.
  */
 template <typename MatrixType, typename AtomicType, typename VectorType>
-void matrix_function_compute_block_atomic(const MatrixType& T, AtomicType& atomic, const VectorType& blockStart,
-                                          const VectorType& clusterSize, MatrixType& fT) {
+constexpr void matrix_function_compute_block_atomic(const MatrixType& T, AtomicType& atomic,
+                                                    const VectorType& blockStart, const VectorType& clusterSize,
+                                                    MatrixType& fT) {
   fT.setZero(T.rows(), T.cols());
   for (Index i = 0; i < clusterSize.rows(); ++i) {
     fT.block(blockStart(i), blockStart(i), clusterSize(i), clusterSize(i)) =
@@ -259,7 +262,8 @@ void matrix_function_compute_block_atomic(const MatrixType& T, AtomicType& atomi
  * \f$ i=m,\ldots,1 \f$ and \f$ j=1,\ldots,n \f$.
  */
 template <typename MatrixType>
-MatrixType matrix_function_solve_triangular_sylvester(const MatrixType& A, const MatrixType& B, const MatrixType& C) {
+constexpr MatrixType matrix_function_solve_triangular_sylvester(const MatrixType& A, const MatrixType& B,
+                                                                const MatrixType& C) {
   EIGEN_INTERNAL_ASSERT_SQUARE(A);
   eigen_assert(A.isUpperTriangular());
   EIGEN_INTERNAL_ASSERT_SQUARE(B);
@@ -276,7 +280,7 @@ MatrixType matrix_function_solve_triangular_sylvester(const MatrixType& A, const
   for (Index i = m - 1; i >= 0; --i) {
     for (Index j = 0; j < n; ++j) {
       // Compute AX = \sum_{k=i+1}^m A_{ik} X_{kj}
-      Scalar AX;
+      Scalar AX{};
       if (i == m - 1) {
         AX = 0;
       } else {
@@ -285,7 +289,7 @@ MatrixType matrix_function_solve_triangular_sylvester(const MatrixType& A, const
       }
 
       // Compute XB = \sum_{k=1}^{j-1} X_{ik} B_{kj}
-      Scalar XB;
+      Scalar XB{};
       if (j == 0) {
         XB = 0;
       } else {
@@ -306,11 +310,11 @@ MatrixType matrix_function_solve_triangular_sylvester(const MatrixType& A, const
  * the diagonal is zero, because \p T is upper triangular.
  */
 template <typename MatrixType, typename VectorType>
-void matrix_function_compute_above_diagonal(const MatrixType& T, const VectorType& blockStart,
-                                            const VectorType& clusterSize, MatrixType& fT) {
+constexpr void matrix_function_compute_above_diagonal(const MatrixType& T, const VectorType& blockStart,
+                                                      const VectorType& clusterSize, MatrixType& fT) {
   using Traits = internal::traits<MatrixType>;
   using Scalar = typename MatrixType::Scalar;
-  static const int Options = MatrixType::Options;
+  const int Options = MatrixType::Options;
   using DynMatrixType = Matrix<Scalar, Dynamic, Dynamic, Options, Traits::RowsAtCompileTime, Traits::ColsAtCompileTime>;
 
   for (Index k = 1; k < clusterSize.rows(); k++) {
@@ -362,7 +366,7 @@ struct matrix_function_compute {
    * is implemented.
    */
   template <typename AtomicType, typename ResultType>
-  static void run(const MatrixType& A, AtomicType& atomic, ResultType& result);
+  static constexpr void run(const MatrixType& A, AtomicType& atomic, ResultType& result);
 };
 
 /** \internal \ingroup MatrixFunctions_Module
@@ -374,11 +378,11 @@ struct matrix_function_compute {
 template <typename MatrixType>
 struct matrix_function_compute<MatrixType, 0> {
   template <typename MatA, typename AtomicType, typename ResultType>
-  static void run(const MatA& A, AtomicType& atomic, ResultType& result) {
+  static constexpr void run(const MatA& A, AtomicType& atomic, ResultType& result) {
     using Traits = internal::traits<MatrixType>;
     using Scalar = typename Traits::Scalar;
-    static const int Rows = Traits::RowsAtCompileTime, Cols = Traits::ColsAtCompileTime;
-    static const int MaxRows = Traits::MaxRowsAtCompileTime, MaxCols = Traits::MaxColsAtCompileTime;
+    const int Rows = Traits::RowsAtCompileTime, Cols = Traits::ColsAtCompileTime;
+    const int MaxRows = Traits::MaxRowsAtCompileTime, MaxCols = Traits::MaxColsAtCompileTime;
 
     using ComplexScalar = internal::make_complex_t<Scalar>;
     using ComplexMatrix = Matrix<ComplexScalar, Rows, Cols, 0, MaxRows, MaxCols>;
@@ -386,7 +390,8 @@ struct matrix_function_compute<MatrixType, 0> {
     ComplexMatrix CA = A.template cast<ComplexScalar>();
     ComplexMatrix Cresult;
     matrix_function_compute<ComplexMatrix>::run(CA, atomic, Cresult);
-    result = Cresult.real();
+    // The const real() reads each component by value, which constant evaluation allows.
+    result = std::as_const(Cresult).real();
   }
 };
 
@@ -396,7 +401,7 @@ struct matrix_function_compute<MatrixType, 0> {
 template <typename MatrixType>
 struct matrix_function_compute<MatrixType, 1> {
   template <typename MatA, typename AtomicType, typename ResultType>
-  static void run(const MatA& A, AtomicType& atomic, ResultType& result) {
+  static EIGEN_CONSTEXPR20 void run(const MatA& A, AtomicType& atomic, ResultType& result) {
     using Traits = internal::traits<MatrixType>;
 
     // compute Schur decomposition of A
@@ -463,14 +468,14 @@ class MatrixFunctionReturnValue : public ReturnByValue<MatrixFunctionReturnValue
    * \param[in] A  %Matrix (expression) forming the argument of the matrix function.
    * \param[in] f  Stem function for matrix function under consideration.
    */
-  MatrixFunctionReturnValue(const Derived& A, StemFunction f) : m_A(A), m_f(f) {}
+  constexpr MatrixFunctionReturnValue(const Derived& A, StemFunction f) : m_A(A), m_f(f) {}
 
   /** \brief Compute the matrix function.
    *
    * \param[out] result \p f applied to \p A, where \p f and \p A are as in the constructor.
    */
   template <typename ResultType>
-  inline void evalTo(ResultType& result) const {
+  constexpr void evalTo(ResultType& result) const {
     using NestedEvalType = typename internal::nested_eval<Derived, 10>::type;
     using NestedEvalTypeClean = internal::remove_all_t<NestedEvalType>;
     using Traits = internal::traits<NestedEvalTypeClean>;
@@ -484,8 +489,8 @@ class MatrixFunctionReturnValue : public ReturnByValue<MatrixFunctionReturnValue
     internal::matrix_function_compute<typename NestedEvalTypeClean::PlainObject>::run(m_A, atomic, result);
   }
 
-  Index rows() const { return m_A.rows(); }
-  Index cols() const { return m_A.cols(); }
+  constexpr Index rows() const { return m_A.rows(); }
+  constexpr Index cols() const { return m_A.cols(); }
 
  private:
   DerivedNested m_A;
@@ -502,35 +507,35 @@ struct traits<MatrixFunctionReturnValue<Derived> > {
 /********** MatrixBase methods **********/
 
 template <typename Derived>
-const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::matrixFunction(
+constexpr const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::matrixFunction(
     typename internal::stem_function<typename internal::traits<Derived>::Scalar>::type f) const {
   EIGEN_INTERNAL_ASSERT_SQUARE(*this);
   return MatrixFunctionReturnValue<Derived>(derived(), f);
 }
 
 template <typename Derived>
-const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::sin() const {
+constexpr const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::sin() const {
   EIGEN_INTERNAL_ASSERT_SQUARE(*this);
   using ComplexScalar = typename internal::stem_function<Scalar>::ComplexScalar;
   return MatrixFunctionReturnValue<Derived>(derived(), internal::stem_function_sin<ComplexScalar>);
 }
 
 template <typename Derived>
-const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::cos() const {
+constexpr const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::cos() const {
   EIGEN_INTERNAL_ASSERT_SQUARE(*this);
   using ComplexScalar = typename internal::stem_function<Scalar>::ComplexScalar;
   return MatrixFunctionReturnValue<Derived>(derived(), internal::stem_function_cos<ComplexScalar>);
 }
 
 template <typename Derived>
-const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::sinh() const {
+constexpr const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::sinh() const {
   EIGEN_INTERNAL_ASSERT_SQUARE(*this);
   using ComplexScalar = typename internal::stem_function<Scalar>::ComplexScalar;
   return MatrixFunctionReturnValue<Derived>(derived(), internal::stem_function_sinh<ComplexScalar>);
 }
 
 template <typename Derived>
-const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::cosh() const {
+constexpr const MatrixFunctionReturnValue<Derived> MatrixBase<Derived>::cosh() const {
   EIGEN_INTERNAL_ASSERT_SQUARE(*this);
   using ComplexScalar = typename internal::stem_function<Scalar>::ComplexScalar;
   return MatrixFunctionReturnValue<Derived>(derived(), internal::stem_function_cosh<ComplexScalar>);

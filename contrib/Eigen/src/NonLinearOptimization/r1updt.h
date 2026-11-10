@@ -12,17 +12,17 @@ namespace Eigen {
 namespace internal {
 
 template <typename Scalar>
-void r1updt(Matrix<Scalar, Dynamic, Dynamic> &s, const Matrix<Scalar, Dynamic, 1> &u,
-            std::vector<JacobiRotation<Scalar> > &v_givens, std::vector<JacobiRotation<Scalar> > &w_givens,
-            Matrix<Scalar, Dynamic, 1> &v, Matrix<Scalar, Dynamic, 1> &w, bool *sing) {
+constexpr void r1updt(Matrix<Scalar, Dynamic, Dynamic> &s, const Matrix<Scalar, Dynamic, 1> &u,
+                      std::vector<JacobiRotation<Scalar> > &v_givens, std::vector<JacobiRotation<Scalar> > &w_givens,
+                      Matrix<Scalar, Dynamic, 1> &v, Matrix<Scalar, Dynamic, 1> &w, bool *sing) {
   using Index = DenseIndex;
   const JacobiRotation<Scalar> IdentityRotation = JacobiRotation<Scalar>(1, 0);
 
   /* Local variables */
   const Index m = s.rows();
   const Index n = s.cols();
-  Index i, j = 1;
-  Scalar temp;
+  Index i = 0, j = 1;
+  Scalar temp{};
   JacobiRotation<Scalar> givens;
 
   // r1updt had a broader use case, but we don't use it here. And, more

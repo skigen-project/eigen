@@ -46,13 +46,10 @@ enum Status {
  */
 template <typename FunctorType, typename Scalar = double>
 class LevenbergMarquardt {
-  static Scalar sqrt_epsilon() {
-    using std::sqrt;
-    return sqrt(NumTraits<Scalar>::epsilon());
-  }
+  static constexpr Scalar sqrt_epsilon() { return numext::sqrt(NumTraits<Scalar>::epsilon()); }
 
  public:
-  LevenbergMarquardt(FunctorType &_functor) : functor(_functor) {
+  constexpr LevenbergMarquardt(FunctorType &_functor) : functor(_functor) {
     nfev = njev = iter = 0;
     fnorm = gnorm = 0.;
     useExternalScaling = false;
@@ -61,40 +58,34 @@ class LevenbergMarquardt {
   using Index = DenseIndex;
 
   struct Parameters {
-    Parameters()
-        : factor(Scalar(100.)),
-          maxfev(400),
-          ftol(sqrt_epsilon()),
-          xtol(sqrt_epsilon()),
-          gtol(Scalar(0.)),
-          epsfcn(Scalar(0.)) {}
-    Scalar factor;
-    Index maxfev;  // maximum number of function evaluation
-    Scalar ftol;
-    Scalar xtol;
-    Scalar gtol;
-    Scalar epsfcn;
+    constexpr Parameters() = default;
+    Scalar factor = Scalar(100.);
+    Index maxfev = 400;  // maximum number of function evaluation
+    Scalar ftol = sqrt_epsilon();
+    Scalar xtol = sqrt_epsilon();
+    Scalar gtol = Scalar(0.);
+    Scalar epsfcn = Scalar(0.);
   };
 
   using FVectorType = Matrix<Scalar, Dynamic, 1>;
   using JacobianType = Matrix<Scalar, Dynamic, Dynamic>;
 
-  LevenbergMarquardtSpace::Status lmder1(FVectorType &x, const Scalar tol = sqrt_epsilon());
+  constexpr LevenbergMarquardtSpace::Status lmder1(FVectorType &x, const Scalar tol = sqrt_epsilon());
 
-  LevenbergMarquardtSpace::Status minimize(FVectorType &x);
-  LevenbergMarquardtSpace::Status minimizeInit(FVectorType &x);
-  LevenbergMarquardtSpace::Status minimizeOneStep(FVectorType &x);
+  constexpr LevenbergMarquardtSpace::Status minimize(FVectorType &x);
+  constexpr LevenbergMarquardtSpace::Status minimizeInit(FVectorType &x);
+  constexpr LevenbergMarquardtSpace::Status minimizeOneStep(FVectorType &x);
 
-  static LevenbergMarquardtSpace::Status lmdif1(FunctorType &functor, FVectorType &x, Index *nfev,
-                                                const Scalar tol = sqrt_epsilon());
+  static constexpr LevenbergMarquardtSpace::Status lmdif1(FunctorType &functor, FVectorType &x, Index *nfev,
+                                                          const Scalar tol = sqrt_epsilon());
 
-  LevenbergMarquardtSpace::Status lmstr1(FVectorType &x, const Scalar tol = sqrt_epsilon());
+  constexpr LevenbergMarquardtSpace::Status lmstr1(FVectorType &x, const Scalar tol = sqrt_epsilon());
 
-  LevenbergMarquardtSpace::Status minimizeOptimumStorage(FVectorType &x);
-  LevenbergMarquardtSpace::Status minimizeOptimumStorageInit(FVectorType &x);
-  LevenbergMarquardtSpace::Status minimizeOptimumStorageOneStep(FVectorType &x);
+  constexpr LevenbergMarquardtSpace::Status minimizeOptimumStorage(FVectorType &x);
+  constexpr LevenbergMarquardtSpace::Status minimizeOptimumStorageInit(FVectorType &x);
+  constexpr LevenbergMarquardtSpace::Status minimizeOptimumStorageOneStep(FVectorType &x);
 
-  void resetParameters(void) { parameters = Parameters(); }
+  constexpr void resetParameters() { parameters = Parameters(); }
 
   Parameters parameters;
   FVectorType fvec, qtf, diag;
@@ -106,7 +97,7 @@ class LevenbergMarquardt {
   Scalar fnorm, gnorm;
   bool useExternalScaling;
 
-  Scalar lm_param(void) const { return par; }
+  constexpr Scalar lm_param(void) const { return par; }
 
  private:
   FunctorType &functor;
@@ -124,7 +115,8 @@ class LevenbergMarquardt {
 };
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmder1(FVectorType &x, const Scalar tol) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmder1(FVectorType &x,
+                                                                                          const Scalar tol) {
   n = x.size();
   m = functor.values();
 
@@ -140,7 +132,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmder1(
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimize(FVectorType &x) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimize(FVectorType &x) {
   LevenbergMarquardtSpace::Status status = minimizeInit(x);
   if (status == LevenbergMarquardtSpace::ImproperInputParameters) return status;
   do {
@@ -150,7 +142,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeInit(FVectorType &x) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeInit(FVectorType &x) {
   n = x.size();
   m = functor.values();
 
@@ -192,10 +184,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOneStep(FVectorType &x) {
-  using std::abs;
-  using std::sqrt;
-
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOneStep(FVectorType &x) {
   eigen_assert(x.size() == n);  // check the caller is not cheating us
 
   /* calculate the jacobian matrix. */
@@ -237,8 +226,8 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
   if (fnorm != 0.)
     for (Index j = 0; j < n; ++j)
       if (wa2[permutation.indices()[j]] != 0.)
-        gnorm = (std::max)(gnorm,
-                           abs(fjac.col(j).head(j + 1).dot(qtf.head(j + 1) / fnorm) / wa2[permutation.indices()[j]]));
+        gnorm = (std::max)(
+            gnorm, numext::abs(fjac.col(j).head(j + 1).dot(qtf.head(j + 1) / fnorm) / wa2[permutation.indices()[j]]));
 
   /* test for convergence of the gradient norm. */
   if (gnorm <= parameters.gtol) return LevenbergMarquardtSpace::CosinusTooSmall;
@@ -271,7 +260,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
     /* the scaled directional derivative. */
     wa3.noalias() = fjac.template triangularView<Upper>() * (qrfac.colsPermutation().inverse() * wa1);
     temp1 = numext::abs2(wa3.stableNorm() / fnorm);
-    temp2 = numext::abs2(sqrt(par) * pnorm / fnorm);
+    temp2 = numext::abs2(numext::sqrt(par) * pnorm / fnorm);
     prered = temp1 + temp2 / Scalar(.5);
     dirder = -(temp1 + temp2);
 
@@ -305,16 +294,16 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
     }
 
     /* tests for convergence. */
-    if (abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1. &&
+    if (numext::abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1. &&
         delta <= parameters.xtol * xnorm)
       return LevenbergMarquardtSpace::RelativeErrorAndReductionTooSmall;
-    if (abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1.)
+    if (numext::abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1.)
       return LevenbergMarquardtSpace::RelativeReductionTooSmall;
     if (delta <= parameters.xtol * xnorm) return LevenbergMarquardtSpace::RelativeErrorTooSmall;
 
     /* tests for termination and stringent tolerances. */
     if (nfev >= parameters.maxfev) return LevenbergMarquardtSpace::TooManyFunctionEvaluation;
-    if (abs(actred) <= NumTraits<Scalar>::epsilon() && prered <= NumTraits<Scalar>::epsilon() &&
+    if (numext::abs(actred) <= NumTraits<Scalar>::epsilon() && prered <= NumTraits<Scalar>::epsilon() &&
         Scalar(.5) * ratio <= 1.)
       return LevenbergMarquardtSpace::FtolTooSmall;
     if (delta <= NumTraits<Scalar>::epsilon() * xnorm) return LevenbergMarquardtSpace::XtolTooSmall;
@@ -326,7 +315,8 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmstr1(FVectorType &x, const Scalar tol) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmstr1(FVectorType &x,
+                                                                                          const Scalar tol) {
   n = x.size();
   m = functor.values();
 
@@ -342,7 +332,8 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmstr1(
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOptimumStorageInit(FVectorType &x) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOptimumStorageInit(
+    FVectorType &x) {
   n = x.size();
   m = functor.values();
 
@@ -389,14 +380,12 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOptimumStorageOneStep(FVectorType &x) {
-  using std::abs;
-  using std::sqrt;
-
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOptimumStorageOneStep(
+    FVectorType &x) {
   eigen_assert(x.size() == n);  // check the caller is not cheating us
 
-  Index i, j;
-  bool sing;
+  Index i = 0, j = 0;
+  bool sing = false;
 
   /* compute the qr factorization of the jacobian matrix */
   /* calculated one row at a time, while simultaneously */
@@ -462,8 +451,8 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
   if (fnorm != 0.)
     for (j = 0; j < n; ++j)
       if (wa2[permutation.indices()[j]] != 0.)
-        gnorm = (std::max)(gnorm,
-                           abs(fjac.col(j).head(j + 1).dot(qtf.head(j + 1) / fnorm) / wa2[permutation.indices()[j]]));
+        gnorm = (std::max)(
+            gnorm, numext::abs(fjac.col(j).head(j + 1).dot(qtf.head(j + 1) / fnorm) / wa2[permutation.indices()[j]]));
 
   /* test for convergence of the gradient norm. */
   if (gnorm <= parameters.gtol) return LevenbergMarquardtSpace::CosinusTooSmall;
@@ -496,7 +485,7 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
     /* the scaled directional derivative. */
     wa3.noalias() = fjac.topLeftCorner(n, n).template triangularView<Upper>() * (permutation.inverse() * wa1);
     temp1 = numext::abs2(wa3.stableNorm() / fnorm);
-    temp2 = numext::abs2(sqrt(par) * pnorm / fnorm);
+    temp2 = numext::abs2(numext::sqrt(par) * pnorm / fnorm);
     prered = temp1 + temp2 / Scalar(.5);
     dirder = -(temp1 + temp2);
 
@@ -530,16 +519,16 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
     }
 
     /* tests for convergence. */
-    if (abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1. &&
+    if (numext::abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1. &&
         delta <= parameters.xtol * xnorm)
       return LevenbergMarquardtSpace::RelativeErrorAndReductionTooSmall;
-    if (abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1.)
+    if (numext::abs(actred) <= parameters.ftol && prered <= parameters.ftol && Scalar(.5) * ratio <= 1.)
       return LevenbergMarquardtSpace::RelativeReductionTooSmall;
     if (delta <= parameters.xtol * xnorm) return LevenbergMarquardtSpace::RelativeErrorTooSmall;
 
     /* tests for termination and stringent tolerances. */
     if (nfev >= parameters.maxfev) return LevenbergMarquardtSpace::TooManyFunctionEvaluation;
-    if (abs(actred) <= NumTraits<Scalar>::epsilon() && prered <= NumTraits<Scalar>::epsilon() &&
+    if (numext::abs(actred) <= NumTraits<Scalar>::epsilon() && prered <= NumTraits<Scalar>::epsilon() &&
         Scalar(.5) * ratio <= 1.)
       return LevenbergMarquardtSpace::FtolTooSmall;
     if (delta <= NumTraits<Scalar>::epsilon() * xnorm) return LevenbergMarquardtSpace::XtolTooSmall;
@@ -551,7 +540,8 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOptimumStorage(FVectorType &x) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimizeOptimumStorage(
+    FVectorType &x) {
   LevenbergMarquardtSpace::Status status = minimizeOptimumStorageInit(x);
   if (status == LevenbergMarquardtSpace::ImproperInputParameters) return status;
   do {
@@ -561,8 +551,9 @@ LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::minimiz
 }
 
 template <typename FunctorType, typename Scalar>
-LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmdif1(FunctorType &functor, FVectorType &x,
-                                                                                Index *nfev, const Scalar tol) {
+constexpr LevenbergMarquardtSpace::Status LevenbergMarquardt<FunctorType, Scalar>::lmdif1(FunctorType &functor,
+                                                                                          FVectorType &x, Index *nfev,
+                                                                                          const Scalar tol) {
   Index n = x.size();
   Index m = functor.values();
 

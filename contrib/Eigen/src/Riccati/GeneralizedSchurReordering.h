@@ -23,7 +23,7 @@ namespace internal {
  * which are recognized by a nonzero subdiagonal entry of \p S (block boundaries are exact zeros).
  */
 template <typename MatrixType>
-Index generalized_schur_block_size(const MatrixType& S, Index k) {
+constexpr Index generalized_schur_block_size(const MatrixType& S, Index k) {
   if (NumTraits<typename MatrixType::Scalar>::IsComplex) return 1;
   return (k + 1 < S.rows() && !numext::is_exactly_zero(S.coeff(k + 1, k))) ? 2 : 1;
 }
@@ -37,7 +37,7 @@ Index generalized_schur_block_size(const MatrixType& S, Index k) {
  * and the first column of the left rotation is a v or b v, whichever is computed from the larger diagonal products.
  */
 template <typename MatrixType>
-bool swap_generalized_schur_1x1(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z, Index j) {
+constexpr bool swap_generalized_schur_1x1(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z, Index j) {
   using Scalar = typename MatrixType::Scalar;
   using RealScalar = typename NumTraits<Scalar>::Real;
   using Matrix2 = Matrix<Scalar, 2, 2>;
@@ -103,8 +103,8 @@ bool swap_generalized_schur_1x1(MatrixType& S, MatrixType& T, MatrixType* Q, Mat
  * left) or an RQ (from the right) factorization, whichever leaves the smaller lower left block of A.
  */
 template <typename MatrixType>
-bool swap_generalized_schur_sylvester(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z, Index j, Index n1,
-                                      Index n2) {
+constexpr bool swap_generalized_schur_sylvester(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z, Index j,
+                                                Index n1, Index n2) {
   using Scalar = typename MatrixType::Scalar;
   using RealScalar = typename NumTraits<Scalar>::Real;
   using LocalMatrix = Matrix<Scalar, Dynamic, Dynamic, ColMajor, 4, 4>;
@@ -206,8 +206,8 @@ bool swap_generalized_schur_sylvester(MatrixType& S, MatrixType& T, MatrixType* 
  * Poromaa (1996), typically because the eigenvalues of both blocks are too close.
  */
 template <typename MatrixType>
-bool swap_generalized_schur_blocks(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z, Index j, Index n1,
-                                   Index n2) {
+constexpr bool swap_generalized_schur_blocks(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z, Index j,
+                                             Index n1, Index n2) {
   eigen_assert(n1 >= 1 && n1 <= 2 && n2 >= 1 && n2 <= 2 && j >= 0 && j + n1 + n2 <= S.rows());
   if (n1 == 1 && n2 == 1) return swap_generalized_schur_1x1(S, T, Q, Z, j);
   return swap_generalized_schur_sylvester(S, T, Q, Z, j, n1, n2);
@@ -219,7 +219,7 @@ bool swap_generalized_schur_blocks(MatrixType& S, MatrixType& T, MatrixType* Q, 
  * iteration.
  */
 template <typename MatrixType>
-void clean_generalized_schur_form(MatrixType& S, MatrixType& T) {
+constexpr void clean_generalized_schur_form(MatrixType& S, MatrixType& T) {
   const Index n = S.rows();
   T.template triangularView<StrictlyLower>().setZero();
   if (NumTraits<typename MatrixType::Scalar>::IsComplex)
@@ -237,7 +237,8 @@ void clean_generalized_schur_form(MatrixType& S, MatrixType& T) {
  * \returns the number of eigenvalues inside the unit circle, or -1 if a swap was rejected.
  */
 template <typename MatrixType>
-Index reorder_generalized_schur_inside_unit_circle(MatrixType& S, MatrixType& T, MatrixType* Q, MatrixType& Z) {
+constexpr Index reorder_generalized_schur_inside_unit_circle(MatrixType& S, MatrixType& T, MatrixType* Q,
+                                                             MatrixType& Z) {
   using Scalar = typename MatrixType::Scalar;
   const Index n = S.rows();
   clean_generalized_schur_form(S, T);
@@ -245,7 +246,7 @@ Index reorder_generalized_schur_inside_unit_circle(MatrixType& S, MatrixType& T,
   Index selected = 0;
   for (Index k = 0; k < n;) {
     const Index bs = generalized_schur_block_size(S, k);
-    bool inside;
+    bool inside = false;
     if (bs == 1) {
       inside = numext::abs(S(k, k)) < numext::abs(T(k, k));
     } else {

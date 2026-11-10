@@ -32,12 +32,12 @@ struct traits<LookAheadLevinson<Scalar_>> : traits<Matrix<Scalar_, Dynamic, Dyna
 
 // Persymmetry E_n T_n E_n = T_n^T requires sum_i a_i b_i, not the conjugating dot().
 template <typename D1, typename D2>
-typename D1::Scalar structured_tdot(const MatrixBase<D1>& a, const MatrixBase<D2>& b) {
+constexpr typename D1::Scalar structured_tdot(const MatrixBase<D1>& a, const MatrixBase<D2>& b) {
   return a.cwiseProduct(b).sum();
 }
 
 template <typename Scalar>
-Matrix<Scalar, Dynamic, 1> structured_upshift(const Matrix<Scalar, Dynamic, 1>& v) {
+constexpr Matrix<Scalar, Dynamic, 1> structured_upshift(const Matrix<Scalar, Dynamic, 1>& v) {
   const Index k = v.size();
   Matrix<Scalar, Dynamic, 1> w = Matrix<Scalar, Dynamic, 1>::Zero(k);
   if (k > 1) w.head(k - 1) = v.tail(k - 1);
@@ -93,12 +93,12 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
   using DenseMatrix = Matrix<Scalar, Dynamic, Dynamic>;
 
   /** Default constructor; call \ref compute before \ref solve. */
-  LookAheadLevinson() : m_maxBlockSize(4), m_n(0), m_isInitialized(false), m_info(InvalidInput) {}
+  constexpr LookAheadLevinson() : m_maxBlockSize(4), m_n(0), m_isInitialized(false), m_info(InvalidInput) {}
 
   /** Constructs and factorizes from the Toeplitz matrix \a T, which may have fixed
    * or dynamic dimensions. */
   template <int Rows_, int Cols_>
-  explicit LookAheadLevinson(const Toeplitz<Scalar, Rows_, Cols_>& T)
+  explicit constexpr LookAheadLevinson(const Toeplitz<Scalar, Rows_, Cols_>& T)
       : m_maxBlockSize(4), m_n(0), m_isInitialized(false), m_info(InvalidInput) {
     compute(T);
   }
@@ -106,21 +106,21 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
   /** Sets the maximum look-ahead block size \f$ p_{\max} \f$ (default 4). The solver
    * is numerically stable as long as \c T has no more than \c p-1 consecutive
    * ill-conditioned leading principal submatrices. Must be called before \ref compute. */
-  LookAheadLevinson& setMaxBlockSize(Index p) {
+  constexpr LookAheadLevinson& setMaxBlockSize(Index p) {
     eigen_assert(p >= 1);
     m_maxBlockSize = p;
     return *this;
   }
 
   /** \returns the maximum look-ahead block size \f$ p_{\max} \f$. \sa setMaxBlockSize */
-  Index maxBlockSize() const { return m_maxBlockSize; }
+  constexpr Index maxBlockSize() const { return m_maxBlockSize; }
 
-  Index rows() const noexcept { return m_n; }
-  Index cols() const noexcept { return m_n; }
+  constexpr Index rows() const noexcept { return m_n; }
+  constexpr Index cols() const noexcept { return m_n; }
 
   /** Factorizes the square Toeplitz matrix \a T. \sa solve */
   template <int Rows_, int Cols_>
-  LookAheadLevinson& compute(const Toeplitz<Scalar, Rows_, Cols_>& T);
+  constexpr LookAheadLevinson& compute(const Toeplitz<Scalar, Rows_, Cols_>& T);
 
 #ifdef EIGEN_PARSED_BY_DOXYGEN
   /** \returns the solution \c x of \c T*x = \a b, as a lazily evaluated expression.
@@ -129,7 +129,7 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
    * \c transpose().solve(b) and \c adjoint().solve(b).
    * \pre \ref compute has been called. */
   template <typename Rhs>
-  inline const Solve<LookAheadLevinson, Rhs> solve(const MatrixBase<Rhs>& b) const;
+  constexpr const Solve<LookAheadLevinson, Rhs> solve(const MatrixBase<Rhs>& b) const;
 #endif
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
@@ -141,7 +141,7 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
    * matrix (same plain type for a matrix right-hand side) would steal its buffer
    * and leave those pointers dangling. */
   template <typename RhsType, typename DstType>
-  void _solve_impl(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl(const RhsType& rhs, DstType& dst) const {
     dst.noalias() = solveForward(rhs);
   }
 
@@ -150,7 +150,7 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
    * forward solve with row-reversed right-hand side and solution -- conjugated on
    * the way in and out for the adjoint -- reusing the factorization of T as is. */
   template <bool Conjugate, typename RhsType, typename DstType>
-  void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
     const DenseMatrix reversed = rhs.template conjugateIf<Conjugate>().colwise().reverse();
     dst = solveForward(reversed).colwise().reverse().template conjugateIf<Conjugate>();
   }
@@ -159,14 +159,14 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
   /** \returns \c Success, or \c NumericalIssue when conditionEstimate() reaches
    * \f$ 1/\varepsilon \f$; a run of ill-conditioned leading submatrices longer
    * than the look-ahead is reported only through that estimate. */
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "LookAheadLevinson is not initialized.");
     return m_info;
   }
 
   /** \returns an estimate of the 2-norm condition number of \c T, available after
    * \ref compute (the "algorithm condition number" of Chan and Hansen). */
-  RealScalar conditionEstimate() const {
+  constexpr RealScalar conditionEstimate() const {
     eigen_assert(m_isInitialized && "LookAheadLevinson is not initialized.");
     return m_sMin > RealScalar(0) ? m_normEst / m_sMin : NumTraits<RealScalar>::infinity();
   }
@@ -175,7 +175,7 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
   /** \internal \returns the solution of the forward system \c T*x = b by advancing
    * x through the recorded steps of the factorization. */
   template <typename Rhs>
-  DenseMatrix solveForward(const Rhs& b) const {
+  constexpr DenseMatrix solveForward(const Rhs& b) const {
     const Index nrhs = b.cols();
     DenseMatrix x = m_luInit.solve(b.topRows(m_k0));
     DenseMatrix rhs, a, xn;
@@ -200,7 +200,7 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
   };
 
   // Leading p x p principal submatrix built directly from the generators.
-  static DenseMatrix leadingBlock(const DenseVector& c, const DenseVector& r, Index p) {
+  static constexpr DenseMatrix leadingBlock(const DenseVector& c, const DenseVector& r, Index p) {
     DenseMatrix B(p, p);
     for (Index j = 0; j < p; ++j) {
       B.col(j).head(j) = r.segment(1, j).reverse();
@@ -211,13 +211,13 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
 
   // Builds a (len x cols) block whose column j is the length-len generator segment
   // v.segment(first + j, len); used to assemble the S_p and R_p shift blocks.
-  static DenseMatrix shiftBlock(const DenseVector& v, Index first, Index len, Index cols) {
+  static constexpr DenseMatrix shiftBlock(const DenseVector& v, Index first, Index len, Index cols) {
     DenseMatrix B(len, cols);
     for (Index j = 0; j < cols; ++j) B.col(j) = v.segment(first + j, len);
     return B;
   }
 
-  static RealScalar smallestSingularValue(const DenseMatrix& M) {
+  static constexpr RealScalar smallestSingularValue(const DenseMatrix& M) {
     if (M.rows() == 1) return numext::abs(M(0, 0));
     JacobiSVD<DenseMatrix> svd(M);
     return svd.singularValues()(svd.singularValues().size() - 1);
@@ -236,7 +236,7 @@ class LookAheadLevinson : public SolverBase<LookAheadLevinson<Scalar_>> {
 
 template <typename Scalar_>
 template <int Rows_, int Cols_>
-LookAheadLevinson<Scalar_>& LookAheadLevinson<Scalar_>::compute(const Toeplitz<Scalar, Rows_, Cols_>& T) {
+constexpr LookAheadLevinson<Scalar_>& LookAheadLevinson<Scalar_>::compute(const Toeplitz<Scalar, Rows_, Cols_>& T) {
   using internal::structured_tdot;
   using internal::structured_upshift;
 
@@ -253,7 +253,7 @@ LookAheadLevinson<Scalar_>& LookAheadLevinson<Scalar_>::compute(const Toeplitz<S
   m_info = Success;
   m_normEst = c.cwiseAbs().sum() + r.cwiseAbs().sum();  // cheap upper bound on ||T||_2
 
-  Index k;
+  Index k = 0;
   DenseVector y, z;
   Scalar gamma(0);
   {
@@ -383,13 +383,8 @@ LookAheadLevinson<Scalar_>& LookAheadLevinson<Scalar_>::compute(const Toeplitz<S
     }
 
     DenseMatrix Gamma = bestGamma;
-    Index p;
-    if (chosen > 0) {
-      p = chosen;
-    } else {
-      p = bestP;
-      m_sMin = bestPsi;  // pmax too small to skip cleanly; record the degraded conditioning
-    }
+    const Index p = chosen > 0 ? chosen : bestP;
+    if (chosen <= 0) m_sMin = bestPsi;  // pmax too small to skip cleanly; record the degraded conditioning
 
     const Index K = k + p;
     const bool finalStep = (K == n);

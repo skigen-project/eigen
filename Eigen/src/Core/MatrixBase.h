@@ -470,17 +470,17 @@ class MatrixBase : public DenseBase<Derived> {
   /** \returns an expression of the matrix Description of \c *this. \brief This function requires the <a    \
    * href="contrib/group__MatrixFunctions__Module.html"> contrib MatrixFunctions module</a>. To compute the \
    * coefficient-wise Description use ArrayBase::##Name . */                                                \
-  const ReturnType<Derived> Name() const;
+  constexpr const ReturnType<Derived> Name() const;
 #define EIGEN_MATRIX_FUNCTION_1(ReturnType, Name, Description, Argument)                                    \
   /** \returns an expression of the matrix Description of \c *this. \brief This function requires the <a    \
    * href="contrib/group__MatrixFunctions__Module.html"> contrib MatrixFunctions module</a>. To compute the \
    * coefficient-wise Description use ArrayBase::##Name . */                                                \
-  const ReturnType<Derived> Name(Argument) const;
+  constexpr const ReturnType<Derived> Name(Argument) const;
 
   EIGEN_MATRIX_FUNCTION(MatrixExponentialReturnValue, exp, exponential)
   /** \brief Helper function for the <a href="contrib/group__MatrixFunctions__Module.html"> contrib
    * MatrixFunctions module</a>.*/
-  const MatrixFunctionReturnValue<Derived> matrixFunction(StemFunction f) const;
+  constexpr const MatrixFunctionReturnValue<Derived> matrixFunction(StemFunction f) const;
   EIGEN_MATRIX_FUNCTION(MatrixFunctionReturnValue, cosh, hyperbolic cosine)
   EIGEN_MATRIX_FUNCTION(MatrixFunctionReturnValue, sinh, hyperbolic sine)
   EIGEN_MATRIX_FUNCTION(MatrixFunctionReturnValue, atanh, inverse hyperbolic tangent)

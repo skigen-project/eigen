@@ -12,8 +12,8 @@ namespace Eigen {
 namespace internal {
 
 template <typename Scalar>
-void rwupdt(Matrix<Scalar, Dynamic, Dynamic> &r, const Matrix<Scalar, Dynamic, 1> &w, Matrix<Scalar, Dynamic, 1> &b,
-            Scalar alpha) {
+constexpr void rwupdt(Matrix<Scalar, Dynamic, Dynamic> &r, const Matrix<Scalar, Dynamic, 1> &w,
+                      Matrix<Scalar, Dynamic, 1> &b, Scalar alpha) {
   using Index = DenseIndex;
 
   const Index n = r.cols();
@@ -21,7 +21,7 @@ void rwupdt(Matrix<Scalar, Dynamic, Dynamic> &r, const Matrix<Scalar, Dynamic, 1
   std::vector<JacobiRotation<Scalar> > givens(n);
 
   /* Local variables */
-  Scalar temp, rowj;
+  Scalar temp{}, rowj{};
 
   /* Function Body */
   for (Index j = 0; j < n; ++j) {

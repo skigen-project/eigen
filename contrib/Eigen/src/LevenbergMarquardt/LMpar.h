@@ -21,21 +21,19 @@ namespace Eigen {
 namespace internal {
 
 template <typename QRSolver, typename VectorType>
-void lmpar2(const QRSolver &qr, const VectorType &diag, const VectorType &qtb, typename VectorType::Scalar m_delta,
-            typename VectorType::Scalar &par, VectorType &x)
+constexpr void lmpar2(const QRSolver &qr, const VectorType &diag, const VectorType &qtb,
+                      typename VectorType::Scalar m_delta, typename VectorType::Scalar &par, VectorType &x)
 
 {
-  using std::abs;
-  using std::sqrt;
   using Scalar = typename QRSolver::Scalar;
   /* Local variables */
-  Index j;
-  Scalar fp;
-  Scalar parc, parl;
-  Index iter;
-  Scalar temp, paru;
-  Scalar gnorm;
-  Scalar dxnorm;
+  Index j = 0;
+  Scalar fp{};
+  Scalar parc{}, parl{};
+  Index iter = 0;
+  Scalar temp{}, paru{};
+  Scalar gnorm{};
+  Scalar dxnorm{};
 
   /* Function Body */
   const Scalar dwarf = (std::numeric_limits<Scalar>::min)();
@@ -104,7 +102,7 @@ void lmpar2(const QRSolver &qr, const VectorType &diag, const VectorType &qtb, t
 
     /* evaluate the function at the current value of par. */
     if (par == 0.) par = (std::max)(dwarf, Scalar(.001) * paru); /* Computing MAX */
-    wa1 = sqrt(par) * diag;
+    wa1 = numext::sqrt(par) * diag;
 
     VectorType sdiag(n);
     lmqrsolv(s, qr.colsPermutation(), wa1, qtb, x, sdiag);
@@ -117,7 +115,7 @@ void lmpar2(const QRSolver &qr, const VectorType &diag, const VectorType &qtb, t
     /* if the function is small enough, accept the current value */
     /* of par. also test for the exceptional cases where parl */
     /* is zero or the number of iterations has reached 10. */
-    if (abs(fp) <= Scalar(0.1) * m_delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10) break;
+    if (numext::abs(fp) <= Scalar(0.1) * m_delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10) break;
 
     /* compute the newton correction. */
     wa1 = qr.colsPermutation().inverse() * diag.cwiseProduct(wa2 / dxnorm);

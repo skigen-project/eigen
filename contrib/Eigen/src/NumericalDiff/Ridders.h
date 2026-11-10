@@ -74,18 +74,18 @@ class Ridders : public internal::ridders_solver_traits<Functor_> {
     int maxSteps = 10;
   };
 
-  Ridders() = default;
+  constexpr Ridders() = default;
 
   /** \brief Constructs from a copy of a functor and differentiation parameters.
    * \param functor The functor to differentiate.
    * \param parameters The differentiation parameters. */
-  explicit Ridders(const Functor& functor, const Parameters& parameters = Parameters()) : m_functor(functor) {
+  constexpr explicit Ridders(const Functor& functor, const Parameters& parameters = Parameters()) : m_functor(functor) {
     setParameters(parameters);
   }
 
   /** \brief Sets the differentiation parameters.
    * \param parameters The differentiation parameters. */
-  void setParameters(const Parameters& parameters) {
+  constexpr void setParameters(const Parameters& parameters) {
     eigen_assert(parameters.initialStep > Scalar(0) && (numext::isfinite)(parameters.initialStep));
     eigen_assert(parameters.stepReduction > Scalar(1) &&
                  (numext::isfinite)(parameters.stepReduction * parameters.stepReduction));
@@ -95,21 +95,21 @@ class Ridders : public internal::ridders_solver_traits<Functor_> {
   }
 
   /** \returns the differentiation parameters. */
-  const Parameters& parameters() const { return m_parameters; }
+  constexpr const Parameters& parameters() const { return m_parameters; }
   /** \returns the stored functor. */
-  Functor& functor() { return m_functor; }
+  constexpr Functor& functor() { return m_functor; }
   /** \returns the stored functor. */
-  const Functor& functor() const { return m_functor; }
+  constexpr const Functor& functor() const { return m_functor; }
 
   /** \brief Evaluates the stored functor.
    * \param[in] x The evaluation point.
    * \param[out] values The function values.
    * \returns the value returned by the functor. */
-  int operator()(const InputType& x, ValueType& values) const { return m_functor(x, values); }
+  constexpr int operator()(const InputType& x, ValueType& values) const { return m_functor(x, values); }
   /** \returns the stored functor's number of inputs. */
-  int inputs() const { return m_functor.inputs(); }
+  constexpr int inputs() const { return m_functor.inputs(); }
   /** \returns the stored functor's number of values. */
-  int values() const { return m_functor.values(); }
+  constexpr int values() const { return m_functor.values(); }
 
   /**
    * \brief Computes the Jacobian using adaptive central differences.
@@ -126,7 +126,7 @@ class Ridders : public internal::ridders_solver_traits<Functor_> {
    * \returns the number of functor evaluations.
    * \sa Parameters
    */
-  int df(const InputType& x, JacobianType& jac) const { return dfImpl(x, jac, nullptr); }
+  constexpr int df(const InputType& x, JacobianType& jac) const { return dfImpl(x, jac, nullptr); }
 
   /**
    * \brief Computes the Jacobian and an absolute error estimate per input coordinate.
@@ -140,7 +140,7 @@ class Ridders : public internal::ridders_solver_traits<Functor_> {
    * \returns the number of functor evaluations.
    * \sa Parameters
    */
-  int df(const InputType& x, JacobianType& jac, InputType& error) const {
+  constexpr int df(const InputType& x, JacobianType& jac, InputType& error) const {
     error.resize(x.size());
     return dfImpl(x, jac, &error);
   }
@@ -149,7 +149,7 @@ class Ridders : public internal::ridders_solver_traits<Functor_> {
   Functor m_functor;
   Parameters m_parameters;
 
-  int dfImpl(const InputType& input, JacobianType& jac, InputType* error) const {
+  constexpr int dfImpl(const InputType& input, JacobianType& jac, InputType* error) const {
     EIGEN_STATIC_ASSERT(!NumTraits<Scalar>::IsComplex && !NumTraits<Scalar>::IsInteger,
                         NUMERICAL_DIFF_REQUIRES_A_REAL_FLOATING_POINT_SCALAR);
     // C. J. F. Ridders, "Accurate computation of F'(x) and F'(x)F''(x)",
@@ -182,8 +182,11 @@ class Ridders : public internal::ridders_solver_traits<Functor_> {
       for (int step = 0; step < m_parameters.maxSteps; ++step) {
         Scalar xPlus = input[j] + h;
         Scalar xMinus = input[j] - h;
-        internal::pbarrier(xPlus);
-        internal::pbarrier(xMinus);
+        // Constant evaluation does not reassociate, so it needs no barrier.
+        if (!internal::is_constant_evaluated()) {
+          internal::pbarrier(xPlus);
+          internal::pbarrier(xMinus);
+        }
         if (!(numext::isfinite)(xPlus) || !(numext::isfinite)(xMinus)) break;
         if (step > 0 && xPlus == previousPlus && xMinus == previousMinus) break;
 
