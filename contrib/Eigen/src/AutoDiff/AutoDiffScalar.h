@@ -26,7 +26,7 @@ struct maybe_coherent_pad_helper {
   static constexpr int SizeAtCompileTime =
       max_size_prefer_dynamic(DerivativeType::SizeAtCompileTime, OtherDerivativeType::SizeAtCompileTime);
   using type = CoherentPadOp<DerivativeType, SizeAtCompileTime>;
-  static type pad(const DerivativeType& x, const OtherDerivativeType& y) {
+  static constexpr type pad(const DerivativeType& x, const OtherDerivativeType& y) {
     // CoherentPadOp uses variable_if_dynamic<SizeAtCompileTime>.  In this case, `SizeAtCompileTime` might
     // be Dynamic, so we need to take the runtime maximum of x, y.
     return CoherentPadOp<DerivativeType, SizeAtCompileTime>(x, numext::maxi(x.size(), y.size()));
@@ -40,17 +40,17 @@ struct maybe_coherent_pad_helper<
     DerivativeType, OtherDerivativeType,
     std::enable_if_t<enum_ge_not_dynamic(DerivativeType::SizeAtCompileTime, OtherDerivativeType::SizeAtCompileTime)>> {
   using type = const DerivativeType&;
-  static const DerivativeType& pad(const DerivativeType& x, const OtherDerivativeType& /*y*/) { return x; }
+  static constexpr const DerivativeType& pad(const DerivativeType& x, const OtherDerivativeType& /*y*/) { return x; }
 };
 
 template <typename DerivativeType, typename OtherDerivativeType>
-typename maybe_coherent_pad_helper<DerivativeType, OtherDerivativeType>::type MaybeCoherentPad(
+constexpr typename maybe_coherent_pad_helper<DerivativeType, OtherDerivativeType>::type MaybeCoherentPad(
     const DerivativeType& x, const OtherDerivativeType& y) {
   return maybe_coherent_pad_helper<DerivativeType, OtherDerivativeType>::pad(x, y);
 }
 
 template <typename Op, typename LhsDerivativeType, typename RhsDerivativeType>
-auto MakeCoherentCwiseBinaryOp(const LhsDerivativeType& x, const RhsDerivativeType& y, Op op = Op()) {
+constexpr auto MakeCoherentCwiseBinaryOp(const LhsDerivativeType& x, const RhsDerivativeType& y, Op op = Op()) {
   const auto& lhs = MaybeCoherentPad(x, y);
   const auto& rhs = MaybeCoherentPad(y, x);
   return CwiseBinaryOp<Op, remove_all_t<decltype(lhs)>, remove_all_t<decltype(rhs)>>(lhs, rhs, op);
@@ -62,7 +62,8 @@ template <typename DerivativeType>
 class AutoDiffScalar;
 
 template <typename NewDerType>
-inline AutoDiffScalar<NewDerType> MakeAutoDiffScalar(const typename NewDerType::Scalar& value, const NewDerType& der) {
+constexpr AutoDiffScalar<NewDerType> MakeAutoDiffScalar(const typename NewDerType::Scalar& value,
+                                                        const NewDerType& der) {
   return AutoDiffScalar<NewDerType>(value, der);
 }
 
@@ -113,22 +114,23 @@ class AutoDiffScalar
   using Base::operator*;
 
   /** Default constructor without any initialization. */
-  AutoDiffScalar() {}
+  EIGEN_CONSTEXPR20 AutoDiffScalar() {}
 
   /** Constructs an active scalar from its \a value,
       and initializes the \a nbDer derivatives such that it corresponds to the \a derNumber -th variable */
-  AutoDiffScalar(const Scalar& value, int nbDer, int derNumber) : m_value(value), m_derivatives(DerType::Zero(nbDer)) {
+  constexpr AutoDiffScalar(const Scalar& value, int nbDer, int derNumber)
+      : m_value(value), m_derivatives(DerType::Zero(nbDer)) {
     m_derivatives.coeffRef(derNumber) = Scalar(1);
   }
 
   /** Conversion from a scalar constant to an active scalar.
    * The derivatives are set to zero. */
-  /*explicit*/ AutoDiffScalar(const Real& value) : m_value(value) {
+  constexpr AutoDiffScalar(const Real& value) : m_value(value) {
     if (m_derivatives.size() > 0) m_derivatives.setZero();
   }
 
   /** Constructs an active scalar from its \a value and derivatives \a der */
-  AutoDiffScalar(const Scalar& value, const DerType& der) : m_value(value), m_derivatives(der) {}
+  constexpr AutoDiffScalar(const Scalar& value, const DerType& der) : m_value(value), m_derivatives(der) {}
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   template <typename OtherDerType,
@@ -139,14 +141,14 @@ class AutoDiffScalar
 #else
   template <typename OtherDerType>
 #endif
-  AutoDiffScalar(const AutoDiffScalar<OtherDerType>& other)
+  constexpr AutoDiffScalar(const AutoDiffScalar<OtherDerType>& other)
       : m_value(other.value()), m_derivatives(other.derivatives()) {
   }
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   template <typename OtherDerType>
   EIGEN_DEPRECATED_WITH_REASON("Omit the implementation-only second argument.")
-  AutoDiffScalar(
+  constexpr AutoDiffScalar(
       const AutoDiffScalar<OtherDerType>& other,
       std::enable_if_t<
           std::is_same<Scalar, typename internal::traits<internal::remove_all_t<OtherDerType>>::Scalar>::value &&
@@ -157,22 +159,22 @@ class AutoDiffScalar
 
   friend std::ostream& operator<<(std::ostream& s, const AutoDiffScalar& a) { return s << a.value(); }
 
-  AutoDiffScalar(const AutoDiffScalar& other) : m_value(other.value()), m_derivatives(other.derivatives()) {}
+  constexpr AutoDiffScalar(const AutoDiffScalar& other) : m_value(other.value()), m_derivatives(other.derivatives()) {}
 
   template <typename OtherDerType>
-  inline AutoDiffScalar& operator=(const AutoDiffScalar<OtherDerType>& other) {
+  constexpr AutoDiffScalar& operator=(const AutoDiffScalar<OtherDerType>& other) {
     m_value = other.value();
     m_derivatives = other.derivatives();
     return *this;
   }
 
-  inline AutoDiffScalar& operator=(const AutoDiffScalar& other) {
+  constexpr AutoDiffScalar& operator=(const AutoDiffScalar& other) {
     m_value = other.value();
     m_derivatives = other.derivatives();
     return *this;
   }
 
-  inline AutoDiffScalar& operator=(const Scalar& other) {
+  constexpr AutoDiffScalar& operator=(const Scalar& other) {
     m_value = other;
     if (m_derivatives.size() > 0) m_derivatives.setZero();
     return *this;
@@ -181,127 +183,127 @@ class AutoDiffScalar
   //     inline operator const Scalar& () const { return m_value; }
   //     inline operator Scalar& () { return m_value; }
 
-  inline const Scalar& value() const { return m_value; }
-  inline Scalar& value() { return m_value; }
+  constexpr const Scalar& value() const { return m_value; }
+  constexpr Scalar& value() { return m_value; }
 
-  inline const DerType& derivatives() const { return m_derivatives; }
-  inline DerType& derivatives() { return m_derivatives; }
+  constexpr const DerType& derivatives() const { return m_derivatives; }
+  constexpr DerType& derivatives() { return m_derivatives; }
 
-  inline bool operator<(const Scalar& other) const { return m_value < other; }
-  inline bool operator<=(const Scalar& other) const { return m_value <= other; }
-  inline bool operator>(const Scalar& other) const { return m_value > other; }
-  inline bool operator>=(const Scalar& other) const { return m_value >= other; }
-  inline bool operator==(const Scalar& other) const { return m_value == other; }
-  inline bool operator!=(const Scalar& other) const { return m_value != other; }
+  constexpr bool operator<(const Scalar& other) const { return m_value < other; }
+  constexpr bool operator<=(const Scalar& other) const { return m_value <= other; }
+  constexpr bool operator>(const Scalar& other) const { return m_value > other; }
+  constexpr bool operator>=(const Scalar& other) const { return m_value >= other; }
+  constexpr bool operator==(const Scalar& other) const { return m_value == other; }
+  constexpr bool operator!=(const Scalar& other) const { return m_value != other; }
 
-  friend inline bool operator<(const Scalar& a, const AutoDiffScalar& b) { return a < b.value(); }
-  friend inline bool operator<=(const Scalar& a, const AutoDiffScalar& b) { return a <= b.value(); }
-  friend inline bool operator>(const Scalar& a, const AutoDiffScalar& b) { return a > b.value(); }
-  friend inline bool operator>=(const Scalar& a, const AutoDiffScalar& b) { return a >= b.value(); }
-  friend inline bool operator==(const Scalar& a, const AutoDiffScalar& b) { return a == b.value(); }
-  friend inline bool operator!=(const Scalar& a, const AutoDiffScalar& b) { return a != b.value(); }
+  friend constexpr bool operator<(const Scalar& a, const AutoDiffScalar& b) { return a < b.value(); }
+  friend constexpr bool operator<=(const Scalar& a, const AutoDiffScalar& b) { return a <= b.value(); }
+  friend constexpr bool operator>(const Scalar& a, const AutoDiffScalar& b) { return a > b.value(); }
+  friend constexpr bool operator>=(const Scalar& a, const AutoDiffScalar& b) { return a >= b.value(); }
+  friend constexpr bool operator==(const Scalar& a, const AutoDiffScalar& b) { return a == b.value(); }
+  friend constexpr bool operator!=(const Scalar& a, const AutoDiffScalar& b) { return a != b.value(); }
 
   template <typename OtherDerType>
-  inline bool operator<(const AutoDiffScalar<OtherDerType>& b) const {
+  constexpr bool operator<(const AutoDiffScalar<OtherDerType>& b) const {
     return m_value < b.value();
   }
   template <typename OtherDerType>
-  inline bool operator<=(const AutoDiffScalar<OtherDerType>& b) const {
+  constexpr bool operator<=(const AutoDiffScalar<OtherDerType>& b) const {
     return m_value <= b.value();
   }
   template <typename OtherDerType>
-  inline bool operator>(const AutoDiffScalar<OtherDerType>& b) const {
+  constexpr bool operator>(const AutoDiffScalar<OtherDerType>& b) const {
     return m_value > b.value();
   }
   template <typename OtherDerType>
-  inline bool operator>=(const AutoDiffScalar<OtherDerType>& b) const {
+  constexpr bool operator>=(const AutoDiffScalar<OtherDerType>& b) const {
     return m_value >= b.value();
   }
   template <typename OtherDerType>
-  inline bool operator==(const AutoDiffScalar<OtherDerType>& b) const {
+  constexpr bool operator==(const AutoDiffScalar<OtherDerType>& b) const {
     return m_value == b.value();
   }
   template <typename OtherDerType>
-  inline bool operator!=(const AutoDiffScalar<OtherDerType>& b) const {
+  constexpr bool operator!=(const AutoDiffScalar<OtherDerType>& b) const {
     return m_value != b.value();
   }
 
-  inline AutoDiffScalar<DerType&> operator+(const Scalar& other) const {
+  constexpr AutoDiffScalar<DerType&> operator+(const Scalar& other) const {
     return AutoDiffScalar<DerType&>(m_value + other, m_derivatives);
   }
 
-  friend inline AutoDiffScalar<DerType&> operator+(const Scalar& a, const AutoDiffScalar& b) {
+  friend constexpr AutoDiffScalar<DerType&> operator+(const Scalar& a, const AutoDiffScalar& b) {
     return AutoDiffScalar<DerType&>(a + b.value(), b.derivatives());
   }
 
-  inline AutoDiffScalar& operator+=(const Scalar& other) {
+  constexpr AutoDiffScalar& operator+=(const Scalar& other) {
     value() += other;
     return *this;
   }
 
   template <typename OtherDerType>
-  inline auto operator+(const AutoDiffScalar<OtherDerType>& other) const {
+  constexpr auto operator+(const AutoDiffScalar<OtherDerType>& other) const {
     return MakeAutoDiffScalar(
         m_value + other.value(),
         internal::MakeCoherentCwiseBinaryOp<internal::scalar_sum_op<Scalar>>(m_derivatives, other.derivatives()));
   }
 
   template <typename OtherDerType>
-  inline AutoDiffScalar& operator+=(const AutoDiffScalar<OtherDerType>& other) {
+  constexpr AutoDiffScalar& operator+=(const AutoDiffScalar<OtherDerType>& other) {
     (*this) = (*this) + other;
     return *this;
   }
 
-  inline AutoDiffScalar<DerType&> operator-(const Scalar& b) const {
+  constexpr AutoDiffScalar<DerType&> operator-(const Scalar& b) const {
     return AutoDiffScalar<DerType&>(m_value - b, m_derivatives);
   }
 
-  friend inline AutoDiffScalar<CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, const DerType>> operator-(
+  friend constexpr AutoDiffScalar<CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, const DerType>> operator-(
       const Scalar& a, const AutoDiffScalar& b) {
     return AutoDiffScalar<CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, const DerType>>(a - b.value(),
                                                                                              -b.derivatives());
   }
 
-  inline AutoDiffScalar& operator-=(const Scalar& other) {
+  constexpr AutoDiffScalar& operator-=(const Scalar& other) {
     value() -= other;
     return *this;
   }
 
   template <typename OtherDerType>
-  inline auto operator-(const AutoDiffScalar<OtherDerType>& other) const {
+  constexpr auto operator-(const AutoDiffScalar<OtherDerType>& other) const {
     return MakeAutoDiffScalar(m_value - other.value(),
                               internal::MakeCoherentCwiseBinaryOp<internal::scalar_difference_op<Scalar>>(
                                   m_derivatives, other.derivatives()));
   }
 
   template <typename OtherDerType>
-  inline AutoDiffScalar& operator-=(const AutoDiffScalar<OtherDerType>& other) {
+  constexpr AutoDiffScalar& operator-=(const AutoDiffScalar<OtherDerType>& other) {
     *this = *this - other;
     return *this;
   }
 
-  inline AutoDiffScalar<CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, const DerType>> operator-() const {
+  constexpr AutoDiffScalar<CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, const DerType>> operator-() const {
     return AutoDiffScalar<CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, const DerType>>(-m_value, -m_derivatives);
   }
 
-  inline auto operator*(const Scalar& other) const {
+  constexpr auto operator*(const Scalar& other) const {
     return MakeAutoDiffScalar(m_value * other, m_derivatives * other);
   }
 
-  friend inline auto operator*(const Scalar& other, const AutoDiffScalar& a) {
+  friend constexpr auto operator*(const Scalar& other, const AutoDiffScalar& a) {
     return MakeAutoDiffScalar(a.value() * other, a.derivatives() * other);
   }
 
-  inline auto operator/(const Scalar& other) const {
+  constexpr auto operator/(const Scalar& other) const {
     return MakeAutoDiffScalar(m_value / other, (m_derivatives * (Scalar(1) / other)));
   }
 
-  friend inline auto operator/(const Scalar& other, const AutoDiffScalar& a) {
+  friend constexpr auto operator/(const Scalar& other, const AutoDiffScalar& a) {
     return MakeAutoDiffScalar(other / a.value(), a.derivatives() * (Scalar(-other) / (a.value() * a.value())));
   }
 
   template <typename OtherDerType>
-  inline auto operator/(const AutoDiffScalar<OtherDerType>& other) const {
+  constexpr auto operator/(const AutoDiffScalar<OtherDerType>& other) const {
     return MakeAutoDiffScalar(m_value / other.value(),
                               internal::MakeCoherentCwiseBinaryOp<internal::scalar_difference_op<Scalar>>(
                                   m_derivatives * other.value(), (other.derivatives() * m_value)) *
@@ -309,30 +311,30 @@ class AutoDiffScalar
   }
 
   template <typename OtherDerType>
-  inline auto operator*(const AutoDiffScalar<OtherDerType>& other) const {
+  constexpr auto operator*(const AutoDiffScalar<OtherDerType>& other) const {
     return MakeAutoDiffScalar(m_value * other.value(),
                               internal::MakeCoherentCwiseBinaryOp<internal::scalar_sum_op<Scalar>>(
                                   m_derivatives * other.value(), other.derivatives() * m_value));
   }
 
-  inline AutoDiffScalar& operator*=(const Scalar& other) {
+  constexpr AutoDiffScalar& operator*=(const Scalar& other) {
     *this = *this * other;
     return *this;
   }
 
   template <typename OtherDerType>
-  inline AutoDiffScalar& operator*=(const AutoDiffScalar<OtherDerType>& other) {
+  constexpr AutoDiffScalar& operator*=(const AutoDiffScalar<OtherDerType>& other) {
     *this = *this * other;
     return *this;
   }
 
-  inline AutoDiffScalar& operator/=(const Scalar& other) {
+  constexpr AutoDiffScalar& operator/=(const Scalar& other) {
     *this = *this / other;
     return *this;
   }
 
   template <typename OtherDerType>
-  inline AutoDiffScalar& operator/=(const AutoDiffScalar<OtherDerType>& other) {
+  constexpr AutoDiffScalar& operator/=(const AutoDiffScalar<OtherDerType>& other) {
     *this = *this / other;
     return *this;
   }
@@ -350,37 +352,37 @@ struct auto_diff_special_op<DerivativeType, true> {
   using Scalar = typename traits<DerType>::Scalar;
   using Real = typename NumTraits<Scalar>::Real;
 
-  const AutoDiffScalar<DerivativeType>& derived() const {
+  constexpr const AutoDiffScalar<DerivativeType>& derived() const {
     return *static_cast<const AutoDiffScalar<DerivativeType>*>(this);
   }
-  AutoDiffScalar<DerivativeType>& derived() { return *static_cast<AutoDiffScalar<DerivativeType>*>(this); }
+  constexpr AutoDiffScalar<DerivativeType>& derived() { return *static_cast<AutoDiffScalar<DerivativeType>*>(this); }
 
-  inline AutoDiffScalar<DerType&> operator+(const Real& other) const {
+  constexpr AutoDiffScalar<DerType&> operator+(const Real& other) const {
     return AutoDiffScalar<DerType&>(derived().value() + other, derived().derivatives());
   }
 
-  friend inline AutoDiffScalar<DerType&> operator+(const Real& a, const AutoDiffScalar<DerivativeType>& b) {
+  friend constexpr AutoDiffScalar<DerType&> operator+(const Real& a, const AutoDiffScalar<DerivativeType>& b) {
     return AutoDiffScalar<DerType&>(a + b.value(), b.derivatives());
   }
 
-  inline AutoDiffScalar<DerivativeType>& operator+=(const Real& other) {
+  constexpr AutoDiffScalar<DerivativeType>& operator+=(const Real& other) {
     derived().value() += other;
     return derived();
   }
 
-  inline AutoDiffScalar<typename CwiseUnaryOp<bind2nd_op<scalar_product_op<Scalar, Real>>, DerType>::Type> operator*(
+  constexpr AutoDiffScalar<typename CwiseUnaryOp<bind2nd_op<scalar_product_op<Scalar, Real>>, DerType>::Type> operator*(
       const Real& other) const {
     return AutoDiffScalar<typename CwiseUnaryOp<bind2nd_op<scalar_product_op<Scalar, Real>>, DerType>::Type>(
         derived().value() * other, derived().derivatives() * other);
   }
 
-  friend inline AutoDiffScalar<typename CwiseUnaryOp<bind1st_op<scalar_product_op<Real, Scalar>>, DerType>::Type>
+  friend constexpr AutoDiffScalar<typename CwiseUnaryOp<bind1st_op<scalar_product_op<Real, Scalar>>, DerType>::Type>
   operator*(const Real& other, const AutoDiffScalar<DerivativeType>& a) {
     return AutoDiffScalar<typename CwiseUnaryOp<bind1st_op<scalar_product_op<Real, Scalar>>, DerType>::Type>(
         a.value() * other, a.derivatives() * other);
   }
 
-  inline AutoDiffScalar<DerivativeType>& operator*=(const Scalar& other) {
+  constexpr AutoDiffScalar<DerivativeType>& operator*=(const Scalar& other) {
     *this = *this * other;
     return derived();
   }
@@ -388,9 +390,9 @@ struct auto_diff_special_op<DerivativeType, true> {
 
 template <typename DerivativeType>
 struct auto_diff_special_op<DerivativeType, false> {
-  void operator*() const;
-  void operator-() const;
-  void operator+() const;
+  constexpr void operator*() const;
+  constexpr void operator-() const;
+  constexpr void operator+() const;
 };
 
 }  // end namespace internal
@@ -407,7 +409,7 @@ struct ScalarBinaryOpTraits<typename DerType::Scalar, AutoDiffScalar<DerType>, B
 
 #define EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(FUNC, CODE)                                              \
   template <typename DerType>                                                                        \
-  inline auto FUNC(const Eigen::AutoDiffScalar<DerType>& x) {                                        \
+  constexpr auto FUNC(const Eigen::AutoDiffScalar<DerType>& x) {                                     \
     using namespace Eigen;                                                                           \
     using Scalar = typename Eigen::internal::traits<Eigen::internal::remove_all_t<DerType>>::Scalar; \
     EIGEN_UNUSED_VARIABLE(sizeof(Scalar));                                                           \
@@ -420,62 +422,62 @@ struct CleanedUpDerType {
 };
 
 template <typename DerType>
-inline const AutoDiffScalar<DerType>& conj(const AutoDiffScalar<DerType>& x) {
+constexpr const AutoDiffScalar<DerType>& conj(const AutoDiffScalar<DerType>& x) {
   return x;
 }
 template <typename DerType>
-inline const AutoDiffScalar<DerType>& real(const AutoDiffScalar<DerType>& x) {
+constexpr const AutoDiffScalar<DerType>& real(const AutoDiffScalar<DerType>& x) {
   return x;
 }
 template <typename DerType>
-inline typename DerType::Scalar imag(const AutoDiffScalar<DerType>&) {
+constexpr typename DerType::Scalar imag(const AutoDiffScalar<DerType>&) {
   return 0.;
 }
 template <typename DerType>
-inline bool(isnan)(const AutoDiffScalar<DerType>& x) {
+constexpr bool(isnan)(const AutoDiffScalar<DerType>& x) {
   return (numext::isnan)(x.value());
 }
 template <typename DerType>
-inline bool(isinf)(const AutoDiffScalar<DerType>& x) {
+constexpr bool(isinf)(const AutoDiffScalar<DerType>& x) {
   return (numext::isinf)(x.value());
 }
 template <typename DerType>
-inline bool(isfinite)(const AutoDiffScalar<DerType>& x) {
+constexpr bool(isfinite)(const AutoDiffScalar<DerType>& x) {
   return (numext::isfinite)(x.value());
 }
 template <typename DerType, typename T>
-inline typename CleanedUpDerType<DerType>::type(min)(const AutoDiffScalar<DerType>& x, const T& y) {
+constexpr typename CleanedUpDerType<DerType>::type(min)(const AutoDiffScalar<DerType>& x, const T& y) {
   using ADS = typename CleanedUpDerType<DerType>::type;
   return (x <= y ? ADS(x) : ADS(y));
 }
 template <typename DerType, typename T>
-inline typename CleanedUpDerType<DerType>::type(max)(const AutoDiffScalar<DerType>& x, const T& y) {
+constexpr typename CleanedUpDerType<DerType>::type(max)(const AutoDiffScalar<DerType>& x, const T& y) {
   using ADS = typename CleanedUpDerType<DerType>::type;
   return (x >= y ? ADS(x) : ADS(y));
 }
 template <typename DerType, typename T>
-inline typename CleanedUpDerType<DerType>::type(min)(const T& x, const AutoDiffScalar<DerType>& y) {
+constexpr typename CleanedUpDerType<DerType>::type(min)(const T& x, const AutoDiffScalar<DerType>& y) {
   using ADS = typename CleanedUpDerType<DerType>::type;
   return (x < y ? ADS(x) : ADS(y));
 }
 template <typename DerType, typename T>
-inline typename CleanedUpDerType<DerType>::type(max)(const T& x, const AutoDiffScalar<DerType>& y) {
+constexpr typename CleanedUpDerType<DerType>::type(max)(const T& x, const AutoDiffScalar<DerType>& y) {
   using ADS = typename CleanedUpDerType<DerType>::type;
   return (x > y ? ADS(x) : ADS(y));
 }
 template <typename DerType>
-inline
+constexpr
     typename CleanedUpDerType<DerType>::type(min)(const AutoDiffScalar<DerType>& x, const AutoDiffScalar<DerType>& y) {
   // Match std::min / max(ADS, ADS): on tie, return the first argument.
   return (x.value() <= y.value() ? x : y);
 }
 template <typename DerType>
-inline
+constexpr
     typename CleanedUpDerType<DerType>::type(max)(const AutoDiffScalar<DerType>& x, const AutoDiffScalar<DerType>& y) {
   return (x.value() >= y.value() ? x : y);
 }
 
-EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(abs, using std::abs;
+EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(abs, using numext::abs;
                                     return Eigen::MakeAutoDiffScalar(abs(x.value()),
                                                                      x.derivatives() * (x.value() < 0 ? -1 : 1));)
 
@@ -501,15 +503,15 @@ EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(log, using std::log;
                                                                      x.derivatives() * (Scalar(1) / x.value()));)
 
 template <typename DerType>
-inline auto pow(const Eigen::AutoDiffScalar<DerType>& x,
-                const typename internal::traits<internal::remove_all_t<DerType>>::Scalar& y) {
+constexpr auto pow(const Eigen::AutoDiffScalar<DerType>& x,
+                   const typename internal::traits<internal::remove_all_t<DerType>>::Scalar& y) {
   using namespace Eigen;
   using std::pow;
   return Eigen::MakeAutoDiffScalar(pow(x.value(), y), x.derivatives() * (y * pow(x.value(), y - 1)));
 }
 
 template <typename DerTypeA, typename DerTypeB>
-inline AutoDiffScalar<Matrix<typename internal::traits<internal::remove_all_t<DerTypeA>>::Scalar, Dynamic, 1>> atan2(
+constexpr AutoDiffScalar<Matrix<typename internal::traits<internal::remove_all_t<DerTypeA>>::Scalar, Dynamic, 1>> atan2(
     const AutoDiffScalar<DerTypeA>& a, const AutoDiffScalar<DerTypeB>& b) {
   using std::atan2;
   using Scalar = typename internal::traits<internal::remove_all_t<DerTypeA>>::Scalar;
@@ -531,7 +533,7 @@ EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(tan, using std::tan; using std::cos; return 
                                         tan(x.value()), x.derivatives() * (Scalar(1) / numext::abs2(cos(x.value()))));)
 
 template <typename DerType>
-inline auto atan(const AutoDiffScalar<DerType>& x) {
+constexpr auto atan(const AutoDiffScalar<DerType>& x) {
   using Scalar = typename AutoDiffScalar<DerType>::Scalar;
   using RealScalar = typename NumTraits<Scalar>::Real;
   const Scalar& value = x.value();
@@ -577,7 +579,7 @@ EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(log2,
                                                               (x.derivatives() / x.value()) / numext::log(Scalar(2)));)
 
 template <typename DerType>
-inline auto log10(const AutoDiffScalar<DerType>& x) {
+constexpr auto log10(const AutoDiffScalar<DerType>& x) {
   using Scalar = typename AutoDiffScalar<DerType>::Scalar;
   using RealScalar = typename NumTraits<Scalar>::Real;
   const Scalar logarithm = numext::log(Scalar(10));
@@ -606,7 +608,7 @@ EIGEN_AUTODIFF_DECLARE_GLOBAL_UNARY(asinh,
                                                               x.derivatives() / numext::hypot(Scalar(1), x.value()));)
 
 template <typename DerType>
-inline auto acosh(const AutoDiffScalar<DerType>& x) {
+constexpr auto acosh(const AutoDiffScalar<DerType>& x) {
   using Scalar = typename AutoDiffScalar<DerType>::Scalar;
   // Separate square roots avoid overflowing x*x for large x.
   const Scalar lower = numext::sqrt(Scalar(x.value() - Scalar(1)));
@@ -615,7 +617,7 @@ inline auto acosh(const AutoDiffScalar<DerType>& x) {
 }
 
 template <typename DerType>
-inline auto atanh(const AutoDiffScalar<DerType>& x) {
+constexpr auto atanh(const AutoDiffScalar<DerType>& x) {
   using Scalar = typename AutoDiffScalar<DerType>::Scalar;
   using RealScalar = typename NumTraits<Scalar>::Real;
   const Scalar lower = Scalar(1) - x.value();
@@ -667,7 +669,7 @@ struct functor_is_commutative<
 
 template <typename DerivativeType>
 struct is_identically_zero_impl<AutoDiffScalar<DerivativeType>> {
-  static inline bool run(const AutoDiffScalar<DerivativeType>& s) {
+  static constexpr bool run(const AutoDiffScalar<DerivativeType>& s) {
     const DerivativeType& derivatives = s.derivatives();
     for (int i = 0; i < derivatives.size(); ++i) {
       if (!numext::is_exactly_zero(derivatives[i])) {

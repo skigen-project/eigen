@@ -67,8 +67,8 @@ EIGEN_MAKE_SCALAR_BINARY_OP_ONTHERIGHT(operator/, internal::scalar_quotient_op)
  * \sa operator||(), select()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryOp<internal::scalar_boolean_and_op<Scalar>, const Derived,
-                                                       const OtherDerived>
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryOp<internal::scalar_boolean_and_op<Scalar>, const Derived,
+                                                const OtherDerived>
 operator&&(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_boolean_and_op<Scalar>, const Derived, const OtherDerived>(derived(),
                                                                                                    other.derived());
@@ -82,8 +82,8 @@ operator&&(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
  * \sa operator&&(), select()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryOp<internal::scalar_boolean_or_op<Scalar>, const Derived,
-                                                       const OtherDerived>
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryOp<internal::scalar_boolean_or_op<Scalar>, const Derived,
+                                                const OtherDerived>
 operator||(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_boolean_or_op<Scalar>, const Derived, const OtherDerived>(derived(),
                                                                                                   other.derived());
@@ -94,8 +94,8 @@ operator||(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
  * \sa operator|(), operator^()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryOp<internal::scalar_bitwise_and_op<Scalar>, const Derived,
-                                                       const OtherDerived>
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryOp<internal::scalar_bitwise_and_op<Scalar>, const Derived,
+                                                const OtherDerived>
 operator&(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_bitwise_and_op<Scalar>, const Derived, const OtherDerived>(derived(),
                                                                                                    other.derived());
@@ -106,8 +106,8 @@ operator&(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
  * \sa operator&(), operator^()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryOp<internal::scalar_bitwise_or_op<Scalar>, const Derived,
-                                                       const OtherDerived>
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryOp<internal::scalar_bitwise_or_op<Scalar>, const Derived,
+                                                const OtherDerived>
 operator|(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_bitwise_or_op<Scalar>, const Derived, const OtherDerived>(derived(),
                                                                                                   other.derived());
@@ -117,8 +117,8 @@ operator|(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
  * \sa operator&(), operator|()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryOp<internal::scalar_bitwise_xor_op<Scalar>, const Derived,
-                                                       const OtherDerived>
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryOp<internal::scalar_bitwise_xor_op<Scalar>, const Derived,
+                                                const OtherDerived>
 operator^(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_bitwise_xor_op<Scalar>, const Derived, const OtherDerived>(derived(),
                                                                                                    other.derived());

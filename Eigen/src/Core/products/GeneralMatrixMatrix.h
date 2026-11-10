@@ -795,7 +795,7 @@ struct gemm_operand_traits<
   static EIGEN_DEVICE_FUNC inline typename Base::ExtractType extract(const XprType& x) {
     return Base::extract(x.nestedExpression());
   }
-  static EIGEN_DEVICE_FUNC inline Scalar extractScalarFactor(const XprType&) { return Scalar(1); }
+  static EIGEN_DEVICE_FUNC constexpr Scalar extractScalarFactor(const XprType&) { return Scalar(1); }
 };
 #endif
 template <typename Xpr>
@@ -824,28 +824,28 @@ struct gemm_product_impl<Lhs, Rhs, false>
   using Scalar = typename Product<Lhs, Rhs>::Scalar;
 
   template <typename Dest>
-  static void evalTo(Dest& dst, const Lhs& lhs, const Rhs& rhs) {
+  static constexpr void evalTo(Dest& dst, const Lhs& lhs, const Rhs& rhs) {
     run<true>(dst, lhs, rhs, Scalar(1));
   }
 
   template <typename Dest>
-  static void scaleAndAddTo(Dest& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha) {
+  static constexpr void scaleAndAddTo(Dest& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha) {
     run<false>(dst, lhs, rhs, alpha);
   }
 
   template <typename Dest>
-  static void scaleAndEvalTo(Dest& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha) {
+  static constexpr void scaleAndEvalTo(Dest& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha) {
     run<true>(dst, lhs, rhs, alpha);
   }
 
   template <typename Dest>
-  static void subTo(Dest& dst, const Lhs& lhs, const Rhs& rhs) {
+  static constexpr void subTo(Dest& dst, const Lhs& lhs, const Rhs& rhs) {
     run<false, true>(dst, lhs, rhs, Scalar(1));
   }
 
  private:
   template <bool Assign, bool Subtract = false, typename Dest>
-  static void run(Dest& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha) {
+  static constexpr void run(Dest& dst, const Lhs& lhs, const Rhs& rhs, const Scalar& alpha) {
     // Test factors before materializing operands: zero times a nonfinite coefficient need not be evaluated.
     if (lhs.cols() == 0 || numext::is_exactly_zero(alpha) || blas_traits<Lhs>::hasZeroScalarFactor(lhs) ||
         blas_traits<Rhs>::hasZeroScalarFactor(rhs)) {
@@ -949,8 +949,11 @@ struct gemm_product_impl<Lhs, Rhs, true>
 #endif
 
   template <typename Dst>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool useRuntimeCoeffBasedProduct(const Dst& dst, const Rhs& rhs) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool useRuntimeCoeffBasedProduct(const Dst& dst,
+                                                                                          const Rhs& rhs) {
     if (rhs.rows() <= 0) return false;
+    // The GEMM kernel is unavailable in constant evaluation.
+    if (is_constant_evaluated()) return true;
 #ifdef EIGEN_VECTORIZE_SME
     if ((rhs.rows() + dst.rows() + dst.cols()) < kCoeffBasedThreshold || outputAreaBelowThreshold(dst))
       return !tinyKernelWins(dst, rhs);
@@ -966,28 +969,30 @@ struct gemm_product_impl<Lhs, Rhs, true>
   // for the GEMM path, but the coeff-based path below has no such exit and
   // would evaluate the product, so the factor is tested before the dispatch
   // rather than inside either kernel.
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool scalarFactorIsZero(const Lhs& lhs, const Rhs& rhs) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool scalarFactorIsZero(const Lhs& lhs, const Rhs& rhs) {
     return scalarFactorIsZero(gemm_accumulates_in_float<LhsScalar, RhsScalar>(), lhs, rhs);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool scalarFactorIsZero(std::false_type, const Lhs& lhs,
-                                                                       const Rhs& rhs) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool scalarFactorIsZero(std::false_type, const Lhs& lhs,
+                                                                                 const Rhs& rhs) {
     return numext::is_exactly_zero(combine_scalar_factors<Scalar>(lhs, rhs));
   }
   // The float GEMM combines the factors in float, where their product may not underflow. The coefficient-based path
   // recombines them in Scalar and would then evaluate 0 * lazyProduct, so such a product takes the GEMM.
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool scalarFactorIsZero(std::true_type, const Lhs& lhs, const Rhs& rhs) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool scalarFactorIsZero(std::true_type, const Lhs& lhs,
+                                                                                 const Rhs& rhs) {
     return numext::is_exactly_zero(float(LhsBlasTraits::extractScalarFactor(lhs)) *
                                    float(RhsBlasTraits::extractScalarFactor(rhs)));
   }
 
   // A factor that underflows in Scalar but not in float takes the float GEMM (see scalarFactorIsZero).
   template <typename Dst>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool useCoeffBasedPath(const Dst& dst, const Lhs& lhs, const Rhs& rhs) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool useCoeffBasedPath(const Dst& dst, const Lhs& lhs,
+                                                                                const Rhs& rhs) {
     return useRuntimeCoeffBasedProduct(dst, rhs) && !numext::is_exactly_zero(combine_scalar_factors<Scalar>(lhs, rhs));
   }
 
   template <typename Dst>
-  static void evalTo(Dst& dst, const Lhs& lhs, const Rhs& rhs) {
+  static constexpr void evalTo(Dst& dst, const Lhs& lhs, const Rhs& rhs) {
     if (scalarFactorIsZero(lhs, rhs)) {
       dst.setZero();
       return;
@@ -999,7 +1004,7 @@ struct gemm_product_impl<Lhs, Rhs, true>
   }
 
   template <typename Dst>
-  static void addTo(Dst& dst, const Lhs& lhs, const Rhs& rhs) {
+  static constexpr void addTo(Dst& dst, const Lhs& lhs, const Rhs& rhs) {
     if (scalarFactorIsZero(lhs, rhs)) return;
     if (useCoeffBasedPath(dst, lhs, rhs))
       lazyproduct::eval_dynamic(dst, lhs, rhs, internal::add_assign_op<typename Dst::Scalar, Scalar>());
@@ -1008,7 +1013,7 @@ struct gemm_product_impl<Lhs, Rhs, true>
   }
 
   template <typename Dst>
-  static void subTo(Dst& dst, const Lhs& lhs, const Rhs& rhs) {
+  static constexpr void subTo(Dst& dst, const Lhs& lhs, const Rhs& rhs) {
     if (scalarFactorIsZero(lhs, rhs)) return;
     if (useCoeffBasedPath(dst, lhs, rhs))
       lazyproduct::eval_dynamic(dst, lhs, rhs, internal::sub_assign_op<typename Dst::Scalar, Scalar>());
@@ -1017,14 +1022,14 @@ struct gemm_product_impl<Lhs, Rhs, true>
   }
 
   template <typename Dest>
-  static void scaleAndAddTo(Dest& dst, const Lhs& a_lhs, const Rhs& a_rhs, const Scalar& alpha) {
+  static constexpr void scaleAndAddTo(Dest& dst, const Lhs& a_lhs, const Rhs& a_rhs, const Scalar& alpha) {
     scaleAndAddOrEvalTo(dst, a_lhs, a_rhs, alpha, false);
   }
 
   // dst = alpha * a_lhs * a_rhs, independently of dst's prior contents and, where the GEMM kernel can overwrite,
   // without zeroing it first.
   template <typename Dest>
-  static void scaleAndEvalTo(Dest& dst, const Lhs& a_lhs, const Rhs& a_rhs, const Scalar& alpha) {
+  static constexpr void scaleAndEvalTo(Dest& dst, const Lhs& a_lhs, const Rhs& a_rhs, const Scalar& alpha) {
     scaleAndAddOrEvalTo(dst, a_lhs, a_rhs, alpha, true);
   }
 
@@ -1032,7 +1037,15 @@ struct gemm_product_impl<Lhs, Rhs, true>
   // One body for both: `overwrite` is a runtime flag, so that assignment and accumulation share one
   // instantiation.
   template <typename Dest>
-  static void scaleAndAddOrEvalTo(Dest& dst, const Lhs& a_lhs, const Rhs& a_rhs, const Scalar& alpha, bool overwrite) {
+  static constexpr void scaleAndAddOrEvalTo(Dest& dst, const Lhs& a_lhs, const Rhs& a_rhs, const Scalar& alpha,
+                                            bool overwrite) {
+    if (is_constant_evaluated()) {
+      if (overwrite)
+        dst.matrix().noalias() = alpha * a_lhs.lazyProduct(a_rhs);
+      else
+        dst.matrix().noalias() += alpha * a_lhs.lazyProduct(a_rhs);
+      return;
+    }
     scaleAndAddOrEvalTo(gemm_accumulates_in_float<LhsScalar, RhsScalar>(), dst, a_lhs, a_rhs, alpha, overwrite);
   }
 

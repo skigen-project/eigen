@@ -73,7 +73,7 @@ struct real_default_impl {
 template <typename Scalar>
 struct real_default_impl<Scalar, true> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     using std::real;
     return real(x);
   }
@@ -86,7 +86,7 @@ struct real_impl : real_default_impl<Scalar> {};
 template <typename T>
 struct real_impl<std::complex<T>> {
   using RealScalar = T;
-  EIGEN_DEVICE_FUNC static inline T run(const std::complex<T>& x) { return x.real(); }
+  EIGEN_DEVICE_FUNC static constexpr T run(const std::complex<T>& x) { return x.real(); }
 };
 #endif
 
@@ -97,13 +97,13 @@ struct real_impl<std::complex<T>> {
 template <typename Scalar, bool IsComplex = NumTraits<Scalar>::IsComplex>
 struct imag_default_impl {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar&) { return RealScalar(0); }
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar&) { return RealScalar(0); }
 };
 
 template <typename Scalar>
 struct imag_default_impl<Scalar, true> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     using std::imag;
     return imag(x);
   }
@@ -116,7 +116,7 @@ struct imag_impl : imag_default_impl<Scalar> {};
 template <typename T>
 struct imag_impl<std::complex<T>> {
   using RealScalar = T;
-  EIGEN_DEVICE_FUNC static inline T run(const std::complex<T>& x) { return x.imag(); }
+  EIGEN_DEVICE_FUNC static constexpr T run(const std::complex<T>& x) { return x.imag(); }
 };
 #endif
 
@@ -124,13 +124,45 @@ struct imag_impl<std::complex<T>> {
  * Implementation of real_ref                                             *
  ****************************************************************************/
 
+// Components of a complex value by reference: z = re + i im is laid out as {re, im}.
+// reinterpret_cast is not allowed in constant expressions, but C++26's tuple protocol for std::complex (P2819) is.
+#if defined(__cpp_lib_tuple_like) && __cpp_lib_tuple_like >= 202311L
+constexpr bool constexpr_complex_components = true;
+#else
+constexpr bool constexpr_complex_components = false;
+#endif
+
+template <typename Scalar>
+EIGEN_DEVICE_FUNC typename NumTraits<Scalar>::Real& complex_component(Scalar& z, Index p) {
+  return reinterpret_cast<typename NumTraits<Scalar>::Real*>(&z)[p];
+}
+
+template <typename Scalar>
+EIGEN_DEVICE_FUNC const typename NumTraits<Scalar>::Real& complex_component(const Scalar& z, Index p) {
+  return reinterpret_cast<const typename NumTraits<Scalar>::Real*>(&z)[p];
+}
+
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr const T& complex_component(const std::complex<T>& z, Index p) {
+#if defined(__cpp_lib_tuple_like) && __cpp_lib_tuple_like >= 202311L
+  if (is_constant_evaluated()) return p ? std::get<1>(z) : std::get<0>(z);
+#endif
+  return reinterpret_cast<const T(&)[2]>(z)[p];
+}
+
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T& complex_component(std::complex<T>& z, Index p) {
+#if defined(__cpp_lib_tuple_like) && __cpp_lib_tuple_like >= 202311L
+  if (is_constant_evaluated()) return p ? std::get<1>(z) : std::get<0>(z);
+#endif
+  return reinterpret_cast<T(&)[2]>(z)[p];
+}
+
 template <typename Scalar>
 struct real_ref_impl {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar& run(Scalar& x) { return reinterpret_cast<RealScalar*>(&x)[0]; }
-  EIGEN_DEVICE_FUNC static inline const RealScalar& run(const Scalar& x) {
-    return reinterpret_cast<const RealScalar*>(&x)[0];
-  }
+  EIGEN_DEVICE_FUNC static constexpr RealScalar& run(Scalar& x) { return complex_component(x, 0); }
+  EIGEN_DEVICE_FUNC static constexpr const RealScalar& run(const Scalar& x) { return complex_component(x, 0); }
 };
 
 /****************************************************************************
@@ -140,17 +172,15 @@ struct real_ref_impl {
 template <typename Scalar, bool IsComplex>
 struct imag_ref_default_impl {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar& run(Scalar& x) { return reinterpret_cast<RealScalar*>(&x)[1]; }
-  EIGEN_DEVICE_FUNC static inline const RealScalar& run(const Scalar& x) {
-    return reinterpret_cast<const RealScalar*>(&x)[1];
-  }
+  EIGEN_DEVICE_FUNC static constexpr RealScalar& run(Scalar& x) { return complex_component(x, 1); }
+  EIGEN_DEVICE_FUNC static constexpr const RealScalar& run(const Scalar& x) { return complex_component(x, 1); }
 };
 
 template <typename Scalar>
 struct imag_ref_default_impl<Scalar, false> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC constexpr static inline RealScalar run(Scalar&) { return RealScalar(0); }
-  EIGEN_DEVICE_FUNC constexpr static inline RealScalar run(const Scalar&) { return RealScalar(0); }
+  EIGEN_DEVICE_FUNC constexpr static RealScalar run(Scalar&) { return RealScalar(0); }
+  EIGEN_DEVICE_FUNC constexpr static RealScalar run(const Scalar&) { return RealScalar(0); }
 };
 
 template <typename Scalar>
@@ -161,29 +191,29 @@ struct imag_ref_impl : imag_ref_default_impl<Scalar, NumTraits<Scalar>::IsComple
 namespace numext {
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline decltype(auto) real(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr decltype(auto) real(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(real, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto real_ref(const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto real_ref(const Scalar& x)
     -> internal::add_const_on_value_type_t<decltype(internal::real_ref_impl<Scalar>::run(x))> {
   return internal::real_ref_impl<Scalar>::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto real_ref(Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto real_ref(Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(real_ref, std::remove_const_t<Scalar>)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(real_ref, std::remove_const_t<Scalar>)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline decltype(auto) imag(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr decltype(auto) imag(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(imag, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar select(const Scalar& mask, const Scalar& a, const Scalar& b) {
+EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE Scalar select(const Scalar& mask, const Scalar& a, const Scalar& b) {
   return numext::is_exactly_zero(mask) ? b : a;
 }
 
@@ -202,7 +232,7 @@ struct conj_default_impl {
 
 template <typename Scalar>
 struct conj_default_impl<Scalar, true> {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& x) {
     using std::conj;
     return conj(x);
   }
@@ -257,14 +287,14 @@ EIGEN_DEVICE_FUNC constexpr EIGEN_ALWAYS_INLINE auto mul(const Lhs& a, const Rhs
 template <typename Scalar, bool IsComplex>
 struct abs2_impl_default {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) { return internal::mul(x, x); }
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) { return internal::mul(x, x); }
 };
 
 template <typename Scalar>
 struct abs2_impl_default<Scalar, true>  // IsComplex
 {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     return numext::real(x) * numext::real(x) + numext::imag(x) * numext::imag(x);
   }
 };
@@ -272,7 +302,7 @@ struct abs2_impl_default<Scalar, true>  // IsComplex
 template <typename Scalar>
 struct abs2_impl {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     return abs2_impl_default<Scalar, NumTraits<Scalar>::IsComplex>::run(x);
   }
 };
@@ -281,23 +311,37 @@ struct abs2_impl {
  * Implementation of sqrt/rsqrt                                             *
  ****************************************************************************/
 
-template <typename Scalar>
-struct sqrt_impl {
-  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE Scalar run(const Scalar& x) {
-    EIGEN_USING_STD(sqrt);
-    return sqrt(x);
-  }
-};
+// Real sqrt defined in MathFunctionsImpl.h.
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T real_sqrt(const T& x);
 
 // Complex sqrt defined in MathFunctionsImpl.h.
 template <typename ComplexT>
 EIGEN_DEVICE_FUNC constexpr ComplexT complex_sqrt(const ComplexT& a_x);
 
+template <typename Scalar>
+struct sqrt_impl {
+  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE constexpr Scalar run(const Scalar& x) {
+    EIGEN_USING_STD(sqrt);
+    if (internal::is_constant_evaluated()) {
+      EIGEN_IF_CONSTEXPR (NumTraits<Scalar>::IsComplex) {
+        return complex_sqrt(x);
+      } else {
+        return real_sqrt(x);
+      }
+    } else {
+      return sqrt(x);
+    }
+  }
+};
+
 // Custom implementation is faster than `std::sqrt`, works on
 // GPU, and correctly handles special cases (unlike MSVC).
 template <typename T>
 struct sqrt_impl<std::complex<T>> {
-  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE std::complex<T> run(const std::complex<T>& x) { return complex_sqrt(x); }
+  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE constexpr std::complex<T> run(const std::complex<T>& x) {
+    return complex_sqrt(x);
+  }
 };
 
 // Default implementation relies on numext::sqrt, at bottom of file.
@@ -310,10 +354,17 @@ EIGEN_DEVICE_FUNC constexpr ComplexT complex_rsqrt(const ComplexT& a_x);
 
 template <typename T>
 struct rsqrt_impl<std::complex<T>> {
-  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE std::complex<T> run(const std::complex<T>& x) {
+  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE constexpr std::complex<T> run(const std::complex<T>& x) {
     return complex_rsqrt(x);
   }
 };
+
+// |x| for constant evaluation, where std::abs and std::fabs are constexpr only from C++23 (P0533R9). Both zeros map
+// to +0 and NaN passes through.
+template <typename Scalar>
+EIGEN_DEVICE_FUNC constexpr Scalar constexpr_abs(const Scalar& x) {
+  return x < Scalar(0) ? Scalar(-x) : x == Scalar(0) ? Scalar(0) : x;
+}
 
 /****************************************************************************
  * Implementation of norm1                                                *
@@ -325,7 +376,10 @@ struct norm1_default_impl;
 template <typename Scalar>
 struct norm1_default_impl<Scalar, true> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (std::is_arithmetic<RealScalar>::value) {
+      if (is_constant_evaluated()) return constexpr_abs(numext::real(x)) + constexpr_abs(numext::imag(x));
+    }
     EIGEN_USING_STD(abs);
     return abs(numext::real(x)) + abs(numext::imag(x));
   }
@@ -334,7 +388,10 @@ struct norm1_default_impl<Scalar, true> {
 template <typename Scalar>
 struct norm1_default_impl<Scalar, false> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (std::is_arithmetic<Scalar>::value) {
+      if (is_constant_evaluated()) return constexpr_abs(x);
+    }
     EIGEN_USING_STD(abs);
     return abs(x);
   }
@@ -356,19 +413,19 @@ struct hypot_impl;
 
 template <typename OldType, typename NewType, typename EnableIf = void>
 struct cast_impl {
-  EIGEN_DEVICE_FUNC static inline NewType run(const OldType& x) { return static_cast<NewType>(x); }
+  EIGEN_DEVICE_FUNC static constexpr NewType run(const OldType& x) { return static_cast<NewType>(x); }
 };
 
 template <typename OldType>
 struct cast_impl<OldType, bool> {
-  EIGEN_DEVICE_FUNC static inline bool run(const OldType& x) { return x != OldType(0); }
+  EIGEN_DEVICE_FUNC static constexpr bool run(const OldType& x) { return x != OldType(0); }
 };
 
 // Casting from S -> Complex<T> leads to an implicit conversion from S to T,
 // generating warnings on clang.  Here we explicitly cast the real component.
 template <typename OldType, typename NewType>
 struct cast_impl<OldType, NewType, std::enable_if_t<!NumTraits<OldType>::IsComplex && NumTraits<NewType>::IsComplex>> {
-  EIGEN_DEVICE_FUNC static inline NewType run(const OldType& x) {
+  EIGEN_DEVICE_FUNC static constexpr NewType run(const OldType& x) {
     using NewReal = typename NumTraits<NewType>::Real;
     return static_cast<NewType>(cast_impl<OldType, NewReal>::run(x));
   }
@@ -380,7 +437,7 @@ struct cast_impl<OldType, NewType, std::enable_if_t<!NumTraits<OldType>::IsCompl
 // |x| >= 2^53 makes the conversion to double exact and leaves a direct conversion unchanged.
 template <typename OldType>
 struct cast_impl<OldType, float, std::enable_if_t<std::is_integral<OldType>::value && sizeof(OldType) == 8>> {
-  EIGEN_DEVICE_FUNC static inline float run(const OldType& x) {
+  EIGEN_DEVICE_FUNC static constexpr float run(const OldType& x) {
     using U = std::make_unsigned_t<OldType>;
     const U u = static_cast<U>(x);
     // In two's complement, clearing the low bits rounds toward -inf for either sign; setting bit 11 then picks the odd
@@ -396,7 +453,7 @@ struct cast_impl<OldType, float, std::enable_if_t<std::is_integral<OldType>::val
 // Returns NewType directly to avoid unintended intermediate conversions.
 
 template <typename OldType, typename NewType>
-EIGEN_DEVICE_FUNC inline NewType cast(const OldType& x) {
+EIGEN_DEVICE_FUNC constexpr NewType cast(const OldType& x) {
   return cast_impl<OldType, NewType>::run(x);
 }
 
@@ -417,7 +474,7 @@ struct arg_default_impl;
 template <typename Scalar>
 struct arg_default_impl<Scalar, true> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static RealScalar run(const Scalar& x) {
     // There is no official ::arg on device in CUDA/HIP, so we always need to use std::arg.
     using std::arg;
     return static_cast<RealScalar>(arg(x));
@@ -428,7 +485,7 @@ struct arg_default_impl<Scalar, true> {
 template <typename Scalar>
 struct arg_default_impl<Scalar, false> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     return (x < Scalar(0)) ? RealScalar(EIGEN_PI) : RealScalar(0);
   }
 };
@@ -436,7 +493,7 @@ struct arg_default_impl<Scalar, false> {
 template <typename Scalar, bool IsComplex = NumTraits<Scalar>::IsComplex>
 struct arg_default_impl {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     return (x < RealScalar(0)) ? RealScalar(EIGEN_PI) : RealScalar(0);
   }
 };
@@ -444,7 +501,7 @@ struct arg_default_impl {
 template <typename Scalar>
 struct arg_default_impl<Scalar, true> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline RealScalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr RealScalar run(const Scalar& x) {
     EIGEN_USING_STD(arg);
     return arg(x);
   }
@@ -463,7 +520,7 @@ namespace std_fallback {
 // or that there is no suitable std::expm1 function available. Implementation
 // attributed to Kahan. See: http://www.plunk.org/~hatch/rightway.php.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar expm1(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar expm1(const Scalar& x) {
   EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
   using RealScalar = typename NumTraits<Scalar>::Real;
 
@@ -485,7 +542,7 @@ EIGEN_DEVICE_FUNC inline Scalar expm1(const Scalar& x) {
 
 template <typename Scalar>
 struct expm1_impl {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& x) {
     EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
     EIGEN_USING_STD(expm1);
     return expm1(x);
@@ -502,7 +559,7 @@ EIGEN_DEVICE_FUNC constexpr ComplexT complex_log(const ComplexT& z);
 
 template <typename Scalar>
 struct log_impl {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& x) {
     EIGEN_USING_STD(log);
     return static_cast<Scalar>(log(x));
   }
@@ -510,7 +567,7 @@ struct log_impl {
 
 template <typename Scalar>
 struct log_impl<std::complex<Scalar>> {
-  EIGEN_DEVICE_FUNC static inline std::complex<Scalar> run(const std::complex<Scalar>& z) { return complex_log(z); }
+  EIGEN_DEVICE_FUNC static constexpr std::complex<Scalar> run(const std::complex<Scalar>& z) { return complex_log(z); }
 };
 
 /****************************************************************************
@@ -521,7 +578,7 @@ namespace std_fallback {
 // fallback log1p implementation in case there is no log1p(Scalar) function in namespace of Scalar,
 // or that there is no suitable std::log1p function available
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar log1p(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar log1p(const Scalar& x) {
   EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
   using RealScalar = typename NumTraits<Scalar>::Real;
   EIGEN_USING_STD(log);
@@ -539,7 +596,7 @@ template <typename Scalar>
 struct log1p_impl {
   EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
 
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& x) {
     EIGEN_USING_STD(log1p);
     return log1p(x);
   }
@@ -563,7 +620,7 @@ template <typename ScalarX, typename ScalarY,
 struct pow_impl {
   using result_type =
       typename ScalarBinaryOpTraits<ScalarX, ScalarY, internal::scalar_pow_op<ScalarX, ScalarY>>::ReturnType;
-  static EIGEN_DEVICE_FUNC inline result_type run(const ScalarX& x, const ScalarY& y) {
+  static EIGEN_DEVICE_FUNC constexpr result_type run(const ScalarX& x, const ScalarY& y) {
     EIGEN_USING_STD(pow);
     return pow(x, y);
   }
@@ -572,7 +629,7 @@ struct pow_impl {
 template <typename ScalarX, typename ScalarY>
 struct pow_impl<ScalarX, ScalarY, true> {
   using result_type = ScalarX;
-  static EIGEN_DEVICE_FUNC inline ScalarX run(ScalarX x, ScalarY y) {
+  static EIGEN_DEVICE_FUNC constexpr ScalarX run(ScalarX x, ScalarY y) {
     ScalarX res(1);
     eigen_assert(!NumTraits<ScalarY>::IsSigned || y >= 0);
     if (y & 1) res = internal::mul(res, x);
@@ -595,15 +652,18 @@ constexpr int floor_log2(unsigned int value) {
   return result;
 }
 
-template <typename BitsType, typename EnableIf = void>
-struct count_bits_impl {
-  static_assert(std::is_integral<BitsType>::value && std::is_unsigned<BitsType>::value,
-                "BitsType must be an unsigned integer");
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
+// Portable bit counts, also the constant-evaluation path of the intrinsic specializations below, whose BitsType can
+// be signed.
+template <typename BitsType>
+struct count_bits_portable {
+  static_assert(std::is_integral<BitsType>::value, "BitsType must be an integer");
+  using UnsignedBits = std::make_unsigned_t<BitsType>;
+
+  static EIGEN_DEVICE_FUNC constexpr int clz(UnsignedBits bits) {
     int n = CHAR_BIT * sizeof(BitsType);
     int shift = n / 2;
     while (bits > 0 && shift > 0) {
-      BitsType y = bits >> shift;
+      UnsignedBits y = bits >> shift;
       if (y > 0) {
         n -= shift;
         bits = y;
@@ -616,11 +676,11 @@ struct count_bits_impl {
     return n;
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int ctz(UnsignedBits bits) {
     int n = CHAR_BIT * sizeof(BitsType);
     int shift = n / 2;
     while (bits > 0 && shift > 0) {
-      BitsType y = bits << shift;
+      UnsignedBits y = bits << shift;
       if (y > 0) {
         n -= shift;
         bits = y;
@@ -633,7 +693,7 @@ struct count_bits_impl {
     return n;
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(UnsignedBits bits) {
     int n = 0;
     while (bits) {
       bits &= bits - 1;
@@ -643,21 +703,27 @@ struct count_bits_impl {
   }
 };
 
+template <typename BitsType, typename EnableIf = void>
+struct count_bits_impl : count_bits_portable<BitsType> {
+  static_assert(std::is_integral<BitsType>::value && std::is_unsigned<BitsType>::value,
+                "BitsType must be an unsigned integer");
+};
+
 // Count leading zeros.
 template <typename BitsType>
-EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
+EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
   return count_bits_impl<BitsType>::clz(bits);
 }
 
 // Count trailing zeros.
 template <typename BitsType>
-EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
   return count_bits_impl<BitsType>::ctz(bits);
 }
 
 // Count set bits (population count).
 template <typename BitsType>
-EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
   return count_bits_impl<BitsType>::popcount(bits);
 }
 
@@ -672,16 +738,21 @@ template <typename BitsType>
 struct count_bits_impl<
     BitsType, std::enable_if_t<std::is_integral<BitsType>::value && sizeof(BitsType) <= sizeof(unsigned int)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    static constexpr int kLeadingBitsOffset = (sizeof(unsigned int) - sizeof(BitsType)) * CHAR_BIT;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::clz(bits);
+    constexpr int kLeadingBitsOffset = (sizeof(unsigned int) - sizeof(BitsType)) * CHAR_BIT;
     return static_cast<int>(__clz(static_cast<unsigned int>(bits))) - kLeadingBitsOffset;
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::ctz(bits);
     return bits == 0 ? kNumBits : __ffs(static_cast<int>(static_cast<unsigned int>(bits))) - 1;
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) { return __popc(static_cast<unsigned int>(bits)); }
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::popcount(bits);
+    return __popc(static_cast<unsigned int>(bits));
+  }
 };
 
 template <typename BitsType>
@@ -689,16 +760,19 @@ struct count_bits_impl<BitsType,
                        std::enable_if_t<std::is_integral<BitsType>::value && sizeof(unsigned int) < sizeof(BitsType) &&
                                         sizeof(BitsType) <= sizeof(unsigned long long)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    static constexpr int kLeadingBitsOffset = (sizeof(unsigned long long) - sizeof(BitsType)) * CHAR_BIT;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::clz(bits);
+    constexpr int kLeadingBitsOffset = (sizeof(unsigned long long) - sizeof(BitsType)) * CHAR_BIT;
     return static_cast<int>(__clzll(static_cast<unsigned long long>(bits))) - kLeadingBitsOffset;
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::ctz(bits);
     return bits == 0 ? kNumBits : __ffsll(static_cast<long long>(static_cast<unsigned long long>(bits))) - 1;
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::popcount(bits);
     return __popcll(static_cast<unsigned long long>(bits));
   }
 };
@@ -709,16 +783,16 @@ template <typename BitsType>
 struct count_bits_impl<
     BitsType, std::enable_if_t<std::is_integral<BitsType>::value && sizeof(BitsType) <= sizeof(unsigned int)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    static constexpr int kLeadingBitsOffset = (sizeof(unsigned int) - sizeof(BitsType)) * CHAR_BIT;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    constexpr int kLeadingBitsOffset = (sizeof(unsigned int) - sizeof(BitsType)) * CHAR_BIT;
     return bits == 0 ? kNumBits : __builtin_clz(static_cast<unsigned int>(bits)) - kLeadingBitsOffset;
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
     return bits == 0 ? kNumBits : __builtin_ctz(static_cast<unsigned int>(bits));
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
     return __builtin_popcount(static_cast<unsigned int>(bits));
   }
 };
@@ -728,16 +802,16 @@ struct count_bits_impl<BitsType,
                        std::enable_if_t<std::is_integral<BitsType>::value && sizeof(unsigned int) < sizeof(BitsType) &&
                                         sizeof(BitsType) <= sizeof(unsigned long)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    static constexpr int kLeadingBitsOffset = (sizeof(unsigned long) - sizeof(BitsType)) * CHAR_BIT;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    constexpr int kLeadingBitsOffset = (sizeof(unsigned long) - sizeof(BitsType)) * CHAR_BIT;
     return bits == 0 ? kNumBits : __builtin_clzl(static_cast<unsigned long>(bits)) - kLeadingBitsOffset;
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
     return bits == 0 ? kNumBits : __builtin_ctzl(static_cast<unsigned long>(bits));
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
     return __builtin_popcountl(static_cast<unsigned long>(bits));
   }
 };
@@ -747,16 +821,16 @@ struct count_bits_impl<BitsType,
                        std::enable_if_t<std::is_integral<BitsType>::value && sizeof(unsigned long) < sizeof(BitsType) &&
                                         sizeof(BitsType) <= sizeof(unsigned long long)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    static constexpr int kLeadingBitsOffset = (sizeof(unsigned long long) - sizeof(BitsType)) * CHAR_BIT;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    constexpr int kLeadingBitsOffset = (sizeof(unsigned long long) - sizeof(BitsType)) * CHAR_BIT;
     return bits == 0 ? kNumBits : __builtin_clzll(static_cast<unsigned long long>(bits)) - kLeadingBitsOffset;
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
     return bits == 0 ? kNumBits : __builtin_ctzll(static_cast<unsigned long long>(bits));
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
     return __builtin_popcountll(static_cast<unsigned long long>(bits));
   }
 };
@@ -768,36 +842,29 @@ struct count_bits_impl<BitsType,
 // baseline `bsr`/`bsf`).  Fall back to a portable count when building without SSE4.2
 // enabled.
 template <typename BitsType>
-EIGEN_DEVICE_FUNC inline int popcount_fallback(BitsType bits) {
-  int n = 0;
-  while (bits) {
-    bits &= bits - 1;
-    ++n;
-  }
-  return n;
-}
-
-template <typename BitsType>
 struct count_bits_impl<
     BitsType, std::enable_if_t<std::is_integral<BitsType>::value && sizeof(BitsType) <= sizeof(unsigned long)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    unsigned long out;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::clz(bits);
+    unsigned long out = 0;
     _BitScanReverse(&out, static_cast<unsigned long>(bits));
     return bits == 0 ? kNumBits : (kNumBits - 1) - static_cast<int>(out);
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
-    unsigned long out;
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::ctz(bits);
+    unsigned long out = 0;
     _BitScanForward(&out, static_cast<unsigned long>(bits));
     return bits == 0 ? kNumBits : static_cast<int>(out);
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
 #if defined(EIGEN_VECTORIZE_SSE4_2)
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::popcount(bits);
     return static_cast<int>(__popcnt(static_cast<unsigned int>(bits)));
 #else
-    return popcount_fallback(bits);
+    return count_bits_portable<BitsType>::popcount(bits);
 #endif
   }
 };
@@ -809,23 +876,26 @@ struct count_bits_impl<BitsType,
                        std::enable_if_t<std::is_integral<BitsType>::value && sizeof(unsigned long) < sizeof(BitsType) &&
                                         sizeof(BitsType) <= sizeof(__int64)>> {
   static constexpr int kNumBits = static_cast<int>(sizeof(BitsType) * CHAR_BIT);
-  static EIGEN_DEVICE_FUNC inline int clz(BitsType bits) {
-    unsigned long out;
+  static EIGEN_DEVICE_FUNC constexpr int clz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::clz(bits);
+    unsigned long out = 0;
     _BitScanReverse64(&out, static_cast<unsigned __int64>(bits));
     return bits == 0 ? kNumBits : (kNumBits - 1) - static_cast<int>(out);
   }
 
-  static EIGEN_DEVICE_FUNC inline int ctz(BitsType bits) {
-    unsigned long out;
+  static EIGEN_DEVICE_FUNC constexpr int ctz(BitsType bits) {
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::ctz(bits);
+    unsigned long out = 0;
     _BitScanForward64(&out, static_cast<unsigned __int64>(bits));
     return bits == 0 ? kNumBits : static_cast<int>(out);
   }
 
-  static EIGEN_DEVICE_FUNC inline int popcount(BitsType bits) {
+  static EIGEN_DEVICE_FUNC constexpr int popcount(BitsType bits) {
 #if defined(EIGEN_VECTORIZE_SSE4_2)
+    if (is_constant_evaluated()) return count_bits_portable<BitsType>::popcount(bits);
     return static_cast<int>(__popcnt64(static_cast<unsigned __int64>(bits)));
 #else
-    return popcount_fallback(bits);
+    return count_bits_portable<BitsType>::popcount(bits);
 #endif
   }
 };
@@ -837,82 +907,91 @@ struct count_bits_impl<BitsType,
 template <typename BitsType>
 struct log_2_impl {
   static constexpr int kTotalBits = sizeof(BitsType) * CHAR_BIT;
-  static EIGEN_DEVICE_FUNC inline int run_ceil(const BitsType& x) {
+  static EIGEN_DEVICE_FUNC constexpr int run_ceil(const BitsType& x) {
     const int n = kTotalBits - clz(x);
     bool power_of_two = (x & (x - 1)) == 0;
     return x == 0 ? 0 : power_of_two ? (n - 1) : n;
   }
-  static EIGEN_DEVICE_FUNC inline int run_floor(const BitsType& x) {
+  static EIGEN_DEVICE_FUNC constexpr int run_floor(const BitsType& x) {
     const int n = kTotalBits - clz(x);
     return x == 0 ? 0 : n - 1;
   }
 };
 
 template <typename BitsType>
-int log2_ceil(const BitsType& x) {
+constexpr int log2_ceil(const BitsType& x) {
   return log_2_impl<BitsType>::run_ceil(x);
 }
 
 template <typename BitsType>
-int log2_floor(const BitsType& x) {
+constexpr int log2_floor(const BitsType& x) {
   return log_2_impl<BitsType>::run_floor(x);
 }
 
 // Implementation of is* functions
 
 template <typename T>
-EIGEN_DEVICE_FUNC std::enable_if_t<!(std::numeric_limits<T>::has_infinity || std::numeric_limits<T>::has_quiet_NaN ||
-                                     std::numeric_limits<T>::has_signaling_NaN),
-                                   bool>
+EIGEN_DEVICE_FUNC constexpr std::enable_if_t<!(std::numeric_limits<T>::has_infinity ||
+                                               std::numeric_limits<T>::has_quiet_NaN ||
+                                               std::numeric_limits<T>::has_signaling_NaN),
+                                             bool>
 isfinite_impl(const T&) {
   return true;
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC std::enable_if_t<(std::numeric_limits<T>::has_infinity || std::numeric_limits<T>::has_quiet_NaN ||
-                                    std::numeric_limits<T>::has_signaling_NaN) &&
-                                       (!NumTraits<T>::IsComplex),
-                                   bool>
+EIGEN_DEVICE_FUNC constexpr std::enable_if_t<(std::numeric_limits<T>::has_infinity ||
+                                              std::numeric_limits<T>::has_quiet_NaN ||
+                                              std::numeric_limits<T>::has_signaling_NaN) &&
+                                                 (!NumTraits<T>::IsComplex),
+                                             bool>
 isfinite_impl(const T& x) {
+  // std::isfinite, std::isinf and std::isnan are constexpr only from C++23 (P0533R9).
+  if (is_constant_evaluated())
+    return numext::equal_strict(x, x) && x != std::numeric_limits<T>::infinity() &&
+           x != -std::numeric_limits<T>::infinity();
   EIGEN_USING_STD(isfinite);
   return isfinite EIGEN_NOT_A_MACRO(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC std::enable_if_t<!std::numeric_limits<T>::has_infinity, bool> isinf_impl(const T&) {
+EIGEN_DEVICE_FUNC constexpr std::enable_if_t<!std::numeric_limits<T>::has_infinity, bool> isinf_impl(const T&) {
   return false;
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC std::enable_if_t<(std::numeric_limits<T>::has_infinity && !NumTraits<T>::IsComplex), bool> isinf_impl(
-    const T& x) {
+EIGEN_DEVICE_FUNC constexpr std::enable_if_t<(std::numeric_limits<T>::has_infinity && !NumTraits<T>::IsComplex), bool>
+isinf_impl(const T& x) {
+  if (is_constant_evaluated())
+    return x == std::numeric_limits<T>::infinity() || x == -std::numeric_limits<T>::infinity();
   EIGEN_USING_STD(isinf);
   return isinf EIGEN_NOT_A_MACRO(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC
-    std::enable_if_t<!(std::numeric_limits<T>::has_quiet_NaN || std::numeric_limits<T>::has_signaling_NaN), bool>
-    isnan_impl(const T&) {
+EIGEN_DEVICE_FUNC constexpr std::enable_if_t<
+    !(std::numeric_limits<T>::has_quiet_NaN || std::numeric_limits<T>::has_signaling_NaN), bool>
+isnan_impl(const T&) {
   return false;
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC std::enable_if_t<
+EIGEN_DEVICE_FUNC constexpr std::enable_if_t<
     (std::numeric_limits<T>::has_quiet_NaN || std::numeric_limits<T>::has_signaling_NaN) && (!NumTraits<T>::IsComplex),
     bool>
 isnan_impl(const T& x) {
+  if (is_constant_evaluated()) return numext::not_equal_strict(x, x);
   EIGEN_USING_STD(isnan);
   return isnan EIGEN_NOT_A_MACRO(x);
 }
 
 // The following overload are defined at the end of this file
 template <typename T>
-EIGEN_DEVICE_FUNC bool isfinite_impl(const std::complex<T>& x);
+EIGEN_DEVICE_FUNC constexpr bool isfinite_impl(const std::complex<T>& x);
 template <typename T>
-EIGEN_DEVICE_FUNC bool isnan_impl(const std::complex<T>& x);
+EIGEN_DEVICE_FUNC constexpr bool isnan_impl(const std::complex<T>& x);
 template <typename T>
-EIGEN_DEVICE_FUNC bool isinf_impl(const std::complex<T>& x);
+EIGEN_DEVICE_FUNC constexpr bool isinf_impl(const std::complex<T>& x);
 template <typename T>
 EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS T ptanh_float(const T& a_x);
 
@@ -922,22 +1001,25 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS T ptanh_float(const T& a_x);
 template <typename Scalar, bool IsComplex = (NumTraits<Scalar>::IsComplex != 0),
           bool IsInteger = (NumTraits<Scalar>::IsInteger != 0)>
 struct sign_impl {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& a) { return Scalar((a > Scalar(0)) - (a < Scalar(0))); }
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a) { return Scalar((a > Scalar(0)) - (a < Scalar(0))); }
 };
 
 template <typename Scalar>
 struct sign_impl<Scalar, false, false> {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& a) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a) {
     return (isnan_impl<Scalar>)(a) ? a : Scalar((a > Scalar(0)) - (a < Scalar(0)));
   }
 };
 
 template <typename Scalar, bool IsInteger>
 struct sign_impl<Scalar, true, IsInteger> {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& a) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a) {
     using real_type = typename NumTraits<Scalar>::Real;
     EIGEN_USING_STD(abs);
-    real_type aa = abs(a);
+    // numext::abs is declared below, and std::abs of a complex is not constexpr.
+    const real_type aa = internal::is_constant_evaluated()
+                             ? hypot_impl<real_type>::run(numext::real(a), numext::imag(a))
+                             : real_type(abs(a));
     if (aa == real_type(0)) return Scalar(0);
     // Divide rather than multiply by 1/aa: the reciprocal overflows for subnormal aa and is itself
     // subnormal, hence inexact, for aa near the top of the range. psign_impl for complex packets
@@ -949,7 +1031,7 @@ struct sign_impl<Scalar, true, IsInteger> {
 // The sign function for bool is the identity.
 template <>
 struct sign_impl<bool, false, true> {
-  EIGEN_DEVICE_FUNC static inline bool run(const bool& a) { return a; }
+  EIGEN_DEVICE_FUNC static constexpr bool run(const bool& a) { return a; }
 };
 
 // Extra namespace to prevent leaking std::copysign into Eigen::internal.
@@ -974,11 +1056,17 @@ struct has_copysign_impl<T, std::enable_if_t<std::is_constructible<
 template <typename T>
 struct has_copysign : public has_copysign_detail::has_copysign_impl<T> {};
 
+// std::copysign is constexpr only from C++23.
+template <typename Scalar, bool CopiesSignBit = EIGEN_HAS_CONSTEXPR_BIT_CAST && (std::is_same<Scalar, float>::value ||
+                                                                                 std::is_same<Scalar, double>::value)>
+struct constexpr_copysign_impl;
+
 template <typename Scalar, bool IsComplex = (NumTraits<Scalar>::IsComplex != 0),
           bool IsInteger = (NumTraits<Scalar>::IsInteger != 0),
           bool HasCopysign = (!IsComplex && !IsInteger && has_copysign<Scalar>::value)>
 struct copysign_impl {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& a, const Scalar& b) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a, const Scalar& b) {
+    if (is_constant_evaluated()) return constexpr_copysign_impl<Scalar>::run(a, b);
     EIGEN_USING_STD(copysign);
     return Scalar(copysign(a, b));
   }
@@ -987,7 +1075,7 @@ struct copysign_impl {
 template <typename Scalar, bool IsInteger>
 struct copysign_impl<Scalar, true, IsInteger, false> {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& a, const Scalar& b) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a, const Scalar& b) {
     return Scalar(copysign_impl<RealScalar>::run(numext::real(a), numext::real(b)),
                   copysign_impl<RealScalar>::run(numext::imag(a), numext::imag(b)));
   }
@@ -995,7 +1083,7 @@ struct copysign_impl<Scalar, true, IsInteger, false> {
 
 template <typename Scalar, bool IsInteger>
 struct copysign_impl<Scalar, false, IsInteger, false> {
-  EIGEN_DEVICE_FUNC static inline Scalar run(const Scalar& a, const Scalar& b) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a, const Scalar& b) {
     EIGEN_IF_CONSTEXPR (IsInteger && !NumTraits<Scalar>::IsSigned) return a;
     const Scalar abs_a = a < Scalar(0) ? -a : a;
     return b < Scalar(0) ? -abs_a : abs_a;
@@ -1004,7 +1092,7 @@ struct copysign_impl<Scalar, false, IsInteger, false> {
 
 template <>
 struct copysign_impl<bool, false, true, false> {
-  EIGEN_DEVICE_FUNC static inline bool run(const bool& a, const bool&) { return a; }
+  EIGEN_DEVICE_FUNC static constexpr bool run(const bool& a, const bool&) { return a; }
 };
 
 // suppress "unary minus operator applied to unsigned type, result still unsigned" warnings on MSVC
@@ -1012,40 +1100,152 @@ struct copysign_impl<bool, false, true, false> {
 
 template <typename Scalar, bool IsInteger = NumTraits<Scalar>::IsInteger>
 struct negate_impl {
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Scalar run(const Scalar& a) { return -a; }
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr Scalar run(const Scalar& a) { return -a; }
 };
 
 template <typename Scalar>
 struct negate_impl<Scalar, true> {
   EIGEN_STATIC_ASSERT((!std::is_same<Scalar, bool>::value), NEGATE IS NOT DEFINED FOR BOOLEAN TYPES)
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Scalar run(const Scalar& a) { return Scalar(0) - a; }
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr Scalar run(const Scalar& a) { return Scalar(0) - a; }
+};
+
+// Binary floating-point types that the constant-evaluation fallbacks for floor, ceil, trunc, round, rint, frexp and
+// ldexp support; integral values below 2^(digits - 1) fit in int64_t.
+template <typename T>
+struct has_constexpr_binary_fallback
+    : bool_constant<std::is_floating_point<T>::value && std::numeric_limits<T>::radix == 2 &&
+                    std::numeric_limits<T>::digits <= 64> {};
+
+// 2^n for min_exponent - 1 <= n < max_exponent, where every partial product is a normal power of two.
+template <typename Scalar>
+EIGEN_DEVICE_FUNC constexpr Scalar constexpr_pow2(int n) {
+  constexpr Scalar kTwo64 = Scalar(18446744073709551616.0);
+  Scalar r(1);
+  for (; n >= 64; n -= 64) r *= kTwo64;
+  for (; n <= -64; n += 64) r /= kTwo64;
+  return n >= 0 ? r * Scalar(uint64_t(1) << n) : r / Scalar(uint64_t(1) << -n);
+}
+
+// frexp: x = m 2^e with 1/2 <= |m| < 1, by exact power-of-two scaling. Zeros, infinities and NaN return x and e = 0.
+template <typename Scalar>
+EIGEN_DEVICE_FUNC constexpr Scalar constexpr_frexp(const Scalar& x, int& e) {
+  constexpr Scalar kTwo64 = Scalar(18446744073709551616.0);
+  e = 0;
+  if (x == Scalar(0) || !(x >= -(std::numeric_limits<Scalar>::max)() && x <= (std::numeric_limits<Scalar>::max)()))
+    return x;
+  Scalar a = x < Scalar(0) ? -x : x;
+  if (a < (std::numeric_limits<Scalar>::min)()) {
+    a *= constexpr_pow2<Scalar>(std::numeric_limits<Scalar>::digits);
+    e -= std::numeric_limits<Scalar>::digits;
+  }
+  for (; a >= kTwo64; e += 64) a /= kTwo64;
+  for (; a < Scalar(1) / kTwo64; e -= 64) a *= kTwo64;
+  for (; a >= Scalar(1); ++e) a /= Scalar(2);
+  for (; a < Scalar(0.5); --e) a *= Scalar(2);
+  return x < Scalar(0) ? -a : a;
+}
+
+// ldexp: x 2^e, rounded once. With x = m 2^k and n = k + e, a normal result is (2m) 2^(n-1). A subnormal one is
+// (m 2^(n+p+2)) 2^-(p+2) with p = digits: the first product is exact and normal, the second rounds once. Below
+// n = min_exponent - p - 2 the result is under half the smallest subnormal and rounds to zero, as the clamped n does.
+template <typename Scalar>
+EIGEN_DEVICE_FUNC constexpr Scalar constexpr_ldexp(const Scalar& x, int e) {
+  constexpr int p = std::numeric_limits<Scalar>::digits;
+  constexpr int kMinExponent = std::numeric_limits<Scalar>::min_exponent;
+  constexpr int kMaxExponent = std::numeric_limits<Scalar>::max_exponent;
+  if (x == Scalar(0) || !(x >= -(std::numeric_limits<Scalar>::max)() && x <= (std::numeric_limits<Scalar>::max)()))
+    return x;
+  int k = 0;
+  const Scalar m = constexpr_frexp(x, k);
+  const int64_t n = int64_t(k) + int64_t(e);
+  if (n > kMaxExponent)
+    return x < Scalar(0) ? -std::numeric_limits<Scalar>::infinity() : std::numeric_limits<Scalar>::infinity();
+  if (n >= kMinExponent) return (Scalar(2) * m) * constexpr_pow2<Scalar>(int(n) - 1);
+  const int clamped = n < kMinExponent - p - 2 ? kMinExponent - p - 2 : int(n);
+  return (m * constexpr_pow2<Scalar>(clamped + p + 2)) * constexpr_pow2<Scalar>(-(p + 2));
+}
+
+// Constant-evaluation fallbacks for floor, ceil, trunc, round and rint; rint assumes round-to-nearest-even. Every
+// |x| >= 2^(digits - 1) is an integer, and below that bound t = trunc(x) and x - t are exact. A zero result takes the
+// sign of x, so x = +-0 is returned unchanged.
+template <typename Scalar>
+struct constexpr_nearest_integer {
+  enum Mode { Floor, Ceil, Trunc, Round, Rint };
+
+  template <Mode M>
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& x) {
+    constexpr Scalar kIntegralBound = Scalar(uint64_t(1) << (std::numeric_limits<Scalar>::digits - 1));
+    if (!(x > -kIntegralBound && x < kIntegralBound)) return x;  // NaN, infinities and integers
+    const int64_t i = int64_t(x);
+    const Scalar t = Scalar(i);
+    const Scalar f = x - t;
+    Scalar r = t;
+    switch (M) {
+      case Floor:
+        if (f < Scalar(0)) r -= Scalar(1);
+        break;
+      case Ceil:
+        if (f > Scalar(0)) r += Scalar(1);
+        break;
+      case Trunc:
+        break;
+      case Round:
+        if (f >= Scalar(0.5)) r += Scalar(1);
+        if (f <= Scalar(-0.5)) r -= Scalar(1);
+        break;
+      case Rint:
+        if (f > Scalar(0.5) || (f == Scalar(0.5) && (i & 1) != 0)) r += Scalar(1);
+        if (f < Scalar(-0.5) || (f == Scalar(-0.5) && (i & 1) != 0)) r -= Scalar(1);
+        break;
+    }
+    if (r != Scalar(0)) return r;
+    return x < Scalar(0) ? -Scalar(0) : (x > Scalar(0) ? Scalar(0) : x);
+  }
 };
 
 template <typename Scalar, bool IsInteger = NumTraits<typename unpacket_traits<Scalar>::type>::IsInteger>
 struct nearest_integer_impl {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_floor(const Scalar& x) {
+  using Fallback = constexpr_nearest_integer<Scalar>;
+  static constexpr bool HasFallback = has_constexpr_binary_fallback<Scalar>::value;
+
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_floor(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (HasFallback) {
+      if (is_constant_evaluated()) return Fallback::template run<Fallback::Floor>(x);
+    }
     EIGEN_USING_STD(floor) return floor(x);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_ceil(const Scalar& x) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_ceil(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (HasFallback) {
+      if (is_constant_evaluated()) return Fallback::template run<Fallback::Ceil>(x);
+    }
     EIGEN_USING_STD(ceil) return ceil(x);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_rint(const Scalar& x) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_rint(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (HasFallback) {
+      if (is_constant_evaluated()) return Fallback::template run<Fallback::Rint>(x);
+    }
     EIGEN_USING_STD(rint) return rint(x);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_round(const Scalar& x) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_round(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (HasFallback) {
+      if (is_constant_evaluated()) return Fallback::template run<Fallback::Round>(x);
+    }
     EIGEN_USING_STD(round) return round(x);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_trunc(const Scalar& x) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_trunc(const Scalar& x) {
+    EIGEN_IF_CONSTEXPR (HasFallback) {
+      if (is_constant_evaluated()) return Fallback::template run<Fallback::Trunc>(x);
+    }
     EIGEN_USING_STD(trunc) return trunc(x);
   }
 };
 template <typename Scalar>
 struct nearest_integer_impl<Scalar, true> {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_floor(const Scalar& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_ceil(const Scalar& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_rint(const Scalar& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_round(const Scalar& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run_trunc(const Scalar& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_floor(const Scalar& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_ceil(const Scalar& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_rint(const Scalar& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_round(const Scalar& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run_trunc(const Scalar& x) { return x; }
 };
 
 // Extra namespace to prevent leaking std::fma into Eigen::internal.
@@ -1075,7 +1275,7 @@ struct fma_impl {
 // STD or ADL version if it exists.
 template <typename T>
 struct fma_impl<T, std::enable_if_t<has_fma<T>::value>> {
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T run(const T& a, const T& b, const T& c) {
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T run(const T& a, const T& b, const T& c) {
     using std::fma;
     return fma(a, b, c);
   }
@@ -1106,7 +1306,7 @@ struct fma_impl<double, void> {
 // Basic multiply-add.
 template <typename Scalar, typename EnableIf = void>
 struct madd_impl {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Scalar& x, const Scalar& y, const Scalar& z) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar& x, const Scalar& y, const Scalar& z) {
     // Separate statements prevent FP_CONTRACT ON from fusing the unfused fallback.
     const Scalar xy = x * y;
     return xy + z;
@@ -1116,7 +1316,7 @@ struct madd_impl {
 #if EIGEN_SCALAR_MADD_USE_FMA
 template <typename Scalar>
 struct madd_impl<Scalar, std::enable_if_t<has_fma<Scalar>::value>> {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Scalar& x, const Scalar& y, const Scalar& z) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar& x, const Scalar& y, const Scalar& z) {
     return fma_impl<Scalar>::run(x, y, z);
   }
 };
@@ -1135,9 +1335,13 @@ struct binary_floating_point_traits {
   static constexpr Bits kExponentMask = ((Bits(1) << kExponentBits) - 1) << kFractionBits;
   static constexpr Bits kMaxFiniteExponentBits = kExponentMask - kExponentUnit;
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Bits bits(const Scalar& value) { return numext::bit_cast<Bits>(value); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Bits bits(const Scalar& value) {
+    return numext::bit_cast<Bits>(value);
+  }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Bits magnitude(const Scalar& value) { return bits(value) & ~kSignBit; }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Bits magnitude(const Scalar& value) {
+    return bits(value) & ~kSignBit;
+  }
 };
 
 // Redundant out-of-class definitions are required pre-C++17 but deprecated since.
@@ -1162,12 +1366,12 @@ constexpr
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_exactly_zero_no_flush_impl(const Scalar& value, false_type) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_exactly_zero_no_flush_impl(const Scalar& value, false_type) {
   return numext::is_exactly_zero(value);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE bool is_zero_magnitude_bits(
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr bool is_zero_magnitude_bits(
     typename binary_floating_point_traits<Scalar>::Bits magnitude) {
   // Keep the integer comparison out of line: Clang can otherwise fold it into a
   // floating-point comparison that treats subnormals as zero under DAZ/FZ.
@@ -1177,7 +1381,7 @@ EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE bool is_zero_magnitude_bits(
 // Floating-point comparisons can treat subnormals as zero under DAZ/FTZ.
 template <typename Scalar>
 struct sign_impl_binary {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Scalar& a) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar& a) {
     using Binary = binary_floating_point_traits<Scalar>;
     using Bits = typename Binary::Bits;
     const Bits bits = Binary::bits(a);
@@ -1197,15 +1401,30 @@ struct sign_impl<float, false, false> : sign_impl_binary<float> {};
 template <>
 struct sign_impl<double, false, false> : sign_impl_binary<double> {};
 
+// The comparison with zero cannot read the sign bit of -0 or NaN.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_exactly_zero_no_flush_impl(const Scalar& value, true_type) {
+struct constexpr_copysign_impl<Scalar, false> : copysign_impl<Scalar, false, false, false> {};
+
+template <typename Scalar>
+struct constexpr_copysign_impl<Scalar, true> {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Scalar& a, const Scalar& b) {
+    using Binary = binary_floating_point_traits<Scalar>;
+    return numext::bit_cast<Scalar>(Binary::magnitude(a) | (Binary::bits(b) & Binary::kSignBit));
+  }
+};
+
+template <typename Scalar>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_exactly_zero_no_flush_impl(const Scalar& value, true_type) {
   return is_zero_magnitude_bits<Scalar>(binary_floating_point_traits<Scalar>::magnitude(value));
 }
 
 // |x - y|, as the packet path computes it: abs keeps the +0 of (+0, -0) and the NaN of (inf, inf).
 template <typename T, bool IsInteger = NumTraits<T>::IsInteger>
 struct absdiff_impl {
-  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE T run(const T& x, const T& y) {
+  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE constexpr T run(const T& x, const T& y) {
+    EIGEN_IF_CONSTEXPR (std::is_arithmetic<T>::value) {
+      if (is_constant_evaluated()) return constexpr_abs(x - y);
+    }
     EIGEN_USING_STD(abs);
     return abs(x - y);
   }
@@ -1214,7 +1433,7 @@ struct absdiff_impl {
 // Unsigned x - y wraps, so integers order the operands.
 template <typename T>
 struct absdiff_impl<T, true> {
-  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE T run(const T& x, const T& y) { return x > y ? x - y : y - x; }
+  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE constexpr T run(const T& x, const T& y) { return x > y ? x - y : y - x; }
 };
 
 }  // end namespace internal
@@ -1226,7 +1445,7 @@ struct absdiff_impl<T, true> {
 namespace numext {
 
 template <typename X>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_exactly_zero_no_flush(const X& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_exactly_zero_no_flush(const X& x) {
   constexpr bool HasBinaryEncoding = (std::is_same<X, float>::value || std::is_same<X, double>::value) &&
                                      std::numeric_limits<X>::is_iec559 && std::numeric_limits<X>::radix == 2 &&
                                      (sizeof(X) == sizeof(uint32_t) || sizeof(X) == sizeof(uint64_t));
@@ -1255,17 +1474,17 @@ EIGEN_DEVICE_FUNC constexpr EIGEN_ALWAYS_INLINE T mini(const T& x, const T& y) {
 // NaN behavior. With relaxed constexpr, they use the constexpr ternary overloads,
 // matching std::min/std::max behavior and supporting custom less-comparable scalars.
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float mini(const float& x, const float& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float mini(const float& x, const float& y) {
   return fminf(x, y);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double mini(const double& x, const double& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double mini(const double& x, const double& y) {
   return fmin(x, y);
 }
 
 #ifndef EIGEN_GPU_COMPILE_PHASE
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE long double mini(const long double& x, const long double& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr long double mini(const long double& x, const long double& y) {
 #if defined(EIGEN_HIPCC)
   // no "fminl" on HIP yet
   return (x < y) ? x : y;
@@ -1282,16 +1501,16 @@ EIGEN_DEVICE_FUNC constexpr EIGEN_ALWAYS_INLINE T maxi(const T& x, const T& y) {
 }
 #if !defined(EIGEN_CONSTEXPR_ARE_DEVICE_FUNC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float maxi(const float& x, const float& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float maxi(const float& x, const float& y) {
   return fmaxf(x, y);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double maxi(const double& x, const double& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double maxi(const double& x, const double& y) {
   return fmax(x, y);
 }
 #ifndef EIGEN_GPU_COMPILE_PHASE
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE long double maxi(const long double& x, const long double& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr long double maxi(const long double& x, const long double& y) {
 #if defined(EIGEN_HIPCC)
   // no "fmaxl" on HIP yet
   return (x > y) ? x : y;
@@ -1368,34 +1587,34 @@ SYCL_SPECIALIZE_FLOATING_TYPES_BINARY(maxi, fmax)
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline typename NumTraits<Scalar>::Real arg(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr typename NumTraits<Scalar>::Real arg(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(arg, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto imag_ref(const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto imag_ref(const Scalar& x)
     -> internal::add_const_on_value_type_t<decltype(internal::imag_ref_impl<Scalar>::run(x))> {
   return internal::imag_ref_impl<Scalar>::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto imag_ref(Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto imag_ref(Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(imag_ref, std::remove_const_t<Scalar>)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(imag_ref, std::remove_const_t<Scalar>)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar conj(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar conj(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(conj, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar sign(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar sign(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(sign, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar copysign(const Scalar& x, const Scalar& y) {
+EIGEN_DEVICE_FUNC constexpr Scalar copysign(const Scalar& x, const Scalar& y) {
   return EIGEN_MATHFUNC_IMPL(copysign, Scalar)::run(x, y);
 }
 
@@ -1404,45 +1623,48 @@ SYCL_SPECIALIZE_FLOATING_TYPES_BINARY(copysign, copysign)
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar negate(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar negate(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(negate, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline decltype(auto) abs2(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr decltype(auto) abs2(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(abs2, Scalar)::run(x);
 }
 
-EIGEN_DEVICE_FUNC inline bool abs2(bool x) { return x; }
+EIGEN_DEVICE_FUNC constexpr bool abs2(bool x) { return x; }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T absdiff(const T& x, const T& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T absdiff(const T& x, const T& y) {
   return internal::absdiff_impl<T>::run(x, y);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float absdiff(const float& x, const float& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float absdiff(const float& x, const float& y) {
+  if (internal::is_constant_evaluated()) return internal::constexpr_abs(x - y);
   return fabsf(x - y);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double absdiff(const double& x, const double& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double absdiff(const double& x, const double& y) {
+  if (internal::is_constant_evaluated()) return internal::constexpr_abs(x - y);
   return fabs(x - y);
 }
 
 // HIP and CUDA do not support long double.
 #ifndef EIGEN_GPU_COMPILE_PHASE
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE long double absdiff(const long double& x, const long double& y) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr long double absdiff(const long double& x, const long double& y) {
+  if (internal::is_constant_evaluated()) return internal::constexpr_abs(x - y);
   return fabsl(x - y);
 }
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline typename NumTraits<Scalar>::Real norm1(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr typename NumTraits<Scalar>::Real norm1(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(norm1, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline typename NumTraits<Scalar>::Real hypot(const Scalar& x, const Scalar& y) {
+EIGEN_DEVICE_FUNC constexpr typename NumTraits<Scalar>::Real hypot(const Scalar& x, const Scalar& y) {
   return EIGEN_MATHFUNC_IMPL(hypot, Scalar)::run(x, y);
 }
 
@@ -1451,7 +1673,7 @@ SYCL_SPECIALIZE_FLOATING_TYPES_BINARY(hypot, hypot)
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar log1p(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar log1p(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(log1p, Scalar)::run(x);
 }
 
@@ -1461,19 +1683,19 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(log1p, log1p)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float log1p(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float log1p(const float& x) {
   return ::log1pf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double log1p(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double log1p(const double& x) {
   return ::log1p(x);
 }
 #endif
 
 template <typename ScalarX, typename ScalarY>
-EIGEN_DEVICE_FUNC inline typename internal::pow_impl<ScalarX, ScalarY>::result_type pow(const ScalarX& x,
-                                                                                        const ScalarY& y) {
+EIGEN_DEVICE_FUNC constexpr typename internal::pow_impl<ScalarX, ScalarY>::result_type pow(const ScalarX& x,
+                                                                                           const ScalarY& y) {
   return internal::pow_impl<ScalarX, ScalarY>::run(x, y);
 }
 
@@ -1482,15 +1704,15 @@ SYCL_SPECIALIZE_FLOATING_TYPES_BINARY(pow, pow)
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC bool(isnan)(const T& x) {
+EIGEN_DEVICE_FUNC constexpr bool(isnan)(const T& x) {
   return internal::isnan_impl(x);
 }
 template <typename T>
-EIGEN_DEVICE_FUNC bool(isinf)(const T& x) {
+EIGEN_DEVICE_FUNC constexpr bool(isinf)(const T& x) {
   return internal::isinf_impl(x);
 }
 template <typename T>
-EIGEN_DEVICE_FUNC bool(isfinite)(const T& x) {
+EIGEN_DEVICE_FUNC constexpr bool(isfinite)(const T& x) {
   return internal::isfinite_impl(x);
 }
 
@@ -1501,27 +1723,27 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY_FUNC_RET_TYPE(isfinite, isfinite, bool)
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar rint(const Scalar& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar rint(const Scalar& x) {
   return internal::nearest_integer_impl<Scalar>::run_rint(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar round(const Scalar& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar round(const Scalar& x) {
   return internal::nearest_integer_impl<Scalar>::run_round(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar(floor)(const Scalar& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar(floor)(const Scalar& x) {
   return internal::nearest_integer_impl<Scalar>::run_floor(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar(ceil)(const Scalar& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar(ceil)(const Scalar& x) {
   return internal::nearest_integer_impl<Scalar>::run_ceil(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar(trunc)(const Scalar& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar(trunc)(const Scalar& x) {
   return internal::nearest_integer_impl<Scalar>::run_trunc(x);
 }
 
@@ -1535,27 +1757,27 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(trunc, trunc)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float floor(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float floor(const float& x) {
   return ::floorf(x);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double floor(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double floor(const double& x) {
   return ::floor(x);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float ceil(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float ceil(const float& x) {
   return ::ceilf(x);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double ceil(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double ceil(const double& x) {
   return ::ceil(x);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float trunc(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float trunc(const float& x) {
   return ::truncf(x);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double trunc(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double trunc(const double& x) {
   return ::trunc(x);
 }
 #endif
@@ -1588,13 +1810,13 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T round_down(T a, U b) {
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T log10(T x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T log10(T x) {
   EIGEN_USING_STD(log10);
   return log10(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T log2(T x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T log2(T x) {
   EIGEN_USING_STD(log2);
   return log2(x);
 }
@@ -1642,13 +1864,13 @@ constexpr int log2(int x) {
  * Its usage is justified in performance critical functions, like norm/normalize.
  */
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Scalar sqrt(const Scalar& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr Scalar sqrt(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(sqrt, Scalar)::run(x);
 }
 
 // Boolean specialization, avoids implicit float to bool conversion (-Wimplicit-conversion-floating-point-to-bool).
 template <>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS EIGEN_DEVICE_FUNC bool sqrt<bool>(const bool& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS EIGEN_DEVICE_FUNC constexpr bool sqrt<bool>(const bool& x) {
   return x;
 }
 
@@ -1659,20 +1881,20 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(sqrt, sqrt)
 #if defined(EIGEN_VECTORIZE_SSE)
 // Half/BFloat16 scalar wrappers precede the SSE definitions and must not instantiate the primary template.
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float sqrt(const float& x);
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float sqrt(const float& x);
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double sqrt(const double& x);
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double sqrt(const double& x);
 #endif
 
 /** \returns the cube root of \a x. **/
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::enable_if_t<!NumTraits<T>::IsComplex, T> cbrt(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::enable_if_t<!NumTraits<T>::IsComplex, T> cbrt(const T& x) {
   EIGEN_USING_STD(cbrt);
   return static_cast<T>(cbrt(x));
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::enable_if_t<NumTraits<T>::IsComplex, T> cbrt(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::enable_if_t<NumTraits<T>::IsComplex, T> cbrt(const T& x) {
   EIGEN_USING_STD(pow);
   return pow(x, typename NumTraits<T>::Real(1.0 / 3.0));
 }
@@ -1683,12 +1905,12 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(cbrt, cbrt)
 
 /** \returns the reciprocal square root of \a x. **/
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T rsqrt(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T rsqrt(const T& x) {
   return internal::rsqrt_impl<T>::run(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T log(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T log(const T& x) {
   return internal::log_impl<T>::run(x);
 }
 
@@ -1698,32 +1920,36 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(log, log)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float log(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float log(const float& x) {
   return ::logf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double log(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double log(const double& x) {
   return ::log(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::enable_if_t<
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::enable_if_t<
     (NumTraits<T>::IsSigned || !NumTraits<T>::IsInteger) && !NumTraits<T>::IsComplex, typename NumTraits<T>::Real>
 abs(const T& x) {
+  // Custom scalars keep their own abs.
+  EIGEN_IF_CONSTEXPR (std::is_arithmetic<T>::value) {
+    if (internal::is_constant_evaluated()) return internal::constexpr_abs(x);
+  }
   EIGEN_USING_STD(abs);
   return abs(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::enable_if_t<NumTraits<T>::IsComplex, typename NumTraits<T>::Real> abs(
-    const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::enable_if_t<NumTraits<T>::IsComplex, typename NumTraits<T>::Real>
+abs(const T& x) {
   return numext::hypot(numext::real(x), numext::imag(x));
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::enable_if_t<
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::enable_if_t<
     !NumTraits<T>::IsSigned && NumTraits<T>::IsInteger && !NumTraits<T>::IsComplex, typename NumTraits<T>::Real>
 abs(const T& x) {
   return x;
@@ -1736,23 +1962,39 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(abs, fabs)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float abs(const float& x) {
-  return ::fabsf(x);
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float abs(const float& x) {
+  if (internal::is_constant_evaluated()) {
+    return x > 0 ? x : -x;
+  } else {
+    return ::fabsf(x);
+  }
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double abs(const double& x) {
-  return ::fabs(x);
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double abs(const double& x) {
+  if (internal::is_constant_evaluated()) {
+    return x > 0 ? x : -x;
+  } else {
+    return ::fabs(x);
+  }
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float abs(const std::complex<float>& x) {
-  return ::hypotf(x.real(), x.imag());
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float abs(const std::complex<float>& x) {
+  if (internal::is_constant_evaluated()) {
+    return numext::sqrt(x.real() * x.real() + x.imag() * x.imag());
+  } else {
+    return ::hypotf(x.real(), x.imag());
+  }
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double abs(const std::complex<double>& x) {
-  return ::hypot(x.real(), x.imag());
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double abs(const std::complex<double>& x) {
+  if (internal::is_constant_evaluated()) {
+    return numext::sqrt(x.real() * x.real() + x.imag() * x.imag());
+  } else {
+    return ::hypot(x.real(), x.imag());
+  }
 }
 #endif
 
@@ -1763,7 +2005,7 @@ struct signbit_impl<Scalar, false, true> {
   static constexpr size_t Size = sizeof(Scalar);
   static constexpr size_t Shift = (CHAR_BIT * Size) - 1;
   using intSize_t = typename get_integer_by_size<Size>::signed_type;
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE static Scalar run(const Scalar& x) {
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE static constexpr Scalar run(const Scalar& x) {
     intSize_t a = bit_cast<intSize_t, Scalar>(x);
     a = a >> Shift;
     Scalar result = bit_cast<Scalar, intSize_t>(a);
@@ -1786,7 +2028,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE static constexpr Scalar signbit(const Scal
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T exp(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T exp(const T& x) {
   EIGEN_USING_STD(exp);
   return exp(x);
 }
@@ -1794,7 +2036,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T exp(const T& x) {
 // MSVC through at least 19.51 mishandles some finite-real, non-finite-imaginary inputs to std::exp(complex).
 #if EIGEN_COMP_MSVC
 template <typename RealScalar>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<RealScalar> exp(const std::complex<RealScalar>& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::complex<RealScalar> exp(const std::complex<RealScalar>& x) {
   // Evaluate eagerly to preserve the floating-point exceptions raised by std::exp before correcting its result.
   const std::complex<RealScalar> result = std::exp(x);
   // If z is (x,±∞) (for any finite x), the result is (NaN,NaN) and FE_INVALID is raised.
@@ -1820,19 +2062,19 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(exp, exp)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float exp(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float exp(const float& x) {
   return ::expf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double exp(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double exp(const double& x) {
   return ::exp(x);
 }
 
 // exp(x + 0i) = exp(x) + 0i even where exp(x) overflows, so a zero imaginary part is kept rather than computed as
 // inf * 0.
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<float> exp(const std::complex<float>& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::complex<float> exp(const std::complex<float>& x) {
   float com = ::expf(x.real());
   float res_real = com * ::cosf(x.imag());
   float res_imag = x.imag() == 0.f ? x.imag() : com * ::sinf(x.imag());
@@ -1840,7 +2082,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<float> exp(const std::complex
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<double> exp(const std::complex<double>& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::complex<double> exp(const std::complex<double>& x) {
   double com = ::exp(x.real());
   double res_real = com * ::cos(x.imag());
   double res_imag = x.imag() == 0.0 ? x.imag() : com * ::sin(x.imag());
@@ -1849,14 +2091,14 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<double> exp(const std::comple
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T exp2(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T exp2(const T& x) {
   EIGEN_USING_STD(exp2);
   return exp2(x);
 }
 
 // There is no std::exp2 for complex arguments.
 template <typename RealScalar>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE std::complex<RealScalar> exp2(const std::complex<RealScalar>& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr std::complex<RealScalar> exp2(const std::complex<RealScalar>& x) {
   return internal::complex_exp2_impl<RealScalar>::run(x);
 }
 
@@ -1876,10 +2118,23 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double exp2(const double& x) {
 }
 #endif
 
+// x = m 2^*exponent with 1/2 <= |m| < 1, as std::frexp.
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T frexp(const T& x, int* exponent) {
+  EIGEN_IF_CONSTEXPR (internal::has_constexpr_binary_fallback<T>::value) {
+    if (internal::is_constant_evaluated()) return internal::constexpr_frexp(x, *exponent);
+  }
+  EIGEN_USING_STD(frexp);
+  return static_cast<T>(frexp(x, exponent));
+}
+
 // Exact scaling by 2^exponent, including denormals and unrepresentable scale factors.
 // Results outside the finite range saturate to zero or infinity.
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T ldexp(const T& x, int exponent) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T ldexp(const T& x, int exponent) {
+  EIGEN_IF_CONSTEXPR (internal::has_constexpr_binary_fallback<T>::value) {
+    if (internal::is_constant_evaluated()) return internal::constexpr_ldexp(x, exponent);
+  }
   EIGEN_USING_STD(ldexp);
   return static_cast<T>(ldexp(x, exponent));
 }
@@ -1908,7 +2163,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double ldexp(const double& x, int exponent
 #endif
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline Scalar expm1(const Scalar& x) {
+EIGEN_DEVICE_FUNC constexpr Scalar expm1(const Scalar& x) {
   return EIGEN_MATHFUNC_IMPL(expm1, Scalar)::run(x);
 }
 
@@ -1918,18 +2173,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(expm1, expm1)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float expm1(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float expm1(const float& x) {
   return ::expm1f(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double expm1(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double expm1(const double& x) {
   return ::expm1(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T cos(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T cos(const T& x) {
   EIGEN_USING_STD(cos);
   return cos(x);
 }
@@ -1940,18 +2195,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(cos, cos)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float cos(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float cos(const float& x) {
   return ::cosf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double cos(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double cos(const double& x) {
   return ::cos(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T sin(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T sin(const T& x) {
   EIGEN_USING_STD(sin);
   return sin(x);
 }
@@ -1962,18 +2217,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(sin, sin)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float sin(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float sin(const float& x) {
   return ::sinf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double sin(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double sin(const double& x) {
   return ::sin(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T tan(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T tan(const T& x) {
   EIGEN_USING_STD(tan);
   return tan(x);
 }
@@ -1984,24 +2239,24 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(tan, tan)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float tan(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float tan(const float& x) {
   return ::tanf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double tan(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double tan(const double& x) {
   return ::tan(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T acos(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T acos(const T& x) {
   EIGEN_USING_STD(acos);
   return acos(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T acosh(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T acosh(const T& x) {
   EIGEN_USING_STD(acosh);
   return static_cast<T>(acosh(x));
 }
@@ -2013,24 +2268,24 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(acosh, acosh)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float acos(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float acos(const float& x) {
   return ::acosf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double acos(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double acos(const double& x) {
   return ::acos(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T asin(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T asin(const T& x) {
   EIGEN_USING_STD(asin);
   return asin(x);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T asinh(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T asinh(const T& x) {
   EIGEN_USING_STD(asinh);
   return static_cast<T>(asinh(x));
 }
@@ -2042,30 +2297,30 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(asinh, asinh)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float asin(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float asin(const float& x) {
   return ::asinf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double asin(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double asin(const double& x) {
   return ::asin(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atan(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T atan(const T& x) {
   EIGEN_USING_STD(atan);
   return static_cast<T>(atan(x));
 }
 
 template <typename T, std::enable_if_t<!NumTraits<T>::IsComplex, int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atan2(const T& y, const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T atan2(const T& y, const T& x) {
   EIGEN_USING_STD(atan2);
   return static_cast<T>(atan2(y, x));
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atanh(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T atanh(const T& x) {
   EIGEN_USING_STD(atanh);
   return static_cast<T>(atanh(x));
 }
@@ -2078,18 +2333,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(atanh, atanh)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float atan(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float atan(const float& x) {
   return ::atanf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double atan(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double atan(const double& x) {
   return ::atan(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T cosh(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T cosh(const T& x) {
   EIGEN_USING_STD(cosh);
   return static_cast<T>(cosh(x));
 }
@@ -2100,18 +2355,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(cosh, cosh)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float cosh(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float cosh(const float& x) {
   return ::coshf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double cosh(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double cosh(const double& x) {
   return ::cosh(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T sinh(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T sinh(const T& x) {
   EIGEN_USING_STD(sinh);
   return static_cast<T>(sinh(x));
 }
@@ -2122,18 +2377,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(sinh, sinh)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float sinh(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float sinh(const float& x) {
   return ::sinhf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double sinh(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double sinh(const double& x) {
   return ::sinh(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T tanh(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T tanh(const T& x) {
   EIGEN_USING_STD(tanh);
   return tanh(x);
 }
@@ -2148,18 +2403,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_UNARY(tanh, tanh)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float tanh(const float& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float tanh(const float& x) {
   return ::tanhf(x);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double tanh(const double& x) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double tanh(const double& x) {
   return ::tanh(x);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T fmod(const T& a, const T& b) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T fmod(const T& a, const T& b) {
   EIGEN_USING_STD(fmod);
   return fmod(a, b);
 }
@@ -2170,18 +2425,18 @@ SYCL_SPECIALIZE_FLOATING_TYPES_BINARY(fmod, fmod)
 
 #if defined(EIGEN_GPUCC)
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE float fmod(const float& a, const float& b) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr float fmod(const float& a, const float& b) {
   return ::fmodf(a, b);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double fmod(const double& a, const double& b) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr double fmod(const double& a, const double& b) {
   return ::fmod(a, b);
 }
 #endif
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T nextafter(const T& from, const T& to) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T nextafter(const T& from, const T& to) {
   EIGEN_USING_STD(nextafter);
   return nextafter(from, to);
 }
@@ -2197,7 +2452,7 @@ template <typename Scalar,
                                (sizeof(Scalar) == sizeof(uint16_t) || sizeof(Scalar) == sizeof(uint32_t) ||
                                 sizeof(Scalar) == sizeof(uint64_t)),
                            int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar ceil_power_of_two(const Scalar& value) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar ceil_power_of_two(const Scalar& value) {
   using Binary = internal::binary_floating_point_traits<Scalar>;
   using Bits = typename Binary::Bits;
   const Bits valueBits = Binary::bits(value);
@@ -2259,13 +2514,13 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE double nextafter(const double& from, const
 // itself, which the explicit truncation undoes: for the left shift the promoted value can carry set
 // bits above Scalar's width, and dropping them is the operation rather than an accident of the cast.
 template <typename Scalar, typename Enable = std::enable_if_t<std::is_integral<Scalar>::value>>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar logical_shift_left(const Scalar& a, int n) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar logical_shift_left(const Scalar& a, int n) {
   using UnsignedScalar = typename numext::get_integer_by_size<sizeof(Scalar)>::unsigned_type;
   return bit_cast<Scalar, UnsignedScalar>(static_cast<UnsignedScalar>(bit_cast<UnsignedScalar, Scalar>(a) << n));
 }
 
 template <typename Scalar, typename Enable = std::enable_if_t<std::is_integral<Scalar>::value>>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar logical_shift_right(const Scalar& a, int n) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar logical_shift_right(const Scalar& a, int n) {
   using UnsignedScalar = typename numext::get_integer_by_size<sizeof(Scalar)>::unsigned_type;
   return bit_cast<Scalar, UnsignedScalar>(static_cast<UnsignedScalar>(bit_cast<UnsignedScalar, Scalar>(a) >> n));
 }
@@ -2277,18 +2532,18 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar logical_shift_right(const Scalar& a
 // operator>> already selects on its signedness, so no reinterpretation is needed; the cast only
 // undoes the integral promotion a Scalar narrower than int is subject to.
 template <typename Scalar, typename Enable = std::enable_if_t<std::is_integral<Scalar>::value>>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar arithmetic_shift_right(const Scalar& a, int n) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar arithmetic_shift_right(const Scalar& a, int n) {
   return static_cast<Scalar>(a >> n);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar fma(const Scalar& x, const Scalar& y, const Scalar& z) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar fma(const Scalar& x, const Scalar& y, const Scalar& z) {
   return internal::fma_impl<Scalar>::run(x, y, z);
 }
 
 // Multiply-add.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar madd(const Scalar& x, const Scalar& y, const Scalar& z) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar madd(const Scalar& x, const Scalar& y, const Scalar& z) {
   return internal::madd_impl<Scalar>::run(x, y, z);
 }
 
@@ -2298,12 +2553,13 @@ namespace internal {
 
 // Two-product residual using FMA, including software FMA when hardware FMA is unavailable.
 template <typename Scalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar twoprod_low_fma(const Scalar& x, const Scalar& y, const Scalar& xy) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar twoprod_low_fma(const Scalar& x, const Scalar& y,
+                                                                       const Scalar& xy) {
   return numext::fma(x, y, Scalar(-xy));
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC bool isfinite_impl(const std::complex<T>& x) {
+EIGEN_DEVICE_FUNC constexpr bool isfinite_impl(const std::complex<T>& x) {
   EIGEN_IF_CONSTEXPR ((std::is_floating_point<T>::value)) {
     // Eager classification lets coefficient-wise loops remain branch-free.
     return static_cast<unsigned int>((numext::isfinite)(numext::real(x))) & (numext::isfinite)(numext::imag(x));
@@ -2313,7 +2569,7 @@ EIGEN_DEVICE_FUNC bool isfinite_impl(const std::complex<T>& x) {
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC bool isnan_impl(const std::complex<T>& x) {
+EIGEN_DEVICE_FUNC constexpr bool isnan_impl(const std::complex<T>& x) {
   EIGEN_IF_CONSTEXPR ((std::is_floating_point<T>::value)) {
     return static_cast<unsigned int>((numext::isnan)(numext::real(x))) | (numext::isnan)(numext::imag(x));
   } else {
@@ -2322,7 +2578,7 @@ EIGEN_DEVICE_FUNC bool isnan_impl(const std::complex<T>& x) {
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC bool isinf_impl(const std::complex<T>& x) {
+EIGEN_DEVICE_FUNC constexpr bool isinf_impl(const std::complex<T>& x) {
   EIGEN_IF_CONSTEXPR ((std::is_floating_point<T>::value)) {
     const bool has_inf = static_cast<unsigned int>((numext::isinf)(numext::real(x))) | (numext::isinf)(numext::imag(x));
     const bool has_nan = (numext::isnan)(x);
@@ -2343,14 +2599,14 @@ template <typename Scalar>
 struct scalar_fuzzy_default_impl<Scalar, false, false> {
   using RealScalar = typename NumTraits<Scalar>::Real;
   template <typename OtherScalar>
-  EIGEN_DEVICE_FUNC static inline bool isMuchSmallerThan(const Scalar& x, const OtherScalar& y,
-                                                         const RealScalar& prec) {
+  EIGEN_DEVICE_FUNC static constexpr bool isMuchSmallerThan(const Scalar& x, const OtherScalar& y,
+                                                            const RealScalar& prec) {
     return numext::abs(x) <= numext::abs(y) * prec;
   }
-  EIGEN_DEVICE_FUNC static inline bool isApprox(const Scalar& x, const Scalar& y, const RealScalar& prec) {
+  EIGEN_DEVICE_FUNC static constexpr bool isApprox(const Scalar& x, const Scalar& y, const RealScalar& prec) {
     return numext::abs(x - y) <= numext::mini(numext::abs(x), numext::abs(y)) * prec;
   }
-  EIGEN_DEVICE_FUNC static inline bool isApproxOrLessThan(const Scalar& x, const Scalar& y, const RealScalar& prec) {
+  EIGEN_DEVICE_FUNC static constexpr bool isApproxOrLessThan(const Scalar& x, const Scalar& y, const RealScalar& prec) {
     return x <= y || isApprox(x, y, prec);
   }
 };
@@ -2359,11 +2615,13 @@ template <typename Scalar>
 struct scalar_fuzzy_default_impl<Scalar, false, true> {
   using RealScalar = typename NumTraits<Scalar>::Real;
   template <typename OtherScalar>
-  EIGEN_DEVICE_FUNC static inline bool isMuchSmallerThan(const Scalar& x, const Scalar&, const RealScalar&) {
+  EIGEN_DEVICE_FUNC static constexpr bool isMuchSmallerThan(const Scalar& x, const Scalar&, const RealScalar&) {
     return x == Scalar(0);
   }
-  EIGEN_DEVICE_FUNC static inline bool isApprox(const Scalar& x, const Scalar& y, const RealScalar&) { return x == y; }
-  EIGEN_DEVICE_FUNC static inline bool isApproxOrLessThan(const Scalar& x, const Scalar& y, const RealScalar&) {
+  EIGEN_DEVICE_FUNC static constexpr bool isApprox(const Scalar& x, const Scalar& y, const RealScalar&) {
+    return x == y;
+  }
+  EIGEN_DEVICE_FUNC static constexpr bool isApproxOrLessThan(const Scalar& x, const Scalar& y, const RealScalar&) {
     return x <= y;
   }
 };
@@ -2374,11 +2632,11 @@ template <typename Scalar>
 struct scalar_fuzzy_default_impl<Scalar, true, false> {
   using RealScalar = typename NumTraits<Scalar>::Real;
   template <typename OtherScalar>
-  EIGEN_DEVICE_FUNC static inline bool isMuchSmallerThan(const Scalar& x, const OtherScalar& y,
-                                                         const RealScalar& prec) {
+  EIGEN_DEVICE_FUNC static constexpr bool isMuchSmallerThan(const Scalar& x, const OtherScalar& y,
+                                                            const RealScalar& prec) {
     return numext::abs(x) <= numext::abs(y) * prec;
   }
-  EIGEN_DEVICE_FUNC static inline bool isApprox(const Scalar& x, const Scalar& y, const RealScalar& prec) {
+  EIGEN_DEVICE_FUNC static constexpr bool isApprox(const Scalar& x, const Scalar& y, const RealScalar& prec) {
     return numext::abs(x - y) <= numext::mini(numext::abs(x), numext::abs(y)) * prec;
   }
 };
@@ -2388,21 +2646,21 @@ struct scalar_fuzzy_impl
     : scalar_fuzzy_default_impl<Scalar, NumTraits<Scalar>::IsComplex, NumTraits<Scalar>::IsInteger> {};
 
 template <typename Scalar, typename OtherScalar>
-EIGEN_DEVICE_FUNC inline bool isMuchSmallerThan(
+EIGEN_DEVICE_FUNC constexpr bool isMuchSmallerThan(
     const Scalar& x, const OtherScalar& y,
     const typename NumTraits<Scalar>::Real& precision = NumTraits<Scalar>::dummy_precision()) {
   return scalar_fuzzy_impl<Scalar>::template isMuchSmallerThan<OtherScalar>(x, y, precision);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline bool isApprox(
+EIGEN_DEVICE_FUNC constexpr bool isApprox(
     const Scalar& x, const Scalar& y,
     const typename NumTraits<Scalar>::Real& precision = NumTraits<Scalar>::dummy_precision()) {
   return scalar_fuzzy_impl<Scalar>::isApprox(x, y, precision);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline bool isApproxOrLessThan(
+EIGEN_DEVICE_FUNC constexpr bool isApproxOrLessThan(
     const Scalar& x, const Scalar& y,
     const typename NumTraits<Scalar>::Real& precision = NumTraits<Scalar>::dummy_precision()) {
   return scalar_fuzzy_impl<Scalar>::isApproxOrLessThan(x, y, precision);
@@ -2417,13 +2675,13 @@ struct scalar_fuzzy_impl<bool> {
   using RealScalar = bool;
 
   template <typename OtherScalar>
-  EIGEN_DEVICE_FUNC static inline bool isMuchSmallerThan(const bool& x, const bool&, const bool&) {
+  EIGEN_DEVICE_FUNC static constexpr bool isMuchSmallerThan(const bool& x, const bool&, const bool&) {
     return !x;
   }
 
-  EIGEN_DEVICE_FUNC static inline bool isApprox(bool x, bool y, bool) { return x == y; }
+  EIGEN_DEVICE_FUNC static constexpr bool isApprox(bool x, bool y, bool) { return x == y; }
 
-  EIGEN_DEVICE_FUNC static inline bool isApproxOrLessThan(const bool& x, const bool& y, const bool&) {
+  EIGEN_DEVICE_FUNC static constexpr bool isApproxOrLessThan(const bool& x, const bool& y, const bool&) {
     return (!x) || y;
   }
 };
@@ -2438,7 +2696,7 @@ template <typename RealScalar>
 struct expm1_impl<std::complex<RealScalar>> {
   EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
 
-  EIGEN_DEVICE_FUNC static inline std::complex<RealScalar> run(const std::complex<RealScalar>& x) {
+  EIGEN_DEVICE_FUNC static constexpr std::complex<RealScalar> run(const std::complex<RealScalar>& x) {
     RealScalar xr = x.real();
     RealScalar xi = x.imag();
     // expm1(z) = exp(z) - 1
@@ -2484,7 +2742,7 @@ template <typename RealScalar>
 struct log1p_impl<std::complex<RealScalar>> {
   EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
 
-  EIGEN_DEVICE_FUNC static inline std::complex<RealScalar> run(const std::complex<RealScalar>& z) {
+  EIGEN_DEVICE_FUNC static constexpr std::complex<RealScalar> run(const std::complex<RealScalar>& z) {
     const RealScalar x = z.real();
     const RealScalar y = z.imag();
     // log|1 + z| = log1p(x (2 + x) + y^2) / 2. Rounding |1 + z| instead loses the real part to cancellation near
@@ -2506,7 +2764,7 @@ template <typename RealScalar>
 struct complex_exp2_impl {
   EIGEN_STATIC_ASSERT_NON_INTEGER(RealScalar)
 
-  EIGEN_DEVICE_FUNC static inline std::complex<RealScalar> run(const std::complex<RealScalar>& x) {
+  EIGEN_DEVICE_FUNC static constexpr std::complex<RealScalar> run(const std::complex<RealScalar>& x) {
     using ComplexScalar = std::complex<RealScalar>;
     const RealScalar a = x.real();
     const RealScalar b = x.imag();
@@ -2569,7 +2827,7 @@ struct rsqrt_impl {
 #pragma warning(push)
 #pragma warning(disable : 4804)
 #endif
-  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE T run(const T& x) { return T(1) / numext::sqrt(x); }
+  EIGEN_DEVICE_FUNC static EIGEN_ALWAYS_INLINE constexpr T run(const T& x) { return T(1) / numext::sqrt(x); }
 #if EIGEN_COMP_MSVC
 #pragma warning(pop)
 #endif
@@ -2578,7 +2836,7 @@ struct rsqrt_impl {
 #if defined(EIGEN_GPU_COMPILE_PHASE)
 template <typename T>
 struct conj_impl<std::complex<T>, true> {
-  EIGEN_DEVICE_FUNC static inline std::complex<T> run(const std::complex<T>& x) {
+  EIGEN_DEVICE_FUNC static constexpr std::complex<T> run(const std::complex<T>& x) {
     return std::complex<T>(numext::real(x), -numext::imag(x));
   }
 };
@@ -2588,8 +2846,8 @@ struct conj_impl<std::complex<T>, true> {
 // Note that these do not handle the case if inf+NaNi, which is considered an infinity.
 // This is for consistency with our standard pmul, pdiv implementations.
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_multiply(const std::complex<T>& a,
-                                                                       const std::complex<T>& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> complex_multiply(const std::complex<T>& a,
+                                                                                 const std::complex<T>& b) {
   const T a_real = numext::real(a);
   const T a_imag = numext::imag(a);
   const T b_real = numext::real(b);
@@ -2598,8 +2856,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_multiply(const std
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide_fast(const std::complex<T>& a,
-                                                                          const std::complex<T>& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> complex_divide_fast(const std::complex<T>& a,
+                                                                                    const std::complex<T>& b) {
   const T a_real = numext::real(a);
   const T a_imag = numext::imag(a);
   const T b_real = numext::real(b);
@@ -2609,8 +2867,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide_fast(const 
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide_smith(const std::complex<T>& a,
-                                                                           const std::complex<T>& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> complex_divide_smith(const std::complex<T>& a,
+                                                                                     const std::complex<T>& b) {
   const T a_real = numext::real(a);
   const T a_imag = numext::imag(a);
   T b_real = numext::real(b);
@@ -2629,10 +2887,10 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide_smith(const
     // Each quotient divides by the larger part of b, which is not zero here. The barrier keeps the quotient on its
     // branch: an if-converted form evaluates both quotients, and the untaken one divides by zero for a divisor on an
     // axis, raising FE_DIVBYZERO. The barrier is applied in place, so that the branch costs no register copy.
-    volatile_barrier(b_real);
+    if (!is_constant_evaluated()) volatile_barrier(b_real);
     iscale = b_imag / b_real;
   } else {
-    volatile_barrier(b_imag);
+    if (!is_constant_evaluated()) volatile_barrier(b_imag);
     rscale = b_real / b_imag;
   }
   const T denominator = b_real * rscale + b_imag * iscale;
@@ -2641,8 +2899,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide_smith(const
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide(const std::complex<T>& a,
-                                                                     const std::complex<T>& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> complex_divide(const std::complex<T>& a,
+                                                                               const std::complex<T>& b) {
 #if EIGEN_FAST_MATH
   return complex_divide_fast(a, b);
 #else
@@ -2663,22 +2921,23 @@ namespace numext {
  * with the vectorized complex division path in GenericPacketMathComplex.h.
  */
 template <typename LhsScalar, typename RhsScalar>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE auto divide(const LhsScalar& a, const RhsScalar& b) -> decltype(a / b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr auto divide(const LhsScalar& a, const RhsScalar& b) -> decltype(a / b) {
   return a / b;
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> divide(const std::complex<T>& a, const std::complex<T>& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> divide(const std::complex<T>& a,
+                                                                       const std::complex<T>& b) {
   return internal::complex_divide_smith(a, b);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> divide(const T& a, const std::complex<T>& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> divide(const T& a, const std::complex<T>& b) {
   return internal::complex_divide_smith(std::complex<T>(a, T(0)), b);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> divide(const std::complex<T>& a, const T& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> divide(const std::complex<T>& a, const T& b) {
   return a / b;
 }
 

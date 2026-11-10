@@ -51,9 +51,9 @@ struct SparsityPatternRef {
   Index outerSize = 0;  // number of columns
   Index innerSize = 0;  // number of rows
 
-  EIGEN_DEVICE_FUNC inline bool isCompressed() const { return innerNonZero == nullptr; }
+  EIGEN_DEVICE_FUNC constexpr bool isCompressed() const { return innerNonZero == nullptr; }
 
-  EIGEN_DEVICE_FUNC inline Index nonZeros(Index j) const {
+  EIGEN_DEVICE_FUNC constexpr Index nonZeros(Index j) const {
     return isCompressed() ? Index(outer[j + 1] - outer[j]) : Index(innerNonZero[j]);
   }
 };
@@ -70,9 +70,9 @@ struct SparsityPatternRef {
  * Specialization for column-major \c SparseMatrix (the no-copy fast path).
  */
 template <typename Scalar, typename StorageIndex>
-SparsityPatternRef<StorageIndex> make_col_major_pattern_ref(const SparseMatrix<Scalar, ColMajor, StorageIndex>& amat,
-                                                            Matrix<StorageIndex, Dynamic, 1>& /*outer_buf*/,
-                                                            Matrix<StorageIndex, Dynamic, 1>& /*inner_buf*/) {
+constexpr SparsityPatternRef<StorageIndex> make_col_major_pattern_ref(
+    const SparseMatrix<Scalar, ColMajor, StorageIndex>& amat, Matrix<StorageIndex, Dynamic, 1>& /*outer_buf*/,
+    Matrix<StorageIndex, Dynamic, 1>& /*inner_buf*/) {
   SparsityPatternRef<StorageIndex> p;
   p.outer = amat.outerIndexPtr();
   p.inner = amat.innerIndexPtr();
@@ -89,7 +89,7 @@ SparsityPatternRef<StorageIndex> make_col_major_pattern_ref(const SparseMatrix<S
  * evaluator. Some evaluators may materialize internally.
  */
 template <typename Derived>
-SparsityPatternRef<typename Derived::StorageIndex> make_col_major_pattern_ref(
+constexpr SparsityPatternRef<typename Derived::StorageIndex> make_col_major_pattern_ref(
     const SparseMatrixBase<Derived>& amat_base, Matrix<typename Derived::StorageIndex, Dynamic, 1>& outer_buf,
     Matrix<typename Derived::StorageIndex, Dynamic, 1>& inner_buf) {
   using StorageIndex = typename Derived::StorageIndex;
@@ -138,8 +138,8 @@ SparsityPatternRef<typename Derived::StorageIndex> make_col_major_pattern_ref(
  * within each column.
  */
 template <typename StorageIndex>
-void materialize_col_major_pattern(const SparsityPatternRef<StorageIndex>& pat, const StorageIndex* row_perm,
-                                   SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
+constexpr void materialize_col_major_pattern(const SparsityPatternRef<StorageIndex>& pat, const StorageIndex* row_perm,
+                                             SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
   const Index n_outer = pat.outerSize;
   const Index n_inner = pat.innerSize;
   out.resize(n_inner, n_outer);
@@ -198,8 +198,8 @@ void materialize_col_major_pattern(const SparsityPatternRef<StorageIndex>& pat, 
 
 /** \internal Convenience overload — identity row permutation. */
 template <typename StorageIndex>
-void materialize_col_major_pattern(const SparsityPatternRef<StorageIndex>& pat,
-                                   SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
+constexpr void materialize_col_major_pattern(const SparsityPatternRef<StorageIndex>& pat,
+                                             SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
   materialize_col_major_pattern(pat, static_cast<const StorageIndex*>(nullptr), out);
 }
 
@@ -234,8 +234,8 @@ void materialize_col_major_pattern(const SparsityPatternRef<StorageIndex>& pat,
  * \a out's storage must not alias \a A.
  */
 template <typename StorageIndex>
-void materialize_at_plus_a_pattern(const SparsityPatternRef<StorageIndex>& A,
-                                   SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
+constexpr void materialize_at_plus_a_pattern(const SparsityPatternRef<StorageIndex>& A,
+                                             SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
   const Index n = A.outerSize;
   eigen_assert(n == A.innerSize && "materialize_at_plus_a_pattern: A must be square");
 
@@ -333,8 +333,8 @@ void materialize_at_plus_a_pattern(const SparsityPatternRef<StorageIndex>& A,
  * \a A is square; \a out's storage must not alias \a A.
  */
 template <unsigned int UpLo, typename StorageIndex>
-void materialize_selfadjoint_pattern(const SparsityPatternRef<StorageIndex>& A,
-                                     SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
+EIGEN_CONSTEXPR20 void materialize_selfadjoint_pattern(const SparsityPatternRef<StorageIndex>& A,
+                                                       SparseMatrix<signed char, ColMajor, StorageIndex>& out) {
   static_assert(UpLo == static_cast<unsigned>(Lower) || UpLo == static_cast<unsigned>(Upper),
                 "UpLo must be Lower or Upper");
   const Index n = A.outerSize;

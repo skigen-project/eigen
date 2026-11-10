@@ -22,7 +22,7 @@ namespace internal {
 
 // Sum |a_ij| over i <= j + ExtraDiagonals (Upper), or j <= i + ExtraDiagonals (Lower).
 template <unsigned int UpLo, int ExtraDiagonals, typename Derived>
-EIGEN_DEVICE_FUNC typename Derived::RealScalar triangular_band_abs_sum(const MatrixBase<Derived>& matrix) {
+EIGEN_DEVICE_FUNC constexpr typename Derived::RealScalar triangular_band_abs_sum(const MatrixBase<Derived>& matrix) {
   static_assert(UpLo == Upper || UpLo == Lower, "UpLo must be Upper or Lower");
   static_assert(ExtraDiagonals == 0 || ExtraDiagonals == 1, "Expected a triangular or Hessenberg envelope");
   using RealScalar = typename Derived::RealScalar;
@@ -43,13 +43,13 @@ EIGEN_DEVICE_FUNC typename Derived::RealScalar triangular_band_abs_sum(const Mat
 // Coefficient-wise l1 norm of the stored upper/lower triangle, including the diagonal.
 // Entries outside the selected triangle are never read; rectangular and empty expressions are supported.
 template <unsigned int UpLo, typename Derived>
-EIGEN_DEVICE_FUNC typename Derived::RealScalar triangular_abs_sum(const MatrixBase<Derived>& matrix) {
+EIGEN_DEVICE_FUNC constexpr typename Derived::RealScalar triangular_abs_sum(const MatrixBase<Derived>& matrix) {
   return triangular_band_abs_sum<UpLo, 0>(matrix);
 }
 
 // Coefficient-wise l1 norm of the upper/lower Hessenberg envelope, including its one extra off-diagonal.
 template <unsigned int UpLo, typename Derived>
-EIGEN_DEVICE_FUNC typename Derived::RealScalar hessenberg_abs_sum(const MatrixBase<Derived>& matrix) {
+EIGEN_DEVICE_FUNC constexpr typename Derived::RealScalar hessenberg_abs_sum(const MatrixBase<Derived>& matrix) {
   return triangular_band_abs_sum<UpLo, 1>(matrix);
 }
 
@@ -275,14 +275,15 @@ class selfadjoint_l1norm {
   using RealScalar = typename MatrixType::RealScalar;
 
  public:
-  EIGEN_DEVICE_FUNC explicit selfadjoint_l1norm(const MatrixType& matrix) : m_matrix(matrix) {}
+  EIGEN_DEVICE_FUNC constexpr explicit selfadjoint_l1norm(const MatrixType& matrix) : m_matrix(matrix) {}
 
-  EIGEN_DEVICE_FUNC RealScalar run() const {
+  EIGEN_DEVICE_FUNC constexpr RealScalar run() const {
 #ifdef EIGEN_GPU_COMPILE_PHASE
     // No per-thread accumulator on a device.
     return l1NormPerColumn();
 #else
-    if (m_matrix.rows() <= L1NormImpl::PerColumnUpTo) return l1NormPerColumn();
+    // The streaming pass uses packets and a stack workspace.
+    if (internal::is_constant_evaluated() || m_matrix.rows() <= L1NormImpl::PerColumnUpTo) return l1NormPerColumn();
     // The stored triangle of a row-major matrix is the complementary triangle of its column-major
     // transpose, which has the same norm.
     EIGEN_IF_CONSTEXPR (bool(MatrixType::IsRowMajor)) {
@@ -300,7 +301,8 @@ class selfadjoint_l1norm {
   using L1NormAccumulator = typename L1NormImpl::Real;
 
   // As in LAPACK's xLANSY, a NaN column sum makes the norm NaN; maxi(0, NaN) would return 0.
-  static EIGEN_DEVICE_FUNC L1NormAccumulator maxColumnSum(const L1NormAccumulator& norm, const L1NormAccumulator& sum) {
+  static EIGEN_DEVICE_FUNC constexpr L1NormAccumulator maxColumnSum(const L1NormAccumulator& norm,
+                                                                    const L1NormAccumulator& sum) {
     return (norm < sum || (numext::isnan)(sum)) ? sum : norm;
   }
 
@@ -345,17 +347,17 @@ class selfadjoint_l1norm {
   }
 
   template <typename Xpr>
-  EIGEN_DEVICE_FUNC static L1NormAccumulator absSum(const Xpr& x) {
+  EIGEN_DEVICE_FUNC static constexpr L1NormAccumulator absSum(const Xpr& x) {
     return x.template cast<L1NormScalar>().template lpNorm<1>();
   }
 
   // One column at a time, the mirrored term read as a row; no workspace. Fixed-width and fixed-height blocks rather
   // than col()/row(): with a zero-sized fixed dimension those are not vectors, so head()/tail() would not compile.
-  EIGEN_DEVICE_FUNC RealScalar l1NormPerColumn() const {
+  EIGEN_DEVICE_FUNC constexpr RealScalar l1NormPerColumn() const {
     L1NormAccumulator norm = L1NormAccumulator(0);
     const Index n = m_matrix.rows();
     for (Index col = 0; col < n; ++col) {
-      L1NormAccumulator abs_col_sum;
+      L1NormAccumulator abs_col_sum(0);
       EIGEN_IF_CONSTEXPR (UpLo == Lower) {
         abs_col_sum = absSum(m_matrix.template block<Dynamic, 1>(col, col, n - col, 1)) +
                       absSum(m_matrix.template block<1, Dynamic>(col, 0, 1, col));
@@ -373,7 +375,7 @@ class selfadjoint_l1norm {
 
 // Matrix 1-norm of the implicit full self-adjoint matrix; only the stored triangle is read.
 template <unsigned int UpLo, typename Derived>
-EIGEN_DEVICE_FUNC typename Derived::RealScalar selfadjoint_l1_norm(const MatrixBase<Derived>& matrix) {
+EIGEN_DEVICE_FUNC constexpr typename Derived::RealScalar selfadjoint_l1_norm(const MatrixBase<Derived>& matrix) {
   static_assert(UpLo == Upper || UpLo == Lower, "UpLo must be Upper or Lower");
   EIGEN_INTERNAL_ASSERT_SQUARE(matrix);
   return selfadjoint_l1norm<Derived, UpLo>(matrix.derived()).run();

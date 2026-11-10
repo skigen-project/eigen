@@ -177,7 +177,7 @@ class RandomSetter {
    * a sparse matrix from scratch, then you must set it to zero first using the
    * setZero() function.
    */
-  inline RandomSetter(SparseMatrixType& target) : m_target(&target) {
+  RandomSetter(SparseMatrixType& target) : m_target(&target) {
     const Index outerSize = SwapStorage ? target.innerSize() : target.outerSize();
     const Index innerSize = SwapStorage ? target.outerSize() : target.innerSize();
     m_outerPackets = outerSize >> OuterPacketBits;

@@ -24,12 +24,12 @@ namespace Eigen {
 namespace internal {
 
 template <typename Scalar, int Rows, int Cols, typename PermIndex>
-void lmqrsolv(Matrix<Scalar, Rows, Cols> &s, const PermutationMatrix<Dynamic, Dynamic, PermIndex> &iPerm,
-              const Matrix<Scalar, Dynamic, 1> &diag, const Matrix<Scalar, Dynamic, 1> &qtb,
-              Matrix<Scalar, Dynamic, 1> &x, Matrix<Scalar, Dynamic, 1> &sdiag) {
+constexpr void lmqrsolv(Matrix<Scalar, Rows, Cols> &s, const PermutationMatrix<Dynamic, Dynamic, PermIndex> &iPerm,
+                        const Matrix<Scalar, Dynamic, 1> &diag, const Matrix<Scalar, Dynamic, 1> &qtb,
+                        Matrix<Scalar, Dynamic, 1> &x, Matrix<Scalar, Dynamic, 1> &sdiag) {
   /* Local variables */
-  Index i, j, k;
-  Scalar temp;
+  Index i = 0, j = 0, k = 0;
+  Scalar temp{};
   Index n = s.cols();
   Matrix<Scalar, Dynamic, 1> wa(n);
   JacobiRotation<Scalar> givens;
@@ -80,7 +80,7 @@ void lmqrsolv(Matrix<Scalar, Rows, Cols> &s, const PermutationMatrix<Dynamic, Dy
 
   /*     solve the triangular system for z. if the system is */
   /*     singular, then obtain a least squares solution. */
-  Index nsing;
+  Index nsing = 0;
   for (nsing = 0; nsing < n && sdiag[nsing] != 0; nsing++) {
   }
 

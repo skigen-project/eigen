@@ -57,7 +57,7 @@ using CwiseBinaryGreaterOrEqualReturnType =
  * \sa cwiseNotEqual(), isApprox(), isMuchSmallerThan()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryEqualReturnType<OtherDerived> cwiseEqual(
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryEqualReturnType<OtherDerived> cwiseEqual(
     const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryEqualReturnType<OtherDerived>(derived(), other.derived());
 }
@@ -75,35 +75,35 @@ EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryEqualReturnType<OtherDerived
  * \sa cwiseEqual(), isApprox(), isMuchSmallerThan()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryNotEqualReturnType<OtherDerived> cwiseNotEqual(
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryNotEqualReturnType<OtherDerived> cwiseNotEqual(
     const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryNotEqualReturnType<OtherDerived>(derived(), other.derived());
 }
 
 /** \returns an expression of the coefficient-wise < operator of *this and \a other */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryLessReturnType<OtherDerived> cwiseLess(
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryLessReturnType<OtherDerived> cwiseLess(
     const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryLessReturnType<OtherDerived>(derived(), other.derived());
 }
 
 /** \returns an expression of the coefficient-wise > operator of *this and \a other */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryGreaterReturnType<OtherDerived> cwiseGreater(
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryGreaterReturnType<OtherDerived> cwiseGreater(
     const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryGreaterReturnType<OtherDerived>(derived(), other.derived());
 }
 
 /** \returns an expression of the coefficient-wise <= operator of *this and \a other */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryLessOrEqualReturnType<OtherDerived> cwiseLessOrEqual(
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryLessOrEqualReturnType<OtherDerived> cwiseLessOrEqual(
     const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryLessOrEqualReturnType<OtherDerived>(derived(), other.derived());
 }
 
 /** \returns an expression of the coefficient-wise >= operator of *this and \a other */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseBinaryGreaterOrEqualReturnType<OtherDerived> cwiseGreaterOrEqual(
+EIGEN_DEVICE_FUNC constexpr const CwiseBinaryGreaterOrEqualReturnType<OtherDerived> cwiseGreaterOrEqual(
     const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryGreaterOrEqualReturnType<OtherDerived>(derived(), other.derived());
 }
@@ -197,7 +197,7 @@ using CwiseScalarGreaterOrEqualReturnType =
  *
  * \sa cwiseEqual(const MatrixBase<OtherDerived> &) const
  */
-EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarEqualReturnType cwiseEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC constexpr const CwiseScalarEqualReturnType cwiseEqual(const Scalar& s) const {
   return CwiseScalarEqualReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 
@@ -210,28 +210,27 @@ EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarEqualReturnType cwiseEqual(c
  *
  * \sa cwiseEqual(const MatrixBase<OtherDerived> &) const
  */
-EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarNotEqualReturnType cwiseNotEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC constexpr const CwiseScalarNotEqualReturnType cwiseNotEqual(const Scalar& s) const {
   return CwiseScalarNotEqualReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 
 /** \returns an expression of the coefficient-wise < operator of \c *this and a scalar \a s */
-EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarLessReturnType cwiseLess(const Scalar& s) const {
+EIGEN_DEVICE_FUNC constexpr const CwiseScalarLessReturnType cwiseLess(const Scalar& s) const {
   return CwiseScalarLessReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 
 /** \returns an expression of the coefficient-wise > operator of \c *this and a scalar \a s */
-EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarGreaterReturnType cwiseGreater(const Scalar& s) const {
+EIGEN_DEVICE_FUNC constexpr const CwiseScalarGreaterReturnType cwiseGreater(const Scalar& s) const {
   return CwiseScalarGreaterReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 
 /** \returns an expression of the coefficient-wise <= operator of \c *this and a scalar \a s */
-EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarLessOrEqualReturnType cwiseLessOrEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC constexpr const CwiseScalarLessOrEqualReturnType cwiseLessOrEqual(const Scalar& s) const {
   return CwiseScalarLessOrEqualReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 
 /** \returns an expression of the coefficient-wise >= operator of \c *this and a scalar \a s */
-EIGEN_DEVICE_FUNC constexpr inline const CwiseScalarGreaterOrEqualReturnType cwiseGreaterOrEqual(
-    const Scalar& s) const {
+EIGEN_DEVICE_FUNC constexpr const CwiseScalarGreaterOrEqualReturnType cwiseGreaterOrEqual(const Scalar& s) const {
   return CwiseScalarGreaterOrEqualReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 

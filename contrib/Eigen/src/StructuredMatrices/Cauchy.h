@@ -135,35 +135,35 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
   /** Builds a Cauchy matrix from the row nodes \a x and the column nodes \a y:
    * entry \c (i,j) is \c 1/(x[i] - y[j]). */
   template <typename XDerived, typename YDerived>
-  Cauchy(const MatrixBase<XDerived>& x, const MatrixBase<YDerived>& y) : m_x(x), m_y(y) {
+  constexpr Cauchy(const MatrixBase<XDerived>& x, const MatrixBase<YDerived>& y) : m_x(x), m_y(y) {
     EIGEN_STATIC_ASSERT_VECTOR_ONLY(XDerived)
     EIGEN_STATIC_ASSERT_VECTOR_ONLY(YDerived)
     EIGEN_INTERNAL_ASSERT_NONEMPTY_MSG(m_x, "Cauchy node vectors must be non-empty");
     EIGEN_INTERNAL_ASSERT_NONEMPTY_MSG(m_y, "Cauchy node vectors must be non-empty");
   }
 
-  EIGEN_DEVICE_FUNC Index rows() const { return m_x.size(); }
-  EIGEN_DEVICE_FUNC Index cols() const { return m_y.size(); }
+  EIGEN_DEVICE_FUNC constexpr Index rows() const { return m_x.size(); }
+  EIGEN_DEVICE_FUNC constexpr Index cols() const { return m_y.size(); }
 
   /** \returns the row node vector \c x. */
-  const RowNodeVector& rowNodes() const { return m_x; }
+  constexpr const RowNodeVector& rowNodes() const { return m_x; }
   /** \returns the column node vector \c y. */
-  const ColNodeVector& colNodes() const { return m_y; }
+  constexpr const ColNodeVector& colNodes() const { return m_y; }
 
   /** \returns the coefficient at row \a row and column \a col. */
-  Scalar coeff(Index row, Index col) const { return Scalar(1) / (m_x.coeff(row) - m_y.coeff(col)); }
+  constexpr Scalar coeff(Index row, Index col) const { return Scalar(1) / (m_x.coeff(row) - m_y.coeff(col)); }
 
   /** \returns the transpose of \c *this, itself a Cauchy operator:
    * \f$ C(x,y)^T = C(-y,-x) \f$. */
-  Cauchy<Scalar, Cols_, Rows_> transpose() const { return Cauchy<Scalar, Cols_, Rows_>(-m_y, -m_x); }
+  constexpr Cauchy<Scalar, Cols_, Rows_> transpose() const { return Cauchy<Scalar, Cols_, Rows_>(-m_y, -m_x); }
 
   /** \returns the complex conjugate of \c *this, itself a Cauchy operator (the
    * one with conjugated nodes). */
-  Cauchy conjugate() const { return Cauchy(m_x.conjugate(), m_y.conjugate()); }
+  constexpr Cauchy conjugate() const { return Cauchy(m_x.conjugate(), m_y.conjugate()); }
 
   /** \returns the adjoint of \c *this, itself a Cauchy operator:
    * \f$ C(x,y)^H = C(-\bar y, -\bar x) \f$. */
-  Cauchy<Scalar, Cols_, Rows_> adjoint() const {
+  constexpr Cauchy<Scalar, Cols_, Rows_> adjoint() const {
     return Cauchy<Scalar, Cols_, Rows_>(-m_y.conjugate(), -m_x.conjugate());
   }
 
@@ -179,7 +179,7 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
    * (coincident \c x or \c y nodes) and non-finite factors propagate exactly;
    * a node difference that overflows makes its factor infinite, which turns the
    * determinant into NaN when it meets a zero or another infinite factor. */
-  Scalar determinant() const {
+  constexpr Scalar determinant() const {
     EIGEN_INTERNAL_ASSERT_SQUARE_MSG(*this, "Cauchy::determinant requires a square matrix");
     const Index n = rows();
     Scalar det(1);
@@ -204,19 +204,19 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
   /** \internal Writes the dense representation into \a dst, one vectorized
    * column at a time. Invoked through \c dense = cauchy; */
   template <typename Dest>
-  void evalTo(Dest& dst) const {
+  constexpr void evalTo(Dest& dst) const {
     applyAssignment(dst, internal::assign_op<typename Dest::Scalar, Scalar>());
   }
 
   /** \internal Computes \c dst += (*this), see evalTo(). */
   template <typename Dest>
-  void addTo(Dest& dst) const {
+  constexpr void addTo(Dest& dst) const {
     applyAssignment(dst, internal::add_assign_op<typename Dest::Scalar, Scalar>());
   }
 
   /** \internal Computes \c dst -= (*this), see evalTo(). */
   template <typename Dest>
-  void subTo(Dest& dst) const {
+  constexpr void subTo(Dest& dst) const {
     applyAssignment(dst, internal::sub_assign_op<typename Dest::Scalar, Scalar>());
   }
 
@@ -226,7 +226,7 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
    * dense product: a temporary resolves aliasing between the destination and
    * \a v, and \c .noalias() skips it. */
   template <typename Rhs>
-  Product<Cauchy, Rhs> operator*(const MatrixBase<Rhs>& v) const {
+  constexpr Product<Cauchy, Rhs> operator*(const MatrixBase<Rhs>& v) const {
     return Product<Cauchy, Rhs>(*this, v.derived());
   }
 
@@ -237,7 +237,7 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
    * several right-hand sides of the operator's own scalar type it is formed once
    * per block of rows and reused across them, with identical results. */
   template <typename Dest, typename Rhs, typename ProductScalar>
-  void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
+  constexpr void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
     const Index n = cols();
     EIGEN_INTERNAL_ASSERT_PRODUCT_SHAPE_MSG(*this, rhs, "invalid product: dimensions do not match");
     // A unit alpha must not multiply: even the identity complex scalar (1,0)
@@ -271,7 +271,7 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
 
  private:
   template <typename Dest, typename Assignment>
-  void applyAssignment(Dest& dst, const Assignment& assignment) const {
+  constexpr void applyAssignment(Dest& dst, const Assignment& assignment) const {
     for (Index j = 0; j < cols(); ++j) {
       auto dstColumn = dst.col(j);
       internal::call_assignment_no_alias(dstColumn, (m_x.array() - m_y.coeff(j)).inverse().matrix(), assignment);
@@ -286,7 +286,7 @@ class Cauchy : public EigenBase<Cauchy<Scalar_, Rows_, Cols_>> {
  * \returns a \ref Cauchy operator with row nodes \a x and column nodes \a y. The
  * compile-time dimensions of the operator are deduced from the node vectors. */
 template <typename XDerived, typename YDerived>
-Cauchy<typename XDerived::Scalar, XDerived::SizeAtCompileTime, YDerived::SizeAtCompileTime> makeCauchy(
+constexpr Cauchy<typename XDerived::Scalar, XDerived::SizeAtCompileTime, YDerived::SizeAtCompileTime> makeCauchy(
     const MatrixBase<XDerived>& x, const MatrixBase<YDerived>& y) {
   return Cauchy<typename XDerived::Scalar, XDerived::SizeAtCompileTime, YDerived::SizeAtCompileTime>(x, y);
 }
@@ -339,11 +339,11 @@ class CauchyLU : public SolverBase<CauchyLU<Scalar_>> {
   using DenseVector = Matrix<Scalar, Dynamic, 1>;
 
   /** Default constructor; call \ref compute before \ref solve. */
-  CauchyLU() : m_isInitialized(false), m_info(InvalidInput) {}
+  constexpr CauchyLU() : m_isInitialized(false), m_info(InvalidInput) {}
 
   /** Constructs and factorizes from the square Cauchy matrix \a C. */
   template <int Rows_, int Cols_>
-  explicit CauchyLU(const Cauchy<Scalar, Rows_, Cols_>& C) : m_isInitialized(false), m_info(InvalidInput) {
+  explicit constexpr CauchyLU(const Cauchy<Scalar, Rows_, Cols_>& C) : m_isInitialized(false), m_info(InvalidInput) {
     compute(C);
   }
 
@@ -355,7 +355,7 @@ class CauchyLU : public SolverBase<CauchyLU<Scalar_>> {
    * This follows from the rank-one displacement
    * \f$D_x C-C D_y=\mathbf{1}\mathbf{1}^T\f$. \sa solve */
   template <int Rows_, int Cols_>
-  CauchyLU& compute(const Cauchy<Scalar, Rows_, Cols_>& C) {
+  constexpr CauchyLU& compute(const Cauchy<Scalar, Rows_, Cols_>& C) {
     EIGEN_INTERNAL_ASSERT_SQUARE_MSG(C, "CauchyLU requires a square Cauchy matrix");
     const Index n = C.rows();
     DenseVector x = C.rowNodes();
@@ -402,12 +402,12 @@ class CauchyLU : public SolverBase<CauchyLU<Scalar_>> {
     return *this;
   }
 
-  Index rows() const noexcept { return m_lu.rows(); }
-  Index cols() const noexcept { return m_lu.cols(); }
+  constexpr Index rows() const noexcept { return m_lu.rows(); }
+  constexpr Index cols() const noexcept { return m_lu.cols(); }
 
   /** \returns \c Success, or \c NumericalIssue when the factorization encounters
    * a zero or non-finite entry that prevents a usable factorization. */
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "CauchyLU is not initialized.");
     return m_info;
   }
@@ -418,13 +418,13 @@ class CauchyLU : public SolverBase<CauchyLU<Scalar_>> {
    * systems reuse the same factorization through \c transpose().solve(b) and
    * \c adjoint().solve(b). \pre \ref compute has been called. */
   template <typename Rhs>
-  inline const Solve<CauchyLU, Rhs> solve(const MatrixBase<Rhs>& b) const;
+  constexpr const Solve<CauchyLU, Rhs> solve(const MatrixBase<Rhs>& b) const;
 #endif
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   /** \internal P*C = L*U, so C*u = b becomes L*U*u = P*b. */
   template <typename RhsType, typename DstType>
-  void _solve_impl(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl(const RhsType& rhs, DstType& dst) const {
     dst = rhs;
     for (Index k = 0; k < rows(); ++k) {
       const Index piv = m_perm[static_cast<std::size_t>(k)];
@@ -438,7 +438,7 @@ class CauchyLU : public SolverBase<CauchyLU<Scalar_>> {
    * the transposed triangles, then undo the transpositions in reverse order;
    * conjugated on the way in and out for the adjoint. */
   template <bool Conjugate, typename RhsType, typename DstType>
-  void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
     dst = rhs.template conjugateIf<Conjugate>();
     m_lu.template triangularView<Upper>().transpose().solveInPlace(dst);
     m_lu.template triangularView<UnitLower>().transpose().solveInPlace(dst);

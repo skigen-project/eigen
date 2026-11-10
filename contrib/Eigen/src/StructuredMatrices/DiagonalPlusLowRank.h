@@ -69,14 +69,14 @@ struct dplr_capacitance_impl {
   /** Applies the Woodbury correction
    * \f[ x\mathrel{-}=D^{-1}U(I_k+V^H D^{-1}U)^{-1}V^Hx. \f] */
   template <typename Op, typename Dinv, typename Workspace>
-  static void subtractSolveCorrection(const Op& op, const Dinv& dinv, Workspace& x) {
+  static constexpr void subtractSolveCorrection(const Op& op, const Dinv& dinv, Workspace& x) {
     if (op.correctionRank() == 0 || x.size() == 0) return;
     PartialPivLU<typename Op::CapacitanceType> cap(op.capacitance());
     x.noalias() -= dinv.asDiagonal() * (op.factorU() * cap.solve(op.factorV().adjoint() * x));
   }
   /** Forms \f$U'=-D^{-1}U(I_k+V^HD^{-1}U)^{-1}\f$. */
   template <typename Op, typename Dinv, typename Factor>
-  static void inverseFactor(const Op& op, const Dinv& dinv, Factor& Up) {
+  static constexpr void inverseFactor(const Op& op, const Dinv& dinv, Factor& Up) {
     if (op.correctionRank() == 0) return;
     PartialPivLU<typename Op::CapacitanceType> cap(op.capacitance());
     const typename Op::CapacitanceType K = cap.inverse();
@@ -87,7 +87,7 @@ struct dplr_capacitance_impl {
    * renormalized before multiplication because \f$\det(D)\f$ and the capacitance
    * determinant can occupy opposite ends of the exponent range. */
   template <typename Op>
-  static typename Op::Scalar balancedCapacitanceDeterminant(const Op& op, Index& exponent) {
+  static constexpr typename Op::Scalar balancedCapacitanceDeterminant(const Op& op, Index& exponent) {
     using Scalar = typename Op::Scalar;
     if (op.correctionRank() == 0) return Scalar(1);
     const PartialPivLU<typename Op::CapacitanceType> lu(op.capacitance());
@@ -101,11 +101,11 @@ struct dplr_capacitance_impl {
 template <>
 struct dplr_capacitance_impl<0> {
   template <typename Op, typename Dinv, typename Workspace>
-  static void subtractSolveCorrection(const Op&, const Dinv&, Workspace&) {}
+  static constexpr void subtractSolveCorrection(const Op&, const Dinv&, Workspace&) {}
   template <typename Op, typename Dinv, typename Factor>
-  static void inverseFactor(const Op&, const Dinv&, Factor&) {}
+  static constexpr void inverseFactor(const Op&, const Dinv&, Factor&) {}
   template <typename Op>
-  static typename Op::Scalar balancedCapacitanceDeterminant(const Op&, Index&) {
+  static constexpr typename Op::Scalar balancedCapacitanceDeterminant(const Op&, Index&) {
     return typename Op::Scalar(1);
   }
 };
@@ -174,7 +174,8 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * same number of columns (the correction rank \c k, possibly zero) and as many
    * rows as \a d has entries. */
   template <typename DDerived, typename UDerived, typename VDerived>
-  DiagonalPlusLowRank(const MatrixBase<DDerived>& d, const MatrixBase<UDerived>& U, const MatrixBase<VDerived>& V)
+  constexpr DiagonalPlusLowRank(const MatrixBase<DDerived>& d, const MatrixBase<UDerived>& U,
+                                const MatrixBase<VDerived>& V)
       : m_d(d), m_U(U), m_V(V) {
     EIGEN_STATIC_ASSERT_VECTOR_ONLY(DDerived)
     EIGEN_INTERNAL_ASSERT_NONEMPTY_MSG(m_d, "DiagonalPlusLowRank must be non-empty");
@@ -183,20 +184,20 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
     EIGEN_INTERNAL_ASSERT_SAME_COLS_MSG(m_U, m_V, "factor dimensions do not match");
   }
 
-  EIGEN_DEVICE_FUNC Index rows() const { return m_d.size(); }
-  EIGEN_DEVICE_FUNC Index cols() const { return m_d.size(); }
+  EIGEN_DEVICE_FUNC constexpr Index rows() const { return m_d.size(); }
+  EIGEN_DEVICE_FUNC constexpr Index cols() const { return m_d.size(); }
   /** \returns the correction rank \c k. */
-  Index correctionRank() const { return m_U.cols(); }
+  constexpr Index correctionRank() const { return m_U.cols(); }
 
   /** \returns the diagonal vector \c d. */
-  const DiagonalVector& diagonal() const { return m_d; }
+  constexpr const DiagonalVector& diagonal() const { return m_d; }
   /** \returns the left factor \c U. */
-  const FactorType& factorU() const { return m_U; }
+  constexpr const FactorType& factorU() const { return m_U; }
   /** \returns the right factor \c V. */
-  const FactorType& factorV() const { return m_V; }
+  constexpr const FactorType& factorV() const { return m_V; }
 
   /** \returns the coefficient at row \a row and column \a col. */
-  Scalar coeff(Index row, Index col) const {
+  constexpr Scalar coeff(Index row, Index col) const {
     Scalar r = m_V.row(col).dot(m_U.row(row));  // dot() conjugates its first argument
     if (row == col) r += m_d.coeff(row);
     return r;
@@ -204,17 +205,17 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
 
   /** \returns the transpose of \c *this, itself a \c DiagonalPlusLowRank
    * operator: \f$ (D + UV^H)^T = D + \bar V \bar U^H \f$. */
-  DiagonalPlusLowRank transpose() const { return DiagonalPlusLowRank(m_d, m_V.conjugate(), m_U.conjugate()); }
+  constexpr DiagonalPlusLowRank transpose() const { return DiagonalPlusLowRank(m_d, m_V.conjugate(), m_U.conjugate()); }
 
   /** \returns the complex conjugate of \c *this, itself a \c DiagonalPlusLowRank
    * operator. */
-  DiagonalPlusLowRank conjugate() const {
+  constexpr DiagonalPlusLowRank conjugate() const {
     return DiagonalPlusLowRank(m_d.conjugate(), m_U.conjugate(), m_V.conjugate());
   }
 
   /** \returns the adjoint of \c *this, itself a \c DiagonalPlusLowRank operator:
    * \f$ (D + UV^H)^H = \bar D + V U^H \f$. */
-  DiagonalPlusLowRank adjoint() const { return DiagonalPlusLowRank(m_d.conjugate(), m_V, m_U); }
+  constexpr DiagonalPlusLowRank adjoint() const { return DiagonalPlusLowRank(m_d.conjugate(), m_V, m_U); }
 
   /** \returns the capacitance matrix \f$ I_k + V^H D^{-1} U \f$ of the Woodbury
    * identity. Every consumer of the triple product -- \ref solve, \ref inverse
@@ -222,7 +223,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * factor magnitudes the product can overflow even when the capacitance itself
    * is representable.
    * \warning The diagonal must have no zero entries. */
-  CapacitanceType capacitance() const {
+  constexpr CapacitanceType capacitance() const {
     const Index k = correctionRank();
     CapacitanceType c = CapacitanceType::Identity(k, k);
     if (k == 0) return c;
@@ -242,7 +243,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * correction cancels most of those amplified digits and the achievable
    * accuracy degrades accordingly, even for a well-conditioned operator [5]. */
   template <typename Rhs>
-  Matrix<Scalar, Size_, Rhs::ColsAtCompileTime> solve(const MatrixBase<Rhs>& b) const {
+  constexpr Matrix<Scalar, Size_, Rhs::ColsAtCompileTime> solve(const MatrixBase<Rhs>& b) const {
     EIGEN_INTERNAL_ASSERT_SOLVER_RHS_MSG(*this, b, false, "right-hand side has the wrong number of rows");
     const DiagonalVector dinv = m_d.cwiseInverse();
     Matrix<Scalar, Size_, Rhs::ColsAtCompileTime> x = dinv.asDiagonal() * b;
@@ -254,7 +255,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * by the Woodbury identity [1], \f$ (D + UV^H)^{-1} = D^{-1} + U' V'^H \f$ with
    * \f$ U' = -D^{-1} U (I_k + V^H D^{-1} U)^{-1} \f$ and \f$ V' = D^{-H} V \f$.
    * \warning Same invertibility requirements as \ref solve. */
-  DiagonalPlusLowRank inverse() const {
+  constexpr DiagonalPlusLowRank inverse() const {
     const DiagonalVector dinv = m_d.cwiseInverse();
     FactorType Up(rows(), correctionRank());
     internal::dplr_capacitance_impl<Rank_>::inverseFactor(*this, dinv, Up);
@@ -281,7 +282,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * or a dense fallback for that case), and, as with \ref solve and \ref inverse,
    * its reciprocals must be finite: a subnormal diagonal entry overflows
    * \f$ D^{-1} \f$ -- and with it the capacitance entries -- to infinity. */
-  Scalar determinant() const {
+  constexpr Scalar determinant() const {
     Scalar det(1);
     Index exponent = 0;
     for (Index i = 0; i < rows(); ++i)
@@ -294,21 +295,21 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
   /** \internal Writes the dense representation into \a dst. Invoked through
    * \c dense = op; */
   template <typename Dest>
-  void evalTo(Dest& dst) const {
+  constexpr void evalTo(Dest& dst) const {
     dst.noalias() = m_U * m_V.adjoint();
     dst.diagonal() += m_d;
   }
 
   /** \internal Computes \c dst += (*this), see evalTo(). */
   template <typename Dest>
-  void addTo(Dest& dst) const {
+  constexpr void addTo(Dest& dst) const {
     dst.noalias() += m_U * m_V.adjoint();
     dst.diagonal() += m_d;
   }
 
   /** \internal Computes \c dst -= (*this), see evalTo(). */
   template <typename Dest>
-  void subTo(Dest& dst) const {
+  constexpr void subTo(Dest& dst) const {
     dst.noalias() -= m_U * m_V.adjoint();
     dst.diagonal() -= m_d;
   }
@@ -319,7 +320,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * resolves aliasing between the destination and \a v, and \c .noalias() skips
    * it. */
   template <typename Rhs>
-  Product<DiagonalPlusLowRank, Rhs> operator*(const MatrixBase<Rhs>& v) const {
+  constexpr Product<DiagonalPlusLowRank, Rhs> operator*(const MatrixBase<Rhs>& v) const {
     return Product<DiagonalPlusLowRank, Rhs>(*this, v.derived());
   }
 
@@ -328,7 +329,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
    * complex right-hand side); the workspaces and the accumulation run in the
    * promoted type. */
   template <typename Dest, typename Rhs, typename ProductScalar>
-  void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
+  constexpr void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
     EIGEN_INTERNAL_ASSERT_PRODUCT_SHAPE_MSG(*this, rhs, "invalid product: dimensions do not match");
     const Matrix<ProductScalar, Size_, Rhs::ColsAtCompileTime> r = rhs;
     dst += alpha * (m_d.asDiagonal() * r);
@@ -348,7 +349,7 @@ class DiagonalPlusLowRank : public EigenBase<DiagonalPlusLowRank<Scalar_, Size_,
  * \returns a \ref DiagonalPlusLowRank operator \c diag(d) + \c U*V.adjoint().
  * The compile-time dimension and rank are deduced from the arguments. */
 template <typename DDerived, typename UDerived, typename VDerived>
-DiagonalPlusLowRank<typename DDerived::Scalar, DDerived::SizeAtCompileTime, UDerived::ColsAtCompileTime>
+constexpr DiagonalPlusLowRank<typename DDerived::Scalar, DDerived::SizeAtCompileTime, UDerived::ColsAtCompileTime>
 makeDiagonalPlusLowRank(const MatrixBase<DDerived>& d, const MatrixBase<UDerived>& U, const MatrixBase<VDerived>& V) {
   return DiagonalPlusLowRank<typename DDerived::Scalar, DDerived::SizeAtCompileTime, UDerived::ColsAtCompileTime>(d, U,
                                                                                                                   V);

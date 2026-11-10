@@ -51,19 +51,20 @@ namespace internal {
  *
  */
 template <typename Scalar, typename StorageIndex>
-Index SparseLUImpl<Scalar, StorageIndex>::copy_to_ucol(const Index jcol, const Index nseg, IndexVector& segrep,
-                                                       BlockIndexVector repfnz, IndexVector& perm_r,
-                                                       BlockScalarVector dense, GlobalLU_t& glu) {
-  Index ksub, krep, ksupno;
+constexpr Index SparseLUImpl<Scalar, StorageIndex>::copy_to_ucol(const Index jcol, const Index nseg,
+                                                                 IndexVector& segrep, BlockIndexVector repfnz,
+                                                                 IndexVector& perm_r, BlockScalarVector dense,
+                                                                 GlobalLU_t& glu) {
+  Index ksub = 0, krep = 0, ksupno = 0;
 
   Index jsupno = glu.supno(jcol);
 
   // For each nonzero supernode segment of U[*,j] in topological order
-  Index k = nseg - 1, i;
+  Index k = nseg - 1, i = 0;
   StorageIndex nextu = glu.xusub(jcol);
-  Index kfnz, isub, segsize;
-  Index new_next, irow;
-  Index fsupc, mem;
+  Index kfnz = 0, isub = 0, segsize = 0;
+  Index new_next = 0, irow = 0;
+  Index fsupc = 0, mem = 0;
   for (ksub = 0; ksub < nseg; ksub++) {
     krep = segrep(k);
     k--;

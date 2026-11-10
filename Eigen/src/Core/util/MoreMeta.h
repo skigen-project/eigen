@@ -280,7 +280,7 @@ EIGEN_DEVICE_FUNC constexpr auto array_prod(const array<T, N>& arr) {
 }
 
 template <typename t>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE t array_prod(const std::vector<t>& a) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR20 t array_prod(const std::vector<t>& a) {
   eigen_assert(!a.empty());
   t prod = 1;
   for (size_t i = 0; i < a.size(); ++i) {

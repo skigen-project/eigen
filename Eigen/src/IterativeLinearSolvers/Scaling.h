@@ -55,9 +55,9 @@ class IterScaling {
   using Scalar = typename MatrixType::Scalar;
   using Index = typename MatrixType::Index;
 
-  IterScaling() { init(); }
+  constexpr IterScaling() { init(); }
 
-  IterScaling(const MatrixType& matrix) {
+  constexpr IterScaling(const MatrixType& matrix) {
     init();
     compute(matrix);
   }
@@ -69,9 +69,9 @@ class IterScaling {
    *
    * \sa LeftScaling() RightScaling()
    */
-  void compute(const MatrixType& mat) {
-    int m = mat.rows();
-    int n = mat.cols();
+  EIGEN_CONSTEXPR20 void compute(const MatrixType& mat) {
+    Index m = mat.rows();
+    Index n = mat.cols();
     eigen_assert((m > 0 && m == n) && "Please give a non - empty matrix");
     m_left.resize(m);
     m_right.resize(n);
@@ -131,24 +131,24 @@ class IterScaling {
    *
    * \sa compute()
    */
-  void computeRef(MatrixType& mat) {
+  constexpr void computeRef(MatrixType& mat) {
     compute(mat);
     mat = m_matrix;
   }
   /** Get the vector to scale the rows of the matrix
    */
-  VectorXd& LeftScaling() { return m_left; }
+  constexpr VectorXd& LeftScaling() { return m_left; }
 
   /** Get the vector to scale the columns of the matrix
    */
-  VectorXd& RightScaling() { return m_right; }
+  constexpr VectorXd& RightScaling() { return m_right; }
 
   /** Set the tolerance for the convergence of the iterative scaling algorithm
    */
-  void setTolerance(double tol) { m_tol = tol; }
+  constexpr void setTolerance(double tol) { m_tol = tol; }
 
  protected:
-  void init() {
+  constexpr void init() {
     m_tol = 1e-10;
     m_maxits = 5;
     m_isInitialized = false;

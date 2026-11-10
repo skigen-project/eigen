@@ -30,12 +30,13 @@ namespace Eigen {
 template <typename ExpressionType, typename DeviceType>
 class TensorDevice {
  public:
-  TensorDevice(const DeviceType& device, ExpressionType& expression) : m_device(device), m_expression(expression) {}
+  constexpr TensorDevice(const DeviceType& device, ExpressionType& expression)
+      : m_device(device), m_expression(expression) {}
 
   EIGEN_DEFAULT_COPY_CONSTRUCTOR(TensorDevice)
 
   template <typename OtherDerived>
-  EIGEN_STRONG_INLINE TensorDevice& operator=(const OtherDerived& other) {
+  EIGEN_STRONG_INLINE constexpr TensorDevice& operator=(const OtherDerived& other) {
     using Assign = TensorAssignOp<ExpressionType, const OtherDerived>;
     Assign assign(m_expression, other);
     internal::TensorExecutor<const Assign, DeviceType>::run(assign, m_device);
@@ -43,7 +44,7 @@ class TensorDevice {
   }
 
   template <typename OtherDerived>
-  EIGEN_STRONG_INLINE TensorDevice& operator+=(const OtherDerived& other) {
+  EIGEN_STRONG_INLINE constexpr TensorDevice& operator+=(const OtherDerived& other) {
     using Scalar = typename OtherDerived::Scalar;
     using Sum = TensorCwiseBinaryOp<internal::scalar_sum_op<Scalar>, const ExpressionType, const OtherDerived>;
     Sum sum(m_expression, other);
@@ -54,7 +55,7 @@ class TensorDevice {
   }
 
   template <typename OtherDerived>
-  EIGEN_STRONG_INLINE TensorDevice& operator-=(const OtherDerived& other) {
+  EIGEN_STRONG_INLINE constexpr TensorDevice& operator-=(const OtherDerived& other) {
     using Scalar = typename OtherDerived::Scalar;
     using Difference =
         TensorCwiseBinaryOp<internal::scalar_difference_op<Scalar>, const ExpressionType, const OtherDerived>;
@@ -87,7 +88,7 @@ class TensorDevice {
 template <typename ExpressionType, typename DeviceType, typename DoneCallback>
 class TensorAsyncDevice {
  public:
-  TensorAsyncDevice(const DeviceType& device, ExpressionType& expression, DoneCallback done)
+  constexpr TensorAsyncDevice(const DeviceType& device, ExpressionType& expression, DoneCallback done)
       : m_device(device), m_expression(expression), m_done(std::move(done)) {}
 
   template <typename OtherDerived>
@@ -112,7 +113,7 @@ class TensorAsyncDevice {
 template <typename ExpressionType, typename DoneCallback>
 class TensorAsyncDevice<ExpressionType, ThreadPoolDevice, DoneCallback> {
  public:
-  TensorAsyncDevice(const ThreadPoolDevice& device, ExpressionType& expression, DoneCallback done)
+  constexpr TensorAsyncDevice(const ThreadPoolDevice& device, ExpressionType& expression, DoneCallback done)
       : m_device(device), m_expression(expression), m_done(std::move(done)) {}
 
   template <typename OtherDerived>

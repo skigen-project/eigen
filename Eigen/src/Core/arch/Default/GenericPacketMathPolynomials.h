@@ -60,17 +60,16 @@ namespace internal {
 template <typename Packet, int N>
 struct ppolevl {
   template <int... Indices>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_impl(const Packet& x,
-                                                               const typename unpacket_traits<Packet>::type coeff[],
-                                                               std::integer_sequence<int, Indices...>) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_impl(
+      const Packet& x, const typename unpacket_traits<Packet>::type coeff[], std::integer_sequence<int, Indices...>) {
     Packet result = pset1<Packet>(coeff[0]);
     int unused[] = {0, (result = pmadd(result, x, pset1<Packet>(coeff[Indices + 1])), 0)...};
     EIGEN_UNUSED_VARIABLE(unused);
     return result;
   }
 
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x,
-                                                          const typename unpacket_traits<Packet>::type coeff[]) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(
+      const Packet& x, const typename unpacket_traits<Packet>::type coeff[]) {
     EIGEN_STATIC_ASSERT((N >= 0), YOU_MADE_A_PROGRAMMING_MISTAKE);
     return run_impl(x, coeff, std::make_integer_sequence<int, (N > 0 ? N : 0)>{});
   }
@@ -130,12 +129,12 @@ struct ppolevl {
 
 template <typename Packet, int N>
 struct pchebevl {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Packet run(const Packet& x,
-                                                          const typename unpacket_traits<Packet>::type coef[]) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Packet run(
+      const Packet& x, const typename unpacket_traits<Packet>::type coef[]) {
     using Scalar = typename unpacket_traits<Packet>::type;
     Packet b0 = pset1<Packet>(coef[0]);
     Packet b1 = pset1<Packet>(static_cast<Scalar>(0.f));
-    Packet b2;
+    Packet b2 = b1;
 
     for (int i = 1; i < N; i++) {
       b2 = b1;

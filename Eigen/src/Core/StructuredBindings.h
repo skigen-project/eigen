@@ -100,7 +100,7 @@ namespace Eigen {
 
 // get<Idx_> free functions for Matrix.
 template <size_t Idx_, typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_& get(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar_& get(
     Matrix<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>& m) noexcept {
   static_assert(Rows_ != Dynamic && Cols_ != Dynamic, "Structured bindings require fixed-size Eigen types.");
   static_assert(Idx_ < static_cast<size_t>(Rows_ * Cols_), "Index out of range.");
@@ -109,7 +109,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_& get(
 }
 
 template <size_t Idx_, typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar_& get(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Scalar_& get(
     const Matrix<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>& m) noexcept {
   static_assert(Rows_ != Dynamic && Cols_ != Dynamic, "Structured bindings require fixed-size Eigen types.");
   static_assert(Idx_ < static_cast<size_t>(Rows_ * Cols_), "Index out of range.");
@@ -118,7 +118,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar_& get(
 }
 
 template <size_t Idx_, typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_&& get(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar_&& get(
     Matrix<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>&& m) noexcept {
   static_assert(Rows_ != Dynamic && Cols_ != Dynamic, "Structured bindings require fixed-size Eigen types.");
   static_assert(Idx_ < static_cast<size_t>(Rows_ * Cols_), "Index out of range.");
@@ -128,7 +128,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_&& get(
 
 // get<Idx_> free functions for Array.
 template <size_t Idx_, typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_& get(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar_& get(
     Array<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>& a) noexcept {
   static_assert(Rows_ != Dynamic && Cols_ != Dynamic, "Structured bindings require fixed-size Eigen types.");
   static_assert(Idx_ < static_cast<size_t>(Rows_ * Cols_), "Index out of range.");
@@ -137,7 +137,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_& get(
 }
 
 template <size_t Idx_, typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar_& get(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Scalar_& get(
     const Array<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>& a) noexcept {
   static_assert(Rows_ != Dynamic && Cols_ != Dynamic, "Structured bindings require fixed-size Eigen types.");
   static_assert(Idx_ < static_cast<size_t>(Rows_ * Cols_), "Index out of range.");
@@ -146,7 +146,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar_& get(
 }
 
 template <size_t Idx_, typename Scalar_, int Rows_, int Cols_, int Options_, int MaxRows_, int MaxCols_>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar_&& get(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar_&& get(
     Array<Scalar_, Rows_, Cols_, Options_, MaxRows_, MaxCols_>&& a) noexcept {
   static_assert(Rows_ != Dynamic && Cols_ != Dynamic, "Structured bindings require fixed-size Eigen types.");
   static_assert(Idx_ < static_cast<size_t>(Rows_ * Cols_), "Index out of range.");

@@ -12,20 +12,18 @@ namespace Eigen {
 namespace internal {
 
 template <typename Scalar>
-void lmpar(Matrix<Scalar, Dynamic, Dynamic> &r, const VectorXi &ipvt, const Matrix<Scalar, Dynamic, 1> &diag,
-           const Matrix<Scalar, Dynamic, 1> &qtb, Scalar delta, Scalar &par, Matrix<Scalar, Dynamic, 1> &x) {
-  using std::abs;
-  using std::sqrt;
+constexpr void lmpar(Matrix<Scalar, Dynamic, Dynamic> &r, const VectorXi &ipvt, const Matrix<Scalar, Dynamic, 1> &diag,
+                     const Matrix<Scalar, Dynamic, 1> &qtb, Scalar delta, Scalar &par, Matrix<Scalar, Dynamic, 1> &x) {
   using Index = DenseIndex;
 
   /* Local variables */
-  Index i, j, l;
-  Scalar fp;
-  Scalar parc, parl;
-  Index iter;
-  Scalar temp, paru;
-  Scalar gnorm;
-  Scalar dxnorm;
+  Index i = 0, j = 0, l = 0;
+  Scalar fp{};
+  Scalar parc{}, parl{};
+  Index iter = 0;
+  Scalar temp{}, paru{};
+  Scalar gnorm{};
+  Scalar dxnorm{};
 
   /* Function Body */
   const Scalar dwarf = (std::numeric_limits<Scalar>::min)();
@@ -102,7 +100,7 @@ void lmpar(Matrix<Scalar, Dynamic, Dynamic> &r, const VectorXi &ipvt, const Matr
 
     /* evaluate the function at the current value of par. */
     if (par == 0.) par = (std::max)(dwarf, Scalar(.001) * paru); /* Computing MAX */
-    wa1 = sqrt(par) * diag;
+    wa1 = numext::sqrt(par) * diag;
 
     Matrix<Scalar, Dynamic, 1> sdiag(n);
     qrsolv<Scalar>(r, ipvt, wa1, qtb, x, sdiag);
@@ -115,7 +113,7 @@ void lmpar(Matrix<Scalar, Dynamic, Dynamic> &r, const VectorXi &ipvt, const Matr
     /* if the function is small enough, accept the current value */
     /* of par. also test for the exceptional cases where parl */
     /* is zero or the number of iterations has reached 10. */
-    if (abs(fp) <= Scalar(0.1) * delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10) break;
+    if (numext::abs(fp) <= Scalar(0.1) * delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10) break;
 
     /* compute the newton correction. */
     for (j = 0; j < n; ++j) {
@@ -146,22 +144,21 @@ void lmpar(Matrix<Scalar, Dynamic, Dynamic> &r, const VectorXi &ipvt, const Matr
 }
 
 template <typename Scalar>
-void lmpar2(const ColPivHouseholderQR<Matrix<Scalar, Dynamic, Dynamic> > &qr, const Matrix<Scalar, Dynamic, 1> &diag,
-            const Matrix<Scalar, Dynamic, 1> &qtb, Scalar delta, Scalar &par, Matrix<Scalar, Dynamic, 1> &x)
+constexpr void lmpar2(const ColPivHouseholderQR<Matrix<Scalar, Dynamic, Dynamic> > &qr,
+                      const Matrix<Scalar, Dynamic, 1> &diag, const Matrix<Scalar, Dynamic, 1> &qtb, Scalar delta,
+                      Scalar &par, Matrix<Scalar, Dynamic, 1> &x)
 
 {
-  using std::abs;
-  using std::sqrt;
   using Index = DenseIndex;
 
   /* Local variables */
-  Index j;
-  Scalar fp;
-  Scalar parc, parl;
-  Index iter;
-  Scalar temp, paru;
-  Scalar gnorm;
-  Scalar dxnorm;
+  Index j = 0;
+  Scalar fp{};
+  Scalar parc{}, parl{};
+  Index iter = 0;
+  Scalar temp{}, paru{};
+  Scalar gnorm{};
+  Scalar dxnorm{};
 
   /* Function Body */
   const Scalar dwarf = (std::numeric_limits<Scalar>::min)();
@@ -225,7 +222,7 @@ void lmpar2(const ColPivHouseholderQR<Matrix<Scalar, Dynamic, Dynamic> > &qr, co
 
     /* evaluate the function at the current value of par. */
     if (par == 0.) par = (std::max)(dwarf, Scalar(.001) * paru); /* Computing MAX */
-    wa1 = sqrt(par) * diag;
+    wa1 = numext::sqrt(par) * diag;
 
     Matrix<Scalar, Dynamic, 1> sdiag(n);
     qrsolv<Scalar>(s, qr.colsPermutation().indices(), wa1, qtb, x, sdiag);
@@ -238,7 +235,7 @@ void lmpar2(const ColPivHouseholderQR<Matrix<Scalar, Dynamic, Dynamic> > &qr, co
     /* if the function is small enough, accept the current value */
     /* of par. also test for the exceptional cases where parl */
     /* is zero or the number of iterations has reached 10. */
-    if (abs(fp) <= Scalar(0.1) * delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10) break;
+    if (numext::abs(fp) <= Scalar(0.1) * delta || (parl == 0. && fp <= temp && temp < 0.) || iter == 10) break;
 
     /* compute the newton correction. */
     wa1 = qr.colsPermutation().inverse() * diag.cwiseProduct(wa2 / dxnorm);

@@ -428,7 +428,7 @@ constexpr EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC bool is_exactly_zero(const X& x)
 // Both signed zeros compare as zero. Other scalar types retain their usual equality semantics.
 // Defined in MathFunctions.h, after binary_floating_point_traits.
 template <typename X>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_exactly_zero_no_flush(const X& x);
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_exactly_zero_no_flush(const X& x);
 
 /**
  * \internal Performs an exact comparison of x to one, e.g. to decide whether a factor needs to be multiplied.
@@ -542,13 +542,13 @@ constexpr int max_size_prefer_dynamic(A a, B b) {
 }
 
 template <typename A, typename B>
-inline constexpr int size_prefer_fixed(A a, B b) {
+constexpr int size_prefer_fixed(A a, B b) {
   plain_enum_asserts(a, b);
   return int(a) == Dynamic ? int(b) : int(a);
 }
 
 template <typename A, typename B>
-inline constexpr bool enum_eq_not_dynamic(A a, B b) {
+constexpr bool enum_eq_not_dynamic(A a, B b) {
   plain_enum_asserts(a, b);
   if ((int)a == Dynamic || (int)b == Dynamic) return false;
   return (int)a == (int)b;
@@ -576,10 +576,23 @@ constexpr bool check_implication(bool a, bool b) { return !a || b; }
 
 /// \internal Provide fallback for std::is_constant_evaluated for pre-C++20.
 #if EIGEN_COMP_CXXVER >= 20 && defined(__cpp_lib_is_constant_evaluated) && __cpp_lib_is_constant_evaluated >= 201811L
-using std::is_constant_evaluated;
+// Wrapped rather than re-exported: GCC flags a direct call in a function that is constexpr only in newer modes
+// (EIGEN_CONSTEXPR20/23) as always false (-Wtautological-compare), although the guard is needed in those modes.
+constexpr bool is_constant_evaluated() noexcept { return std::is_constant_evaluated(); }
+#elif EIGEN_HAS_BUILTIN(__builtin_is_constant_evaluated) || (EIGEN_COMP_MSVC_STRICT && EIGEN_COMP_MSVC >= 1925)
+// The builtin that std::is_constant_evaluated wraps is available in every language mode; MSVC lacks __has_builtin.
+constexpr bool is_constant_evaluated() noexcept { return __builtin_is_constant_evaluated(); }
 #else
 constexpr bool is_constant_evaluated() { return false; }
 #endif
+
+/// \internal Calls f() through a function that is never inlined. GCC warns (-Wattributes) when a constexpr function,
+/// inline by implication, is declared in its class and defined outside it with EIGEN_DONT_INLINE; such a member passes
+/// its body here instead.
+template <typename F>
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr decltype(auto) noinline_invoke(const F& f) {
+  return f();
+}
 
 template <typename Scalar>
 using make_complex_t = std::conditional_t<NumTraits<Scalar>::IsComplex, Scalar, std::complex<Scalar>>;

@@ -13,6 +13,7 @@
 #define EIGEN_MATHFUNCTIONSIMPL_H
 
 // IWYU pragma: private
+#include <limits>
 #include "./InternalHeaderCheck.h"
 
 namespace Eigen {
@@ -166,13 +167,143 @@ EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE RealScalar positive_real_hypot(c
 template <typename Scalar>
 struct hypot_impl {
   using RealScalar = typename NumTraits<Scalar>::Real;
-  static EIGEN_DEVICE_FUNC inline RealScalar run(const Scalar& x, const Scalar& y) {
+  static EIGEN_DEVICE_FUNC constexpr RealScalar run(const Scalar& x, const Scalar& y) {
     return positive_real_hypot<RealScalar>(numext::abs(x), numext::abs(y));
   }
 };
 
+// Built-in IEEE binary formats whose significand fits the 64-bit remainder of real_sqrt_binary(), which needs a
+// constexpr bit_cast. Wrappers such as AutoDiffScalar forward numeric_limits but have no such bit layout.
+template <typename T>
+struct has_exact_constexpr_sqrt
+    : bool_constant<EIGEN_HAS_CONSTEXPR_BIT_CAST && std::is_floating_point<T>::value &&
+                    std::numeric_limits<T>::is_iec559 && std::numeric_limits<T>::radix == 2 &&
+                    sizeof(T) <= sizeof(uint64_t) && std::numeric_limits<T>::digits <= 53> {};
+
+// Correctly rounded sqrt of a positive finite x. With x = M 2^E, M < 2^p an integer and E - s even,
+//   q = floor(sqrt(M 2^s)),  s in {p + 1, p + 2},  2^p <= q < 2^(p+1),
+// computed by the digit-by-digit (restoring) square root. Then sqrt(x) = (q + f) 2^((E - s) / 2), 0 <= f < 1, and
+// rounding to p bits keeps q >> 1 and rounds up iff q is odd: a tie needs f = 0 with q odd, but M 2^s is even.
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T real_sqrt_binary(const T& x) {
+  using Binary = binary_floating_point_traits<T>;
+  using Bits = typename Binary::Bits;
+  constexpr int p = Binary::kFractionBits + 1;
+  constexpr unsigned kFractionBits = unsigned(Binary::kFractionBits);
+  constexpr uint64_t kLeadingBit = uint64_t(1) << kFractionBits;
+  constexpr uint64_t kFractionMask = uint64_t(Binary::kFractionMask);
+
+  const uint64_t bits = uint64_t(Binary::bits(x));
+  const int biasedExponent = int(bits >> kFractionBits);
+  uint64_t M = bits & kFractionMask;
+  int E = numext::maxi(biasedExponent, 1) - Binary::kExponentBias - (p - 1);
+  if (biasedExponent == 0) {
+    while (M < kLeadingBit) {
+      M <<= 1U;
+      --E;
+    }
+  } else {
+    M |= kLeadingBit;
+  }
+
+  int s = p + 1;
+  if ((E - s) % 2 != 0) ++s;
+
+  // Each step brings down bits 2i + 1 and 2i of M 2^s; the remainder r stays below 2q + 1 < 2^(p+2).
+  uint64_t q = 0;
+  uint64_t r = 0;
+  for (int i = p; i >= 0; --i) {
+    for (int j = 2 * i + 1; j >= 2 * i; --j) r = (r << 1U) | (j >= s ? (M >> unsigned(j - s)) & 1U : 0U);
+    const uint64_t trial = (q << 2U) | 1U;
+    q <<= 1U;
+    if (r >= trial) {
+      r -= trial;
+      q |= 1U;
+    }
+  }
+
+  uint64_t significand = (q >> 1U) + (q & 1U);
+  int exponent = (E - s) / 2 + p;
+  if (significand == (kLeadingBit << 1U)) {
+    significand >>= 1U;
+    ++exponent;
+  }
+  // sqrt maps every positive finite value of these formats to a normal one.
+  return numext::bit_cast<T>(
+      Bits((uint64_t(exponent + Binary::kExponentBias) << kFractionBits) | (significand & kFractionMask)));
+}
+
+// Approximate sqrt of a positive finite x by Newton's iteration on x scaled into [1/4, 4].
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T real_sqrt_newton(const T& x) {
+  T x_scaled = x;
+  T scale = T(1);
+
+  // Powers of 4 scale exactly, and keep the initial guess x / 2 and x / x_n from underflowing to zero.
+  while (x_scaled < T(1) / T(256)) {
+    x_scaled *= T(256);
+    scale /= T(16);
+  }
+  while (x_scaled < T(0.25)) {
+    x_scaled *= T(4);
+    scale /= T(2);
+  }
+  while (x_scaled > T(256)) {
+    x_scaled /= T(256);
+    scale *= T(16);
+  }
+  while (x_scaled > T(4)) {
+    x_scaled /= T(4);
+    scale *= T(2);
+  }
+
+  // Initial guess is x/2
+  T x_n1 = x_scaled / T(2);
+  T x_n = x_n1;
+
+  int i = 0;
+  do {
+    x_n = x_n1;
+
+    // sqrt(a) is equivalent to finding the root of f(x) = x² - a.
+    //
+    //   xₙ₊₁ = xₙ − f(xₙ)/f'(xₙ)
+    //   xₙ₊₁ = xₙ − (xₙ² - a)/2xₙ
+    //   xₙ₊₁ = xₙ − (xₙ/2 - a/2xₙ)
+    //   xₙ₊₁ = xₙ − xₙ/2 + a/2xₙ
+    //   xₙ₊₁ = xₙ/2 + a/2xₙ
+    //   xₙ₊₁ = 0.5(xₙ + a/xₙ)
+    x_n1 = T(0.5) * (x_n + x_scaled / x_n);
+
+    if (i == 1000) {
+      break;
+    }
+    ++i;
+  } while (numext::abs(x_n1 - x_n) > (std::numeric_limits<T>::min)() * numext::abs(x_n1));
+
+  return scale * x_n1;
+}
+
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T real_sqrt(const T& x) {
+  if ((numext::isnan)(x) || x < T(0)) {
+    return NumTraits<T>::quiet_NaN();
+  }
+
+  // +-0 and inf are their own square roots; zero would also start Newton's iteration at zero.
+  if ((numext::isinf)(x) || x == T(0)) {
+    return x;
+  }
+
+  EIGEN_IF_CONSTEXPR (has_exact_constexpr_sqrt<T>::value) {
+    return real_sqrt_binary(x);
+  }
+
+  return real_sqrt_newton(x);
+}
+
 template <typename ComplexT, bool Reciprocal>
-EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE ComplexT complex_sqrt_extreme(const ComplexT& z) {
+EIGEN_DEVICE_FUNC EIGEN_DONT_INLINE constexpr ComplexT complex_sqrt_extreme(const ComplexT& z) {
   using T = typename NumTraits<ComplexT>::Real;
   const T x = numext::real(z);
   const T y = numext::imag(z);
@@ -287,7 +418,7 @@ EIGEN_DEVICE_FUNC constexpr ComplexT complex_log(const ComplexT& z) {
 // log2|z| + i arg(z) log2(e), scaled as in complex_log. The real part comes from log2, which is exact where |z| is a
 // power of two; log2(e) log|z| can be an ulp off there.
 template <typename ComplexT>
-EIGEN_DEVICE_FUNC ComplexT complex_log2(const ComplexT& z) {
+EIGEN_DEVICE_FUNC constexpr ComplexT complex_log2(const ComplexT& z) {
   using T = typename NumTraits<ComplexT>::Real;
   const T a = numext::abs(z);
   const T b = T(EIGEN_LOG2E) * numext::atan2(z.imag(), z.real());

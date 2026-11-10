@@ -835,6 +835,23 @@
 
 #define EIGEN_CONSTEXPR constexpr
 
+// constexpr only where the C++20 relaxations are available: constexpr destructors (P0784) and uninitialized
+// variables (P1331).
+#if EIGEN_MAX_CPP_VER >= 20 && defined(__cpp_constexpr) && __cpp_constexpr >= 201907L && \
+    defined(__cpp_constexpr_dynamic_alloc) && __cpp_constexpr_dynamic_alloc >= 201907L
+#define EIGEN_CONSTEXPR20 constexpr
+#else
+#define EIGEN_CONSTEXPR20
+#endif
+
+// constexpr only where the C++23 relaxations are available: goto, labels, and variables of non-literal type or of
+// static or thread storage duration (P2242, P2647), and non-literal return and parameter types (P2448).
+#if EIGEN_MAX_CPP_VER >= 23 && defined(__cpp_constexpr) && __cpp_constexpr >= 202211L
+#define EIGEN_CONSTEXPR23 constexpr
+#else
+#define EIGEN_CONSTEXPR23
+#endif
+
 // NOTE: the required Apple's clang version is very conservative
 //       and it could be that XCode 9 works just fine.
 // NOTE: the MSVC version is based on https://en.cppreference.com/w/cpp/compiler_support
@@ -1404,6 +1421,14 @@ EIGEN_ALWAYS_INLINE void msvc_optimization_barrier(T (&x)[N]) {
 
 namespace Eigen {
 namespace internal {
+// EIGEN_OPTIMIZATION_BARRIER as a function: it can expand to inline asm, which a constexpr function cannot contain
+// before C++20, but a constexpr function can call this behind `if (!is_constant_evaluated())`.
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void optimization_barrier_function(T& x) {
+  EIGEN_UNUSED_VARIABLE(x);
+  EIGEN_OPTIMIZATION_BARRIER(x);
+}
+
 // A volatile asm that the optimizer must execute exactly where it is written, so a value passed through it is defined
 // only on its branch, and an operation that consumes it stays there instead of being evaluated speculatively.
 // EIGEN_OPTIMIZATION_BARRIER is not volatile and can move across branches.
@@ -1479,19 +1504,22 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void volatile_barrier(double& x) {
 #define EIGEN_USING_STD(FUNC) using std::FUNC;
 #endif
 
-#define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)                           \
-  using Base::operator=;                                                           \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator=(const Derived& other) { \
-    Base::operator=(other);                                                        \
-    return *this;                                                                  \
+// Derived names a type, which cannot be parenthesized.
+// NOLINTBEGIN(bugprone-macro-parentheses)
+#define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)                                     \
+  using Base::operator=;                                                                     \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator=(const Derived& other) { \
+    Base::operator=(other);                                                                  \
+    return *this;                                                                            \
   }
+// NOLINTEND(bugprone-macro-parentheses)
 
 /**
  * \internal
  * \brief Macro to explicitly define the default copy constructor.
  * This is necessary, because the implicit definition is deprecated if the copy-assignment is overridden.
  */
-#define EIGEN_DEFAULT_COPY_CONSTRUCTOR(CLASS) EIGEN_DEVICE_FUNC CLASS(const CLASS&) = default;
+#define EIGEN_DEFAULT_COPY_CONSTRUCTOR(CLASS) EIGEN_DEVICE_FUNC constexpr CLASS(const CLASS&) = default;
 
 /** \internal
  * \brief Macro to manually inherit assignment operators.
@@ -1508,7 +1536,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void volatile_barrier(double& x) {
  * For empty helper classes this should usually be protected, to avoid accidentally creating empty objects.
  */
 #define EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(Derived) \
-  EIGEN_DEVICE_FUNC Derived() = default;                        \
+  EIGEN_DEVICE_FUNC constexpr Derived() = default;              \
   EIGEN_DEVICE_FUNC ~Derived() = default;
 
 /**

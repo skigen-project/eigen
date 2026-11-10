@@ -57,9 +57,9 @@ struct qr_preconditioner_impl {};
 template <typename MatrixType, int Options, int QRPreconditioner, int Case>
 class qr_preconditioner_impl<MatrixType, Options, QRPreconditioner, Case, false> {
  public:
-  void allocate(const JacobiSVD<MatrixType, Options>&) {}
+  constexpr void allocate(const JacobiSVD<MatrixType, Options>&) {}
   template <typename Xpr>
-  bool run(JacobiSVD<MatrixType, Options>&, const Xpr&) {
+  constexpr bool run(JacobiSVD<MatrixType, Options>&, const Xpr&) {
     return false;
   }
 };
@@ -77,7 +77,7 @@ class qr_preconditioner_impl<MatrixType, Options, FullPivHouseholderQRPreconditi
 
   using WorkspaceType = Matrix<Scalar, 1, WorkspaceSize, RowMajor, 1, MaxWorkspaceSize>;
 
-  void allocate(const SVDType& svd) {
+  constexpr void allocate(const SVDType& svd) {
     if (svd.rows() != m_qr.rows() || svd.cols() != m_qr.cols()) {
       internal::destroy_at(&m_qr);
       internal::construct_at(&m_qr, svd.rows(), svd.cols());
@@ -85,7 +85,7 @@ class qr_preconditioner_impl<MatrixType, Options, FullPivHouseholderQRPreconditi
     if (svd.m_computeFullU) m_workspace.resize(svd.rows());
   }
   template <typename Xpr>
-  bool run(SVDType& svd, const Xpr& matrix) {
+  constexpr bool run(SVDType& svd, const Xpr& matrix) {
     if (svd_precondition_more_rows(Options, matrix.rows(), matrix.cols())) {
       m_qr.compute(matrix);
       svd.m_workMatrix = m_qr.matrixQR().block(0, 0, matrix.cols(), matrix.cols()).template triangularView<Upper>();
@@ -121,7 +121,7 @@ class qr_preconditioner_impl<MatrixType, Options, FullPivHouseholderQRPreconditi
       typename internal::make_proper_matrix_type<Scalar, ColsAtCompileTime, RowsAtCompileTime, MatrixOptions,
                                                  MaxColsAtCompileTime, MaxRowsAtCompileTime>::type;
 
-  void allocate(const SVDType& svd) {
+  constexpr void allocate(const SVDType& svd) {
     if (svd.cols() != m_qr.rows() || svd.rows() != m_qr.cols()) {
       internal::destroy_at(&m_qr);
       internal::construct_at(&m_qr, svd.cols(), svd.rows());
@@ -129,7 +129,7 @@ class qr_preconditioner_impl<MatrixType, Options, FullPivHouseholderQRPreconditi
     if (svd.m_computeFullV) m_workspace.resize(svd.cols());
   }
   template <typename Xpr>
-  bool run(SVDType& svd, const Xpr& matrix) {
+  constexpr bool run(SVDType& svd, const Xpr& matrix) {
     if (matrix.cols() > matrix.rows()) {
       m_qr.compute(matrix.adjoint());
       svd.m_workMatrix =
@@ -163,7 +163,7 @@ class qr_preconditioner_impl<MatrixType, Options, ColPivHouseholderQRPreconditio
 
   using WorkspaceType = Matrix<Scalar, 1, WorkspaceSize, RowMajor, 1, MaxWorkspaceSize>;
 
-  void allocate(const SVDType& svd) {
+  constexpr void allocate(const SVDType& svd) {
     if (svd.rows() != m_qr.rows() || svd.cols() != m_qr.cols()) {
       internal::destroy_at(&m_qr);
       internal::construct_at(&m_qr, svd.rows(), svd.cols());
@@ -174,7 +174,7 @@ class qr_preconditioner_impl<MatrixType, Options, ColPivHouseholderQRPreconditio
       m_workspace.resize(svd.cols());
   }
   template <typename Xpr>
-  bool run(SVDType& svd, const Xpr& matrix) {
+  constexpr bool run(SVDType& svd, const Xpr& matrix) {
     if (svd_precondition_more_rows(Options, matrix.rows(), matrix.cols())) {
       m_qr.compute(matrix);
       svd.m_workMatrix = m_qr.matrixQR().block(0, 0, matrix.cols(), matrix.cols()).template triangularView<Upper>();
@@ -219,7 +219,7 @@ class qr_preconditioner_impl<MatrixType, Options, ColPivHouseholderQRPreconditio
       typename internal::make_proper_matrix_type<Scalar, ColsAtCompileTime, RowsAtCompileTime, MatrixOptions,
                                                  MaxColsAtCompileTime, MaxRowsAtCompileTime>::type;
 
-  void allocate(const SVDType& svd) {
+  constexpr void allocate(const SVDType& svd) {
     if (svd.cols() != m_qr.rows() || svd.rows() != m_qr.cols()) {
       internal::destroy_at(&m_qr);
       internal::construct_at(&m_qr, svd.cols(), svd.rows());
@@ -230,7 +230,7 @@ class qr_preconditioner_impl<MatrixType, Options, ColPivHouseholderQRPreconditio
       m_workspace.resize(svd.rows());
   }
   template <typename Xpr>
-  bool run(SVDType& svd, const Xpr& matrix) {
+  constexpr bool run(SVDType& svd, const Xpr& matrix) {
     if (matrix.cols() > matrix.rows()) {
       m_qr.compute(matrix.adjoint());
 
@@ -269,7 +269,7 @@ class qr_preconditioner_impl<MatrixType, Options, HouseholderQRPreconditioner, P
 
   using WorkspaceType = Matrix<Scalar, 1, WorkspaceSize, RowMajor, 1, MaxWorkspaceSize>;
 
-  void allocate(const SVDType& svd) {
+  constexpr void allocate(const SVDType& svd) {
     if (svd.rows() != m_qr.rows() || svd.cols() != m_qr.cols()) {
       internal::destroy_at(&m_qr);
       internal::construct_at(&m_qr, svd.rows(), svd.cols());
@@ -280,7 +280,7 @@ class qr_preconditioner_impl<MatrixType, Options, HouseholderQRPreconditioner, P
       m_workspace.resize(svd.cols());
   }
   template <typename Xpr>
-  bool run(SVDType& svd, const Xpr& matrix) {
+  constexpr bool run(SVDType& svd, const Xpr& matrix) {
     if (svd_precondition_more_rows(Options, matrix.rows(), matrix.cols())) {
       m_qr.compute(matrix);
       svd.m_workMatrix = m_qr.matrixQR().block(0, 0, matrix.cols(), matrix.cols()).template triangularView<Upper>();
@@ -324,7 +324,7 @@ class qr_preconditioner_impl<MatrixType, Options, HouseholderQRPreconditioner, P
       typename internal::make_proper_matrix_type<Scalar, ColsAtCompileTime, RowsAtCompileTime, MatrixOptions,
                                                  MaxColsAtCompileTime, MaxRowsAtCompileTime>::type;
 
-  void allocate(const SVDType& svd) {
+  constexpr void allocate(const SVDType& svd) {
     if (svd.cols() != m_qr.rows() || svd.rows() != m_qr.cols()) {
       internal::destroy_at(&m_qr);
       internal::construct_at(&m_qr, svd.cols(), svd.rows());
@@ -336,7 +336,7 @@ class qr_preconditioner_impl<MatrixType, Options, HouseholderQRPreconditioner, P
   }
 
   template <typename Xpr>
-  bool run(SVDType& svd, const Xpr& matrix) {
+  constexpr bool run(SVDType& svd, const Xpr& matrix) {
     if (matrix.cols() > matrix.rows()) {
       m_qr.compute(matrix.adjoint());
 
@@ -369,7 +369,7 @@ template <typename MatrixType, int Options>
 struct svd_precondition_2x2_block_to_be_real<MatrixType, Options, false> {
   using SVD = JacobiSVD<MatrixType, Options>;
   using RealScalar = typename MatrixType::RealScalar;
-  static bool run(typename SVD::WorkMatrixType&, SVD&, Index, Index, RealScalar&) { return true; }
+  static constexpr bool run(typename SVD::WorkMatrixType&, SVD&, Index, Index, RealScalar&) { return true; }
 };
 
 template <typename MatrixType, int Options>
@@ -377,8 +377,9 @@ struct svd_precondition_2x2_block_to_be_real<MatrixType, Options, true> {
   using SVD = JacobiSVD<MatrixType, Options>;
   using Scalar = typename MatrixType::Scalar;
   using RealScalar = typename MatrixType::RealScalar;
-  static bool run(typename SVD::WorkMatrixType& work_matrix, SVD& svd, Index p, Index q, RealScalar& maxDiagEntry) {
-    Scalar z;
+  static constexpr bool run(typename SVD::WorkMatrixType& work_matrix, SVD& svd, Index p, Index q,
+                            RealScalar& maxDiagEntry) {
+    Scalar z{};
     JacobiRotation<Scalar> rot;
     RealScalar n =
         numext::sqrt<RealScalar>(numext::abs2(work_matrix.coeff(p, p)) + numext::abs2(work_matrix.coeff(q, p)));
@@ -431,11 +432,11 @@ struct svd_precondition_2x2_block_to_be_real<MatrixType, Options, true> {
 };
 
 template <typename WorkMatrixType, typename MatrixUType, typename MatrixVType>
-EIGEN_DONT_INLINE bool jacobi_svd_nonblocking_sweep(WorkMatrixType& work_matrix, MatrixUType& matrix_u,
-                                                    MatrixVType& matrix_v, bool compute_u, bool compute_v,
-                                                    typename WorkMatrixType::RealScalar considerAsZero,
-                                                    typename WorkMatrixType::RealScalar precision,
-                                                    typename WorkMatrixType::RealScalar& maxDiagEntry) {
+EIGEN_DONT_INLINE constexpr bool jacobi_svd_nonblocking_sweep(WorkMatrixType& work_matrix, MatrixUType& matrix_u,
+                                                              MatrixVType& matrix_v, bool compute_u, bool compute_v,
+                                                              typename WorkMatrixType::RealScalar considerAsZero,
+                                                              typename WorkMatrixType::RealScalar precision,
+                                                              typename WorkMatrixType::RealScalar& maxDiagEntry) {
   using Scalar = typename WorkMatrixType::Scalar;
   using RealScalar = typename WorkMatrixType::RealScalar;
   const Index n = work_matrix.rows();
@@ -448,7 +449,7 @@ EIGEN_DONT_INLINE bool jacobi_svd_nonblocking_sweep(WorkMatrixType& work_matrix,
         RealScalar threshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
         if (numext::abs(work_matrix.coeff(p, q)) > threshold || numext::abs(work_matrix.coeff(q, p)) > threshold) {
           notFinished = true;
-          Scalar z;
+          Scalar z{};
           bool doRealSvd = true;
           RealScalar nn =
               numext::sqrt<RealScalar>(numext::abs2(work_matrix.coeff(p, p)) + numext::abs2(work_matrix.coeff(q, p)));
@@ -643,7 +644,7 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    * The default constructor is useful in cases in which the user intends to
    * perform decompositions via JacobiSVD::compute(const MatrixType&).
    */
-  JacobiSVD() {}
+  EIGEN_CONSTEXPR20 JacobiSVD() {}
 
   /** \brief Default Constructor with memory preallocation
    *
@@ -652,7 +653,7 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    *
    * \sa JacobiSVD()
    */
-  JacobiSVD(Index rows, Index cols) { allocate(rows, cols, internal::get_computation_options(Options)); }
+  constexpr JacobiSVD(Index rows, Index cols) { allocate(rows, cols, internal::get_computation_options(Options)); }
 
   /** \brief Default Constructor with memory preallocation
    *
@@ -671,7 +672,7 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    * be specified in the \a Options template parameter.
    */
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using the class template parameter.")
-  JacobiSVD(Index rows, Index cols, unsigned int computationOptions) {
+  constexpr JacobiSVD(Index rows, Index cols, unsigned int computationOptions) {
     internal::check_svd_options_assertions<MatrixType, Options>(computationOptions, rows, cols);
     allocate(rows, cols, computationOptions);
   }
@@ -682,12 +683,12 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    * \param matrix the matrix to decompose
    */
   template <typename Derived>
-  explicit JacobiSVD(const MatrixBase<Derived>& matrix) {
+  constexpr explicit JacobiSVD(const MatrixBase<Derived>& matrix) {
     compute_impl(matrix, internal::get_computation_options(Options));
   }
 
   template <typename Derived>
-  explicit JacobiSVD(const TriangularBase<Derived>& matrix) {
+  constexpr explicit JacobiSVD(const TriangularBase<Derived>& matrix) {
     compute_impl(matrix, internal::get_computation_options(Options));
   }
 
@@ -705,7 +706,7 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    */
   // EIGEN_DEPRECATED // TODO(cantonios): re-enable after fixing a few 3p libraries that error on deprecation warnings.
   template <typename Derived>
-  JacobiSVD(const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
+  constexpr JacobiSVD(const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
     internal::check_svd_options_assertions<MatrixType, Options>(computationOptions, matrix.rows(), matrix.cols());
     compute_impl(matrix, computationOptions);
   }
@@ -716,12 +717,12 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    * \param matrix the matrix to decompose
    */
   template <typename Derived>
-  JacobiSVD& compute(const MatrixBase<Derived>& matrix) {
+  constexpr JacobiSVD& compute(const MatrixBase<Derived>& matrix) {
     return compute_impl(matrix, m_computationOptions);
   }
 
   template <typename Derived>
-  JacobiSVD& compute(const TriangularBase<Derived>& matrix) {
+  constexpr JacobiSVD& compute(const TriangularBase<Derived>& matrix) {
     return compute_impl(matrix, m_computationOptions);
   }
 
@@ -736,7 +737,7 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
    */
   template <typename Derived>
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using the class template parameter.")
-  JacobiSVD& compute(const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
+  constexpr JacobiSVD& compute(const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
     internal::check_svd_options_assertions<MatrixType, Options>(m_computationOptions, matrix.rows(), matrix.cols());
     return compute_impl(matrix, computationOptions);
   }
@@ -748,7 +749,7 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
   using Base::rank;
   using Base::rows;
 
-  void allocate(Index rows_, Index cols_, unsigned int computationOptions) {
+  constexpr void allocate(Index rows_, Index cols_, unsigned int computationOptions) {
     if (Base::allocate(rows_, cols_, computationOptions)) return;
     eigen_assert(
         !((m_computeThinU || m_computeThinV) && int(QRPreconditioner) == int(FullPivHouseholderQRPreconditioner)) &&
@@ -762,15 +763,15 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
 
  private:
   template <typename Derived>
-  JacobiSVD& compute_impl(const TriangularBase<Derived>& matrix, unsigned int computationOptions);
+  constexpr JacobiSVD& compute_impl(const TriangularBase<Derived>& matrix, unsigned int computationOptions);
   template <typename Derived>
-  JacobiSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions);
+  constexpr JacobiSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions);
 
   // Blocked sweep for the Jacobi SVD (works for both real and complex scalars).
   // Extracted into a separate EIGEN_DONT_INLINE method to prevent the blocking
   // code from interfering with the compiler's optimization of the non-blocking
   // scalar sweep.
-  EIGEN_DONT_INLINE bool blocked_sweep(RealScalar considerAsZero, RealScalar precision, RealScalar& maxDiagEntry);
+  constexpr bool blocked_sweep(RealScalar considerAsZero, RealScalar precision, RealScalar& maxDiagEntry);
 
  protected:
   using Base::m_computationOptions;
@@ -822,15 +823,15 @@ class JacobiSVD : public SVDBase<JacobiSVD<MatrixType_, Options_>> {
 
 template <typename MatrixType, int Options>
 template <typename Derived>
-JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(const TriangularBase<Derived>& matrix,
-                                                                             unsigned int computationOptions) {
+constexpr JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(
+    const TriangularBase<Derived>& matrix, unsigned int computationOptions) {
   return compute_impl(matrix.toDenseMatrix(), computationOptions);
 }
 
 template <typename MatrixType, int Options>
 template <typename Derived>
-JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(const MatrixBase<Derived>& matrix,
-                                                                             unsigned int computationOptions) {
+constexpr JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(
+    const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
   EIGEN_STATIC_ASSERT_SAME_MATRIX_SIZE(Derived, MatrixType);
   EIGEN_STATIC_ASSERT((std::is_same<typename Derived::Scalar, typename MatrixType::Scalar>::value),
                       Input matrix must have the same Scalar type as the JacobiSVD object.);
@@ -894,8 +895,13 @@ JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(con
 #ifdef EIGEN_JACOBI_SVD_BLOCKING_THRESHOLD
       const Index blockingThreshold = EIGEN_JACOBI_SVD_BLOCKING_THRESHOLD;
 #else
-      const Index blockingThreshold =
-          static_cast<Index>(numext::sqrt(static_cast<double>(l2CacheSize() / sizeof(float))));
+      // Constant evaluation has no cache to query and keeps the unblocked sweep.
+      Index blockingThreshold =
+          internal::is_constant_evaluated()
+              ? NumTraits<Index>::highest()
+              // Integer division counts the whole floats that fit in L2.
+              // NOLINTNEXTLINE(bugprone-integer-division)
+              : static_cast<Index>(numext::sqrt(static_cast<double>(l2CacheSize() / sizeof(float))));
 #endif
 
       if (n >= blockingThreshold) {
@@ -939,7 +945,7 @@ JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(con
   // Sort in the scaled frame, where the largest values are normal. A tail whose maximum reads zero or subnormal
   // holds zeros and subnormals, which FTZ/DAZ hardware compares as zero: order it from the representation.
   for (Index i = 0; i < diagSize(); i++) {
-    Index pos;
+    Index pos = 0;
     RealScalar maxRemainingSingularValue = m_singularValues.tail(diagSize() - i).maxCoeff(&pos);
     if (internal::is_zero_or_subnormal_magnitude(maxRemainingSingularValue)) {
       pos = internal::safe_scaling<RealScalar>::recover_flushed_max_coeff_index(m_singularValues.tail(diagSize() - i),
@@ -986,197 +992,199 @@ JacobiSVD<MatrixType, Options>& JacobiSVD<MatrixType, Options>::compute_impl(con
 // Returns true if any off-diagonal element exceeded the threshold (i.e. sweep
 // is not yet converged).
 template <typename MatrixType, int Options>
-EIGEN_DONT_INLINE bool JacobiSVD<MatrixType, Options>::blocked_sweep(RealScalar considerAsZero, RealScalar precision,
-                                                                     RealScalar& maxDiagEntry) {
-  const Index n = diagSize();
-  RealScalar threshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
-  bool notFinished = false;
-  static constexpr Index kBlockBufferSize = (kBlockSize + 1) * (kBlockSize + 1);
-  ei_declare_aligned_stack_constructed_variable(Scalar, blockBufferPtr, kBlockBufferSize, 0);
-  Map<Matrix<Scalar, kBlockSize + 1, kBlockSize + 1, MatrixOptions>, AlignedMax> blockBuffer(
-      blockBufferPtr, kBlockSize + 1, kBlockSize + 1);
+constexpr bool JacobiSVD<MatrixType, Options>::blocked_sweep(RealScalar considerAsZero, RealScalar precision,
+                                                             RealScalar& maxDiagEntry) {
+  return internal::noinline_invoke([&]() -> bool {
+    const Index n = diagSize();
+    RealScalar threshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
+    bool notFinished = false;
+    constexpr Index kBlockBufferSize = (kBlockSize + 1) * (kBlockSize + 1);
+    ei_declare_aligned_stack_constructed_variable(Scalar, blockBufferPtr, kBlockBufferSize, 0);
+    Map<Matrix<Scalar, kBlockSize + 1, kBlockSize + 1, MatrixOptions>, AlignedMax> blockBuffer(
+        blockBufferPtr, kBlockSize + 1, kBlockSize + 1);
 
-  ei_declare_aligned_stack_constructed_variable(Scalar, accumPtr, kBlockBufferSize, 0);
-  Map<Matrix<Scalar, kBlockSize + 1, kBlockSize + 1, MatrixOptions>, AlignedMax> accum(accumPtr, kBlockSize + 1,
-                                                                                       kBlockSize + 1);
-  Matrix<Scalar, 1, Dynamic, RowMajor, 1, MaxDiagSizeAtCompileTime> Mp_save;
+    ei_declare_aligned_stack_constructed_variable(Scalar, accumPtr, kBlockBufferSize, 0);
+    Map<Matrix<Scalar, kBlockSize + 1, kBlockSize + 1, MatrixOptions>, AlignedMax> accum(accumPtr, kBlockSize + 1,
+                                                                                         kBlockSize + 1);
+    Matrix<Scalar, 1, Dynamic, RowMajor, 1, MaxDiagSizeAtCompileTime> Mp_save;
 
-  for (Index p = 1; p < n; ++p) {
-    Index q = 0;
+    for (Index p = 1; p < n; ++p) {
+      Index q = 0;
 
-    // Blocked loop: process kBlockSize pairs (p,q+qq) for qq=0..kBlockSize-1.
-    // We extract the relevant (kBlockSize+1) x (kBlockSize+1) submatrix of W
-    // into a small buffer, compute all rotations on the buffer, accumulate the
-    // left transformations into `accum`, and apply them in one GEMM at the end.
-    for (; q + kBlockSize <= p; q += kBlockSize) {
-      // Buffer = [ W(q:q+k, q:q+k)  W(q:q+k, p) ]
-      //          [ W(p, q:q+k)       W(p, p)      ]
-      blockBuffer.template topLeftCorner<kBlockSize, kBlockSize>() =
-          m_workMatrix.template block<kBlockSize, kBlockSize>(q, q);
-      blockBuffer.col(kBlockSize).template head<kBlockSize>() = m_workMatrix.col(p).template segment<kBlockSize>(q);
-      blockBuffer.row(kBlockSize).template head<kBlockSize>() = m_workMatrix.row(p).template segment<kBlockSize>(q);
-      blockBuffer(kBlockSize, kBlockSize) = m_workMatrix(p, p);
+      // Blocked loop: process kBlockSize pairs (p,q+qq) for qq=0..kBlockSize-1.
+      // We extract the relevant (kBlockSize+1) x (kBlockSize+1) submatrix of W
+      // into a small buffer, compute all rotations on the buffer, accumulate the
+      // left transformations into `accum`, and apply them in one GEMM at the end.
+      for (; q + kBlockSize <= p; q += kBlockSize) {
+        // Buffer = [ W(q:q+k, q:q+k)  W(q:q+k, p) ]
+        //          [ W(p, q:q+k)       W(p, p)      ]
+        blockBuffer.template topLeftCorner<kBlockSize, kBlockSize>() =
+            m_workMatrix.template block<kBlockSize, kBlockSize>(q, q);
+        blockBuffer.col(kBlockSize).template head<kBlockSize>() = m_workMatrix.col(p).template segment<kBlockSize>(q);
+        blockBuffer.row(kBlockSize).template head<kBlockSize>() = m_workMatrix.row(p).template segment<kBlockSize>(q);
+        blockBuffer(kBlockSize, kBlockSize) = m_workMatrix(p, p);
 
-      // Accumulator for left transformations: W <- accum * W.
-      // After processing qq pairs, accum's top-left kBlockSize x kBlockSize
-      // block is lower-triangular (each rotation only mixes row qq with row
-      // kBlockSize, so rows 0..qq-1 are unchanged).
-      accum.setIdentity(kBlockSize + 1, kBlockSize + 1);
-      bool blockDirty = false;
+        // Accumulator for left transformations: W <- accum * W.
+        // After processing qq pairs, accum's top-left kBlockSize x kBlockSize
+        // block is lower-triangular (each rotation only mixes row qq with row
+        // kBlockSize, so rows 0..qq-1 are unchanged).
+        accum.setIdentity(kBlockSize + 1, kBlockSize + 1);
+        bool blockDirty = false;
 
-      for (Index qq = 0; qq < kBlockSize; ++qq) {
-        if (numext::abs(blockBuffer.coeff(kBlockSize, qq)) > threshold ||
-            numext::abs(blockBuffer.coeff(qq, kBlockSize)) > threshold) {
+        for (Index qq = 0; qq < kBlockSize; ++qq) {
+          if (numext::abs(blockBuffer.coeff(kBlockSize, qq)) > threshold ||
+              numext::abs(blockBuffer.coeff(qq, kBlockSize)) > threshold) {
+            notFinished = true;
+            blockDirty = true;
+
+            // Complex preconditioning: transform the 2x2 block
+            //   [w_pp  w_pq] = [buffer(kBlockSize, kBlockSize)  buffer(kBlockSize, qq)]
+            //   [w_qp  w_qq]   [buffer(qq, kBlockSize)          buffer(qq, qq)        ]
+            // to have real entries via unitary row/column operations, so
+            // real_2x2_jacobi_svd can be applied.
+            //
+            // Left operations (complex rotation, row scaling by e^{i*theta}) are
+            // accumulated into `accum` for deferred GEMM application.
+            // Right operations (column scaling) are applied directly since column
+            // ops are contiguous in column-major layout.
+            bool doRealSvd = true;
+            EIGEN_IF_CONSTEXPR (NumTraits<Scalar>::IsComplex) {
+              Scalar z{};
+              // nn = ||(w_pp, w_qp)||_2, the norm of the first column of the 2x2 block.
+              RealScalar nn = numext::sqrt<RealScalar>(numext::abs2(blockBuffer.coeff(kBlockSize, kBlockSize)) +
+                                                       numext::abs2(blockBuffer.coeff(qq, kBlockSize)));
+
+              if (numext::is_exactly_zero(nn)) {
+                // First column is zero => block is already upper triangular.
+                blockBuffer.coeffRef(kBlockSize, kBlockSize) = Scalar(0);
+                blockBuffer.coeffRef(qq, kBlockSize) = Scalar(0);
+
+                // Scale rows by z = e^{-i*arg(w)} to make remaining entries real.
+                if (numext::abs(numext::imag(blockBuffer.coeff(kBlockSize, qq))) > considerAsZero) {
+                  z = numext::abs(blockBuffer.coeff(kBlockSize, qq)) / blockBuffer.coeff(kBlockSize, qq);
+                  blockBuffer.row(kBlockSize) *= z;
+                  accum.row(kBlockSize) *= z;  // accumulate left op
+                  if (computeU()) m_matrixU.col(p) *= numext::conj(z);
+                }
+                if (numext::abs(numext::imag(blockBuffer.coeff(qq, qq))) > considerAsZero) {
+                  z = numext::abs(blockBuffer.coeff(qq, qq)) / blockBuffer.coeff(qq, qq);
+                  blockBuffer.row(qq) *= z;
+                  accum.row(qq) *= z;  // accumulate left op
+                  if (computeU()) m_matrixU.col(q + qq) *= numext::conj(z);
+                }
+              } else {
+                // Apply complex Givens rotation to zero out w_qp:
+                //   [c  s] [w_pp]   [nn]      conj(w_pp)         w_qp
+                //   [-s c] [w_qp] = [0 ]  c = ----------,  s = ------
+                //                                 nn              nn
+                JacobiRotation<Scalar> rot;
+                rot.c() = numext::conj(blockBuffer.coeff(kBlockSize, kBlockSize)) / nn;
+                rot.s() = blockBuffer.coeff(qq, kBlockSize) / nn;
+                blockBuffer.applyOnTheLeft(kBlockSize, qq, rot);
+                accum.applyOnTheLeft(kBlockSize, qq, rot);  // accumulate left op
+                if (computeU()) m_matrixU.applyOnTheRight(p, q + qq, rot.adjoint());
+
+                // Scale column qq by z = e^{-i*arg(w_pq)} to make w_pq real.
+                if (numext::abs(numext::imag(blockBuffer.coeff(kBlockSize, qq))) > considerAsZero) {
+                  z = numext::abs(blockBuffer.coeff(kBlockSize, qq)) / blockBuffer.coeff(kBlockSize, qq);
+                  blockBuffer.col(qq) *= z;
+                  m_workMatrix.col(q + qq) *= z;  // right op: apply directly
+                  if (computeV()) m_matrixV.col(q + qq) *= z;
+                }
+                // Scale row qq by z = e^{-i*arg(w_qq)} to make w_qq real.
+                if (numext::abs(numext::imag(blockBuffer.coeff(qq, qq))) > considerAsZero) {
+                  z = numext::abs(blockBuffer.coeff(qq, qq)) / blockBuffer.coeff(qq, qq);
+                  blockBuffer.row(qq) *= z;
+                  accum.row(qq) *= z;  // accumulate left op
+                  if (computeU()) m_matrixU.col(q + qq) *= numext::conj(z);
+                }
+              }
+              // Update maxDiagEntry from preconditioning.
+              maxDiagEntry = numext::maxi<RealScalar>(
+                  maxDiagEntry, numext::maxi<RealScalar>(numext::abs(blockBuffer.coeff(kBlockSize, kBlockSize)),
+                                                         numext::abs(blockBuffer.coeff(qq, qq))));
+              // Check if 2x2 block still needs diagonalizing.
+              RealScalar precondThreshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
+              doRealSvd = numext::abs(blockBuffer.coeff(kBlockSize, qq)) > precondThreshold ||
+                          numext::abs(blockBuffer.coeff(qq, kBlockSize)) > precondThreshold;
+            }
+
+            if (doRealSvd) {
+              // Compute real 2x2 SVD: buffer_2x2 = j_left * diag * j_right^T.
+              JacobiRotation<RealScalar> j_left, j_right;
+              internal::real_2x2_jacobi_svd(blockBuffer, kBlockSize, qq, &j_left, &j_right);
+              blockBuffer.applyOnTheLeft(kBlockSize, qq, j_left);
+              blockBuffer.applyOnTheRight(kBlockSize, qq, j_right);
+
+              // Accumulate left rotation for deferred GEMM.
+              accum.applyOnTheLeft(kBlockSize, qq, j_left);
+
+              // Right rotation is a column op (contiguous): apply directly.
+              m_workMatrix.applyOnTheRight(p, q + qq, j_right);
+              if (computeU()) m_matrixU.applyOnTheRight(p, q + qq, j_left.transpose());
+              if (computeV()) m_matrixV.applyOnTheRight(p, q + qq, j_right);
+
+              maxDiagEntry = numext::maxi<RealScalar>(
+                  maxDiagEntry, numext::maxi<RealScalar>(numext::abs(blockBuffer.coeff(kBlockSize, kBlockSize)),
+                                                         numext::abs(blockBuffer.coeff(qq, qq))));
+            }
+            threshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
+          }
+        }
+
+        // Apply accumulated left rotations: W <- accum * W, via GEMM.
+        // When p == q + kBlockSize, all kBlockSize+1 rows are contiguous.
+        // Otherwise, rows q..q+k-1 and row p are non-adjacent; we split:
+        //   [Mq]      [L11  l12] [Mq]
+        //   [Mp] <-   [l21  l22] [Mp]
+        // L11 is lower-triangular (exploited via triangularView).
+        if (blockDirty) {
+          if (p == q + kBlockSize) {
+            m_workMatrix.template middleRows<kBlockSize + 1>(q) =
+                accum * m_workMatrix.template middleRows<kBlockSize + 1>(q);
+          } else {
+            const auto L11 = accum.template topLeftCorner<kBlockSize, kBlockSize>();
+            const auto l12 = accum.col(kBlockSize).template head<kBlockSize>();
+            const auto l21 = accum.row(kBlockSize).template head<kBlockSize>();
+            const Scalar l22 = accum(kBlockSize, kBlockSize);
+            auto Mq = m_workMatrix.template middleRows<kBlockSize>(q);
+            auto Mp = m_workMatrix.row(p);
+            Mp_save = Mp;
+            Mp.noalias() = l21 * Mq + l22 * Mp_save;
+            Mq = L11.template triangularView<Lower>() * Mq + l12 * Mp_save;
+          }
+        }
+      }
+
+      // Scalar loop for remaining pairs after blocked processing.
+      for (; q < p; ++q) {
+        if (numext::abs(m_workMatrix.coeff(p, q)) > threshold || numext::abs(m_workMatrix.coeff(q, p)) > threshold) {
           notFinished = true;
-          blockDirty = true;
 
-          // Complex preconditioning: transform the 2x2 block
-          //   [w_pp  w_pq] = [buffer(kBlockSize, kBlockSize)  buffer(kBlockSize, qq)]
-          //   [w_qp  w_qq]   [buffer(qq, kBlockSize)          buffer(qq, qq)        ]
-          // to have real entries via unitary row/column operations, so
-          // real_2x2_jacobi_svd can be applied.
-          //
-          // Left operations (complex rotation, row scaling by e^{i*theta}) are
-          // accumulated into `accum` for deferred GEMM application.
-          // Right operations (column scaling) are applied directly since column
-          // ops are contiguous in column-major layout.
           bool doRealSvd = true;
           EIGEN_IF_CONSTEXPR (NumTraits<Scalar>::IsComplex) {
-            Scalar z;
-            // nn = ||(w_pp, w_qp)||_2, the norm of the first column of the 2x2 block.
-            RealScalar nn = numext::sqrt<RealScalar>(numext::abs2(blockBuffer.coeff(kBlockSize, kBlockSize)) +
-                                                     numext::abs2(blockBuffer.coeff(qq, kBlockSize)));
-
-            if (numext::is_exactly_zero(nn)) {
-              // First column is zero => block is already upper triangular.
-              blockBuffer.coeffRef(kBlockSize, kBlockSize) = Scalar(0);
-              blockBuffer.coeffRef(qq, kBlockSize) = Scalar(0);
-
-              // Scale rows by z = e^{-i*arg(w)} to make remaining entries real.
-              if (numext::abs(numext::imag(blockBuffer.coeff(kBlockSize, qq))) > considerAsZero) {
-                z = numext::abs(blockBuffer.coeff(kBlockSize, qq)) / blockBuffer.coeff(kBlockSize, qq);
-                blockBuffer.row(kBlockSize) *= z;
-                accum.row(kBlockSize) *= z;  // accumulate left op
-                if (computeU()) m_matrixU.col(p) *= numext::conj(z);
-              }
-              if (numext::abs(numext::imag(blockBuffer.coeff(qq, qq))) > considerAsZero) {
-                z = numext::abs(blockBuffer.coeff(qq, qq)) / blockBuffer.coeff(qq, qq);
-                blockBuffer.row(qq) *= z;
-                accum.row(qq) *= z;  // accumulate left op
-                if (computeU()) m_matrixU.col(q + qq) *= numext::conj(z);
-              }
-            } else {
-              // Apply complex Givens rotation to zero out w_qp:
-              //   [c  s] [w_pp]   [nn]      conj(w_pp)         w_qp
-              //   [-s c] [w_qp] = [0 ]  c = ----------,  s = ------
-              //                                 nn              nn
-              JacobiRotation<Scalar> rot;
-              rot.c() = numext::conj(blockBuffer.coeff(kBlockSize, kBlockSize)) / nn;
-              rot.s() = blockBuffer.coeff(qq, kBlockSize) / nn;
-              blockBuffer.applyOnTheLeft(kBlockSize, qq, rot);
-              accum.applyOnTheLeft(kBlockSize, qq, rot);  // accumulate left op
-              if (computeU()) m_matrixU.applyOnTheRight(p, q + qq, rot.adjoint());
-
-              // Scale column qq by z = e^{-i*arg(w_pq)} to make w_pq real.
-              if (numext::abs(numext::imag(blockBuffer.coeff(kBlockSize, qq))) > considerAsZero) {
-                z = numext::abs(blockBuffer.coeff(kBlockSize, qq)) / blockBuffer.coeff(kBlockSize, qq);
-                blockBuffer.col(qq) *= z;
-                m_workMatrix.col(q + qq) *= z;  // right op: apply directly
-                if (computeV()) m_matrixV.col(q + qq) *= z;
-              }
-              // Scale row qq by z = e^{-i*arg(w_qq)} to make w_qq real.
-              if (numext::abs(numext::imag(blockBuffer.coeff(qq, qq))) > considerAsZero) {
-                z = numext::abs(blockBuffer.coeff(qq, qq)) / blockBuffer.coeff(qq, qq);
-                blockBuffer.row(qq) *= z;
-                accum.row(qq) *= z;  // accumulate left op
-                if (computeU()) m_matrixU.col(q + qq) *= numext::conj(z);
-              }
-            }
-            // Update maxDiagEntry from preconditioning.
-            maxDiagEntry = numext::maxi<RealScalar>(
-                maxDiagEntry, numext::maxi<RealScalar>(numext::abs(blockBuffer.coeff(kBlockSize, kBlockSize)),
-                                                       numext::abs(blockBuffer.coeff(qq, qq))));
-            // Check if 2x2 block still needs diagonalizing.
-            RealScalar precondThreshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
-            doRealSvd = numext::abs(blockBuffer.coeff(kBlockSize, qq)) > precondThreshold ||
-                        numext::abs(blockBuffer.coeff(qq, kBlockSize)) > precondThreshold;
+            doRealSvd = internal::svd_precondition_2x2_block_to_be_real<MatrixType, Options>::run(m_workMatrix, *this,
+                                                                                                  p, q, maxDiagEntry);
           }
 
           if (doRealSvd) {
-            // Compute real 2x2 SVD: buffer_2x2 = j_left * diag * j_right^T.
             JacobiRotation<RealScalar> j_left, j_right;
-            internal::real_2x2_jacobi_svd(blockBuffer, kBlockSize, qq, &j_left, &j_right);
-            blockBuffer.applyOnTheLeft(kBlockSize, qq, j_left);
-            blockBuffer.applyOnTheRight(kBlockSize, qq, j_right);
-
-            // Accumulate left rotation for deferred GEMM.
-            accum.applyOnTheLeft(kBlockSize, qq, j_left);
-
-            // Right rotation is a column op (contiguous): apply directly.
-            m_workMatrix.applyOnTheRight(p, q + qq, j_right);
-            if (computeU()) m_matrixU.applyOnTheRight(p, q + qq, j_left.transpose());
-            if (computeV()) m_matrixV.applyOnTheRight(p, q + qq, j_right);
-
+            internal::real_2x2_jacobi_svd(m_workMatrix, p, q, &j_left, &j_right);
+            m_workMatrix.applyOnTheLeft(p, q, j_left);
+            if (computeU()) m_matrixU.applyOnTheRight(p, q, j_left.transpose());
+            m_workMatrix.applyOnTheRight(p, q, j_right);
+            if (computeV()) m_matrixV.applyOnTheRight(p, q, j_right);
             maxDiagEntry = numext::maxi<RealScalar>(
-                maxDiagEntry, numext::maxi<RealScalar>(numext::abs(blockBuffer.coeff(kBlockSize, kBlockSize)),
-                                                       numext::abs(blockBuffer.coeff(qq, qq))));
+                maxDiagEntry,
+                numext::maxi<RealScalar>(numext::abs(m_workMatrix.coeff(p, p)), numext::abs(m_workMatrix.coeff(q, q))));
           }
           threshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
         }
       }
-
-      // Apply accumulated left rotations: W <- accum * W, via GEMM.
-      // When p == q + kBlockSize, all kBlockSize+1 rows are contiguous.
-      // Otherwise, rows q..q+k-1 and row p are non-adjacent; we split:
-      //   [Mq]      [L11  l12] [Mq]
-      //   [Mp] <-   [l21  l22] [Mp]
-      // L11 is lower-triangular (exploited via triangularView).
-      if (blockDirty) {
-        if (p == q + kBlockSize) {
-          m_workMatrix.template middleRows<kBlockSize + 1>(q) =
-              accum * m_workMatrix.template middleRows<kBlockSize + 1>(q);
-        } else {
-          const auto L11 = accum.template topLeftCorner<kBlockSize, kBlockSize>();
-          const auto l12 = accum.col(kBlockSize).template head<kBlockSize>();
-          const auto l21 = accum.row(kBlockSize).template head<kBlockSize>();
-          const Scalar l22 = accum(kBlockSize, kBlockSize);
-          auto Mq = m_workMatrix.template middleRows<kBlockSize>(q);
-          auto Mp = m_workMatrix.row(p);
-          Mp_save = Mp;
-          Mp.noalias() = l21 * Mq + l22 * Mp_save;
-          Mq = L11.template triangularView<Lower>() * Mq + l12 * Mp_save;
-        }
-      }
     }
 
-    // Scalar loop for remaining pairs after blocked processing.
-    for (; q < p; ++q) {
-      if (numext::abs(m_workMatrix.coeff(p, q)) > threshold || numext::abs(m_workMatrix.coeff(q, p)) > threshold) {
-        notFinished = true;
-
-        bool doRealSvd = true;
-        EIGEN_IF_CONSTEXPR (NumTraits<Scalar>::IsComplex) {
-          doRealSvd = internal::svd_precondition_2x2_block_to_be_real<MatrixType, Options>::run(m_workMatrix, *this, p,
-                                                                                                q, maxDiagEntry);
-        }
-
-        if (doRealSvd) {
-          JacobiRotation<RealScalar> j_left, j_right;
-          internal::real_2x2_jacobi_svd(m_workMatrix, p, q, &j_left, &j_right);
-          m_workMatrix.applyOnTheLeft(p, q, j_left);
-          if (computeU()) m_matrixU.applyOnTheRight(p, q, j_left.transpose());
-          m_workMatrix.applyOnTheRight(p, q, j_right);
-          if (computeV()) m_matrixV.applyOnTheRight(p, q, j_right);
-          maxDiagEntry = numext::maxi<RealScalar>(
-              maxDiagEntry,
-              numext::maxi<RealScalar>(numext::abs(m_workMatrix.coeff(p, p)), numext::abs(m_workMatrix.coeff(q, q))));
-        }
-        threshold = numext::maxi<RealScalar>(considerAsZero, precision * maxDiagEntry);
-      }
-    }
-  }
-
-  return notFinished;
+    return notFinished;
+  });
 }
 
 /** \svd_module
@@ -1188,13 +1196,13 @@ EIGEN_DONT_INLINE bool JacobiSVD<MatrixType, Options>::blocked_sweep(RealScalar 
  */
 template <typename Derived>
 template <int Options>
-JacobiSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::jacobiSvd() const {
+constexpr JacobiSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::jacobiSvd() const {
   return JacobiSVD<PlainObject, Options>(*this);
 }
 
 template <typename Derived>
 template <int Options>
-JacobiSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::jacobiSvd(
+constexpr JacobiSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::jacobiSvd(
     unsigned int computationOptions) const {
   return JacobiSVD<PlainObject, Options>(*this, computationOptions);
 }

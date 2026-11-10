@@ -46,11 +46,90 @@ namespace internal {
 
 template <typename Scalar>
 struct lgamma_impl {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Scalar) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar) {
     EIGEN_STATIC_ASSERT((!std::is_same<Scalar, Scalar>::value), THIS_TYPE_IS_NOT_SUPPORTED)
     return Scalar(0);
   }
 };
+
+// lgamma(2 + z) for |z| <= 1/2 from its Taylor series,
+//   lgamma(2 + z) = (1 - gamma) z + sum_{k>=2} (-1)^k (zeta(k) - 1) / k z^k,
+// whose terms shrink like 4^-k; through k = 28 the remainder is below 2^-60.
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T lgamma_near_two(const T& z) {
+  const T series =
+      T(0.322467033424113218236) +
+      z * (T(-0.0673523010531980951332) +
+           z * (T(0.020580808427784547879) +
+                z * (T(-0.00738555102867398526627) +
+                     z * (T(0.00289051033074152328575) +
+                          z * (T(-0.00119275391170326097711) +
+                               z * (T(0.000509669524743042422336) +
+                                    z * (T(-0.000223154758453579379761) +
+                                         z * (T(0.0000994575127818085337146) +
+                                              z * (T(-0.0000449262367381331417002) +
+                                                   z * (T(0.0000205072127756706915532) +
+                                                        z * (T(-0.00000943948827526839590399) +
+                                                             z * (T(0.00000437486678990748780418) +
+                                                                  z * (T(-0.00000203921575380136623678) +
+                                                                       z * (T(0.000000955141213040741983286) +
+                                                                            z * (T(-0.000000449246919876456604329) +
+                                                                                 z * (T(0.000000212071848055546658692) +
+                                                                                      z * (T(-0.000000100432248239680996087) +
+                                                                                           z * (T(0.0000000476981016936398056576) +
+                                                                                                z * (T(-0.0000000227110946089431649103) +
+                                                                                                     z * (T(0.0000000108386592148969540911) +
+                                                                                                          z * (T(-0.00000000518347504197004665512) +
+                                                                                                               z * (T(0.00000000248367454380247831719) +
+                                                                                                                    z * (T(-0.00000000119214014058609120744) +
+                                                                                                                         z * (T(0.000000000573136724167886201333) +
+                                                                                                                              z * (T(-0.000000000275952288512423314518) +
+                                                                                                                                   z * (T(0.000000000133047643742444894815)))))))))))))))))))))))))));
+  // 1 - Euler's constant
+  return z * (T(0.4227843350984671393934879) + z * series);
+}
+
+// lgamma for constant evaluation, which cannot call the C library:
+//   x < 1/2:      lgamma(x) = log(pi / |sin(pi x)|) - lgamma(1 - x);
+//   x < 5/2:      lgamma(x) = lgamma(2 + (x - 2)), or lgamma(2 + (x - 1)) - log(x) below 3/2;
+//   x < 8:        lgamma(x) = lgamma(x - n) + log((x - 1) ... (x - n)) with x - n in [3/2, 5/2);
+//   otherwise:    Stirling's series (Abramowitz and Stegun 6.1.40) through B_14, whose remainder is below 1e-16
+//                 relative to lgamma(x) for x >= 8.
+// Every shift of x by an integer is exact, so near the zeros at 1 and 2 the error stays relative.
+template <typename T>
+EIGEN_DEVICE_FUNC constexpr T lgamma_constant_evaluated(T x) {
+  if ((numext::isnan)(x)) return x;
+  if ((numext::isinf)(x)) return NumTraits<T>::infinity();
+  const T floorX = numext::floor(x);
+  if (x <= T(0) && floorX == x) return NumTraits<T>::infinity();
+  if (x < T(0.5)) {
+    // |sin(pi x)| = sin(pi r) = sin(pi (1 - r)) with r = x - floor(x); both r and 1 - r are exact, and the smaller
+    // keeps the argument of sin below pi / 2, away from the cancellation near pi.
+    const T r = x - floorX;
+    const T pi = T(EIGEN_PI);
+    return numext::log(pi / numext::sin(pi * numext::mini(r, T(1) - r))) - lgamma_constant_evaluated(T(1) - x);
+  }
+  if (x < T(1.5)) return lgamma_near_two(x - T(1)) - numext::log(x);
+  if (x < T(8)) {
+    T product = T(1);
+    while (x >= T(2.5)) {
+      x -= T(1);
+      product *= x;
+    }
+    return lgamma_near_two(x - T(2)) + numext::log(product);
+  }
+  const T inv = T(1) / x;
+  const T inv2 = inv * inv;
+  const T series =
+      inv * (T(1) / T(12) +
+             inv2 * (T(-1) / T(360) +
+                     inv2 * (T(1) / T(1260) +
+                             inv2 * (T(-1) / T(1680) + inv2 * (T(1) / T(1188) + inv2 * (T(-691) / T(360360) +
+                                                                                        inv2 * (T(1) / T(156))))))));
+  // log(2 pi) / 2
+  const T halfLog2Pi = T(0.918938533204672741780329736406);
+  return (x - T(0.5)) * numext::log(x) - x + halfLog2Pi + series;
+}
 
 // Since glibc 2.19
 #if defined(__GLIBC__) && ((__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 19) || __GLIBC__ > 2) && \
@@ -66,10 +145,11 @@ struct lgamma_impl {
 
 template <>
 struct lgamma_impl<float> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float run(float x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float run(float x) {
+    if (is_constant_evaluated()) return float(lgamma_constant_evaluated(double(x)));
 #if !defined(EIGEN_GPU_COMPILE_PHASE) && !defined(__SYCL_DEVICE_ONLY__) && defined(EIGEN_HAS_LGAMMA_R) && \
     !defined(__APPLE__)
-    int dummy;
+    int dummy = 0;
     return ::lgammaf_r(x, &dummy);
 #elif defined(EIGEN_SYCL_DEVICE_ONLY)
     return cl::sycl::lgamma(x);
@@ -81,10 +161,11 @@ struct lgamma_impl<float> {
 
 template <>
 struct lgamma_impl<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double run(double x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double run(double x) {
+    if (is_constant_evaluated()) return lgamma_constant_evaluated(x);
 #if !defined(EIGEN_GPU_COMPILE_PHASE) && !defined(__SYCL_DEVICE_ONLY__) && defined(EIGEN_HAS_LGAMMA_R) && \
     !defined(__APPLE__)
-    int dummy;
+    int dummy = 0;
     return ::lgamma_r(x, &dummy);
 #elif defined(EIGEN_SYCL_DEVICE_ONLY)
     return cl::sycl::lgamma(x);
@@ -117,18 +198,17 @@ template <typename Scalar>
 struct digamma_impl_maybe_poly {
   EIGEN_STATIC_ASSERT((std::is_same<Scalar, Scalar>::value == false), THIS_TYPE_IS_NOT_SUPPORTED)
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Scalar) { return Scalar(0); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar) { return Scalar(0); }
 };
 
 template <>
 struct digamma_impl_maybe_poly<float> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float run(const float s) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float run(const float s) {
     constexpr float A[] = {-4.16666666666666666667E-3f, 3.96825396825396825397E-3f, -8.33333333333333333333E-3f,
                            8.33333333333333333333E-2f};
 
-    float z;
     if (s < 1.0e8f) {
-      z = 1.0f / (s * s);
+      const float z = 1.0f / (s * s);
       return z * internal::ppolevl<float, 3>::run(z, A);
     } else
       return 0.0f;
@@ -137,14 +217,13 @@ struct digamma_impl_maybe_poly<float> {
 
 template <>
 struct digamma_impl_maybe_poly<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double run(const double s) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double run(const double s) {
     constexpr double A[] = {8.33333333333333333333E-2,  -2.10927960927960927961E-2, 7.57575757575757575758E-3,
                             -4.16666666666666666667E-3, 3.96825396825396825397E-3,  -8.33333333333333333333E-3,
                             8.33333333333333333333E-2};
 
-    double z;
     if (s < 1.0e17) {
-      z = 1.0 / (s * s);
+      const double z = 1.0 / (s * s);
       return z * internal::ppolevl<double, 6>::run(z, A);
     } else
       return 0.0;
@@ -153,7 +232,7 @@ struct digamma_impl_maybe_poly<double> {
 
 template <typename Scalar>
 struct digamma_impl {
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar x) {
     /*
      *
      *     Psi (digamma) function (modified for Eigen)
@@ -211,7 +290,7 @@ struct digamma_impl {
      * psi singularity    x integer <=0      INFINITY
      */
 
-    Scalar p, q, nz, s, w, y;
+    Scalar p{}, q{}, nz{}, s{}, w{}, y{};
     bool negative = false;
 
     const Scalar nan = NumTraits<Scalar>::quiet_NaN();
@@ -294,12 +373,12 @@ struct has_erfc : decltype(unqualified_erf::test_erfc<T>(0)) {};
 template <typename Scalar>
 struct generic_fast_erfc {
   template <typename T>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T run(const T& x_in);
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T run(const T& x_in);
 };
 
 template <>
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc<float>::run(const T& x_in) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T generic_fast_erfc<float>::run(const T& x_in) {
   constexpr float kClamp = 11.0f;
   const T x = pmin<PropagateNaN>(pmax<PropagateNaN>(x_in, pset1<T>(-kClamp)), pset1<T>(kClamp));
 
@@ -352,7 +431,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc<float>::run(const T& x
 //
 // PRECONDITION: x2 <= 1.
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T erf_over_x_double_small(const T& x2) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T erf_over_x_double_small(const T& x2) {
   // erf(x)/x =  S(x^2) / T(x^2), x^2 <= 1.
   //
   // Coefficients for S and T generated with Rminimax command:
@@ -382,7 +461,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T erf_over_x_double_small(const T& x2) {
 //
 // PRECONDITION: 1 < x < 28.
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T erfc_double_large(const T& x, const T& x2) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T erfc_double_large(const T& x, const T& x2) {
   constexpr double gamma[] = {1.5252844933226974316088642158462107545346952974796295166015625e-04,
                               1.0909912393738931124520519233556115068495273590087890625000000e-02,
                               1.0628604636755033252537572252549580298364162445068359375000000e-01,
@@ -422,7 +501,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T erfc_double_large(const T& x, const T& x
 
 template <>
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc<double>::run(const T& x_in) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T generic_fast_erfc<double>::run(const T& x_in) {
   // Clamp x to [-28:28] beyond which erfc(x) is either two or zero (below the underflow threshold).
   // This avoids having to deal with twoprod(x,x) producing NaN for sufficiently large x.
   constexpr double kClamp = 28.0;
@@ -445,7 +524,9 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc<double>::run(const T& 
 template <typename T>
 struct erfc_impl {
   using Scalar = typename unpacket_traits<T>::type;
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run(const T& x) { return run_impl(x, std::is_same<T, Scalar>()); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run(const T& x) {
+    return run_impl(x, std::is_same<T, Scalar>());
+  }
 
  private:
   // Packets of float/double: vectorized rational approximation.
@@ -455,11 +536,11 @@ struct erfc_impl {
   // Any other scalar type: defer to an erfc found by argument-dependent lookup
   // (or std::erfc), keeping custom scalars on their own implementation instead
   // of the float/double-tuned polynomials.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run_impl(const T& x, std::true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run_impl(const T& x, std::true_type) {
     EIGEN_STATIC_ASSERT_NON_INTEGER(T)
     return run_scalar(x, has_erfc<T>());
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run_scalar(const T& x, std::true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run_scalar(const T& x, std::true_type) {
     EIGEN_USING_STD(erfc);
     return erfc(x);
   }
@@ -467,7 +548,7 @@ struct erfc_impl {
   // call above: the approximations in this file are tuned for float and double
   // and are not valid for an arbitrary scalar, so a scalar type that wants erfc
   // has to supply it.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run_scalar(const T& x, std::false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run_scalar(const T& x, std::false_type) {
     EIGEN_STATIC_ASSERT(has_erfc<T>::value, SCALAR_TYPE_MUST_PROVIDE_AN_ERFC_OVERLOAD_FOUND_BY_ADL_OR_IN_NAMESPACE_STD)
     return x;
   }
@@ -475,7 +556,7 @@ struct erfc_impl {
 
 template <>
 struct erfc_impl<float> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float run(const float x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float run(const float x) {
 #if defined(EIGEN_SYCL_DEVICE_ONLY)
     return cl::sycl::erfc(x);
 #else
@@ -486,7 +567,7 @@ struct erfc_impl<float> {
 
 template <>
 struct erfc_impl<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double run(const double x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double run(const double x) {
 #if defined(EIGEN_SYCL_DEVICE_ONLY)
     return cl::sycl::erfc(x);
 #else
@@ -502,7 +583,7 @@ struct erfc_impl<double> {
 template <typename Scalar>
 struct generic_fast_erf {
   template <typename T>
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T run(const T& x_in);
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T run(const T& x_in);
 };
 
 /** \internal \returns the error function of \a a (coeff-wise)
@@ -513,7 +594,7 @@ struct generic_fast_erf {
 */
 template <>
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf<float>::run(const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T generic_fast_erf<float>::run(const T& x) {
   // The monomial coefficients of the numerator polynomial (odd).
   constexpr float alpha[] = {2.123732201653183437883853912353515625e-06f, 2.861979592125862836837768554687500000e-04f,
                              3.658048342913389205932617187500000000e-03f, 5.243302136659622192382812500000000000e-02f,
@@ -543,7 +624,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf<float>::run(const T& x)
 
 template <>
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf<double>::run(const T& x_in) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T generic_fast_erf<double>::run(const T& x_in) {
   // Clamp x to [-28:28] beyond which erf(x) is ±1 within double precision.
   // This avoids NaN from twoprod and exp operations for infinite inputs.
   constexpr double kClamp = 28.0;
@@ -565,7 +646,9 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf<double>::run(const T& x
 template <typename T>
 struct erf_impl {
   using Scalar = typename unpacket_traits<T>::type;
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run(const T& x) { return run_impl(x, std::is_same<T, Scalar>()); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run(const T& x) {
+    return run_impl(x, std::is_same<T, Scalar>());
+  }
 
  private:
   // Packets of float/double: vectorized rational approximation.
@@ -575,11 +658,11 @@ struct erf_impl {
   // Any other scalar type: defer to an erf found by argument-dependent lookup
   // (or std::erf), keeping custom scalars on their own implementation instead
   // of the float/double-tuned polynomials.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run_impl(const T& x, std::true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run_impl(const T& x, std::true_type) {
     EIGEN_STATIC_ASSERT_NON_INTEGER(T)
     return run_scalar(x, has_erf<T>());
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run_scalar(const T& x, std::true_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run_scalar(const T& x, std::true_type) {
     EIGEN_USING_STD(erf);
     return erf(x);
   }
@@ -587,7 +670,7 @@ struct erf_impl {
   // call above: the approximations in this file are tuned for float and double
   // and are not valid for an arbitrary scalar, so a scalar type that wants erf
   // has to supply it.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE T run_scalar(const T& x, std::false_type) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr T run_scalar(const T& x, std::false_type) {
     EIGEN_STATIC_ASSERT(has_erf<T>::value, SCALAR_TYPE_MUST_PROVIDE_AN_ERF_OVERLOAD_FOUND_BY_ADL_OR_IN_NAMESPACE_STD)
     return x;
   }
@@ -595,7 +678,7 @@ struct erf_impl {
 
 template <>
 struct erf_impl<float> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float run(const float x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float run(const float x) {
 #if defined(EIGEN_SYCL_DEVICE_ONLY)
     return cl::sycl::erf(x);
 #else
@@ -606,7 +689,7 @@ struct erf_impl<float> {
 
 template <>
 struct erf_impl<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double run(const double x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double run(const double x) {
 #if defined(EIGEN_SYCL_DEVICE_ONLY)
     return cl::sycl::erf(x);
 #else
@@ -684,13 +767,13 @@ struct flipsign_impl<T, false> {
 
 template <typename T>
 struct flipsign_impl<T, true> {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T run(const T& should_flipsign, const T& x) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T run(const T& should_flipsign, const T& x) {
     return should_flipsign == T(0) ? x : -x;
   }
 };
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T flipsign(const T& should_flipsign, const T& x) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T flipsign(const T& should_flipsign, const T& x) {
   return flipsign_impl<T>::run(should_flipsign, x);
 }
 
@@ -706,7 +789,9 @@ struct ndtri_negative_infinity_impl<T, false> {
 
 template <typename T>
 struct ndtri_negative_infinity_impl<T, true> {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T run(const T& positive_infinity) { return -positive_infinity; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T run(const T& positive_infinity) {
+    return -positive_infinity;
+  }
 };
 
 // We split this computation in to two so that in the scalar path
@@ -714,7 +799,7 @@ struct ndtri_negative_infinity_impl<T, true> {
 // being an if statement.)
 
 template <typename T, typename ScalarType>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_ndtri_gt_exp_neg_two(const T& b) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T generic_ndtri_gt_exp_neg_two(const T& b) {
   const ScalarType p0[] = {ScalarType(-5.99633501014107895267e1), ScalarType(9.80010754185999661536e1),
                            ScalarType(-5.66762857469070293439e1), ScalarType(1.39312609387279679503e1),
                            ScalarType(-1.23916583867381258016e0)};
@@ -729,7 +814,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_ndtri_gt_exp_neg_two(const T& b)
                            ScalarType(-1.18331621121330003142e0)};
   const T sqrt2pi = pset1<T>(ScalarType(2.50662827463100050242e0));
   const T half = pset1<T>(ScalarType(0.5));
-  T c, c2, ndtri_gt_exp_neg_two;
+  T c{}, c2{}, ndtri_gt_exp_neg_two{};
 
   c = psub(b, half);
   c2 = pmul(c, c);
@@ -739,7 +824,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_ndtri_gt_exp_neg_two(const T& b)
 }
 
 template <typename T, typename ScalarType>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_ndtri_lt_exp_neg_two(const T& b, const T& should_flipsign) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T generic_ndtri_lt_exp_neg_two(const T& b, const T& should_flipsign) {
   /* Approximation for interval z = sqrt(-2 log a ) between 2 and 8
    * i.e., a between exp(-2) = .135 and exp(-32) = 1.27e-14.
    */
@@ -776,7 +861,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_ndtri_lt_exp_neg_two(const T& b,
                            ScalarType(6.79019408009981274425e-9)};
   const T eight = pset1<T>(ScalarType(8.0));
   const T neg_two = pset1<T>(ScalarType(-2));
-  T x, x0, correction, z;
+  T x{}, x0{}, correction{}, z{};
 
   x = psqrt(pmul(neg_two, plog(b)));
   x0 = psub(x, pdiv(plog(x), x));
@@ -788,7 +873,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_ndtri_lt_exp_neg_two(const T& b,
 }
 
 template <typename T, typename ScalarType>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T generic_ndtri(const T& a) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr T generic_ndtri(const T& a) {
   const T maxnum = pinf<T>();
   const T neg_maxnum = ndtri_negative_infinity_impl<T>::run(maxnum);
 
@@ -796,20 +881,21 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T generic_ndtri(const T& a) {
   const T one = pset1<T>(ScalarType(1));
   // exp(-2)
   const T exp_neg_two = pset1<T>(ScalarType(0.13533528323661269189));
-  T b, ndtri, should_flipsign;
 
-  should_flipsign = pcmp_le(a, psub(one, exp_neg_two));
-  b = pselect(should_flipsign, a, psub(one, a));
+  const T should_flipsign = pcmp_le(a, psub(one, exp_neg_two));
+  const T b = pselect(should_flipsign, a, psub(one, a));
 
-  ndtri = pselect(pcmp_lt(exp_neg_two, b), generic_ndtri_gt_exp_neg_two<T, ScalarType>(b),
-                  generic_ndtri_lt_exp_neg_two<T, ScalarType>(b, should_flipsign));
+  const T ndtri = pselect(pcmp_lt(exp_neg_two, b), generic_ndtri_gt_exp_neg_two<T, ScalarType>(b),
+                          generic_ndtri_lt_exp_neg_two<T, ScalarType>(b, should_flipsign));
 
   return pselect(pcmp_eq(a, zero), neg_maxnum, pselect(pcmp_eq(one, a), maxnum, ndtri));
 }
 
 template <typename Scalar>
 struct ndtri_impl {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Scalar x) { return generic_ndtri<Scalar, Scalar>(x); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar x) {
+    return generic_ndtri<Scalar, Scalar>(x);
+  }
 };
 
 /**************************************************************************************************************
@@ -819,15 +905,15 @@ struct ndtri_impl {
 // NOTE: cephes_helper is also used to implement zeta
 template <typename Scalar>
 struct cephes_helper {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar machep() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar machep() {
     eigen_assert(false && "machep not supported for this type");
     return 0.0;
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar big() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar big() {
     eigen_assert(false && "big not supported for this type");
     return 0.0;
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar biginv() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar biginv() {
     eigen_assert(false && "biginv not supported for this type");
     return 0.0;
   }
@@ -835,14 +921,14 @@ struct cephes_helper {
 
 template <>
 struct cephes_helper<float> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float machep() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float machep() {
     return NumTraits<float>::epsilon() / 2;  // 1.0 - machep == 1.0
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float big() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float big() {
     // use epsneg (1.0 - epsneg == 1.0)
     return 1.0f / (NumTraits<float>::epsilon() / 2);
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float biginv() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float biginv() {
     // epsneg
     return machep();
   }
@@ -850,11 +936,11 @@ struct cephes_helper<float> {
 
 template <>
 struct cephes_helper<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double machep() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double machep() {
     return NumTraits<double>::epsilon() / 2;  // 1.0 - machep == 1.0
   }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double big() { return 1.0 / NumTraits<double>::epsilon(); }
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double biginv() {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double big() { return 1.0 / NumTraits<double>::epsilon(); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double biginv() {
     // inverse of eps
     return NumTraits<double>::epsilon();
   }
@@ -863,7 +949,7 @@ struct cephes_helper<double> {
 enum IgammaComputationMode { VALUE, DERIVATIVE, SAMPLE_DERIVATIVE };
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar main_igamma_term(Scalar a, Scalar x) {
+EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar main_igamma_term(Scalar a, Scalar x) {
   /* Compute  x**a * exp(-x) / gamma(a)  */
   Scalar logax = a * numext::log(x) - x - lgamma_impl<Scalar>::run(a);
   if (logax < -numext::log(NumTraits<Scalar>::highest()) ||
@@ -895,7 +981,7 @@ struct igammac_cf_impl {
    *   x >= 1
    *   x >= a
    */
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar a, Scalar x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar a, Scalar x) {
     const Scalar zero = 0;
     const Scalar one = 1;
     const Scalar two = 2;
@@ -1011,7 +1097,7 @@ struct igamma_series_impl {
    *   a > 0
    *   !(x > 1 && x > a)
    */
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar a, Scalar x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar a, Scalar x) {
     const Scalar zero = 0;
     const Scalar one = 1;
     const Scalar machep = cephes_helper<Scalar>::machep();
@@ -1073,7 +1159,7 @@ struct igamma_series_impl {
 
 template <typename Scalar>
 struct igammac_impl {
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar a, Scalar x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar a, Scalar x) {
     /*  igamc()
      *
      *	Incomplete gamma integral (modified for Eigen)
@@ -1157,7 +1243,7 @@ struct igammac_impl {
 
 template <typename Scalar, IgammaComputationMode mode>
 struct igamma_generic_impl {
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar a, Scalar x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar a, Scalar x) {
     /* Depending on the mode, returns
      * - VALUE: incomplete Gamma function igamma(a, x)
      * - DERIVATIVE: derivative of incomplete Gamma function d/da igamma(a, x)
@@ -1339,13 +1425,13 @@ template <typename Scalar>
 struct zeta_impl_series {
   EIGEN_STATIC_ASSERT((std::is_same<Scalar, Scalar>::value == false), THIS_TYPE_IS_NOT_SUPPORTED)
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Scalar) { return Scalar(0); }
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Scalar) { return Scalar(0); }
 };
 
 template <>
 struct zeta_impl_series<float> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool run(float& a, float& b, float& s, const float x,
-                                                        const float machep) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool run(float& a, float& b, float& s, const float x,
+                                                                  const float machep) {
     int i = 0;
     while ((i < 9) || (a <= 9.0f)) {
       i += 1;
@@ -1362,8 +1448,8 @@ struct zeta_impl_series<float> {
 
 template <>
 struct zeta_impl_series<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE bool run(double& a, double& b, double& s, const double x,
-                                                        const double machep) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr bool run(double& a, double& b, double& s, const double x,
+                                                                  const double machep) {
     int i = 0;
     while ((i < 9) || (a <= 9.0)) {
       i += 1;
@@ -1380,7 +1466,7 @@ struct zeta_impl_series<double> {
 
 template <typename Scalar>
 struct zeta_impl {
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar x, Scalar q) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar x, Scalar q) {
     /*							zeta.c
      *
      *	Riemann zeta function of two arguments
@@ -1442,8 +1528,8 @@ struct zeta_impl {
      *
      */
 
-    int i;
-    Scalar p, r, a, b, k, s, t, w;
+    int i = 0;
+    Scalar p{}, r{}, a{}, b{}, k{}, s{}, t{}, w{};
 
     const Scalar A[] = {
         Scalar(12.0),
@@ -1534,7 +1620,7 @@ struct zeta_impl {
 
 template <typename Scalar>
 struct polygamma_impl {
-  EIGEN_DEVICE_FUNC static Scalar run(Scalar n, Scalar x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(Scalar n, Scalar x) {
     Scalar zero = 0.0, one = 1.0;
     Scalar nplus = n + one;
     const Scalar nan = NumTraits<Scalar>::quiet_NaN();
@@ -1561,7 +1647,7 @@ struct polygamma_impl {
 
 template <typename Scalar>
 struct betainc_impl {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(Scalar, Scalar, Scalar) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(Scalar, Scalar, Scalar) {
     EIGEN_STATIC_ASSERT((!std::is_same<Scalar, Scalar>::value), THIS_TYPE_IS_NOT_SUPPORTED)
     /*	betaincf.c
      *
@@ -1643,7 +1729,7 @@ struct incbeta_cfe {
   EIGEN_STATIC_ASSERT((std::is_same<Scalar, float>::value || std::is_same<Scalar, double>::value),
                       THIS_TYPE_IS_NOT_SUPPORTED)
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(Scalar a, Scalar b, Scalar x, bool small_branch) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(Scalar a, Scalar b, Scalar x, bool small_branch) {
     const Scalar big = cephes_helper<Scalar>::big();
     const Scalar machep = cephes_helper<Scalar>::machep();
     const Scalar biginv = cephes_helper<Scalar>::biginv();
@@ -1652,10 +1738,10 @@ struct incbeta_cfe {
     const Scalar one = 1;
     const Scalar two = 2;
 
-    Scalar xk, pk, pkm1, pkm2, qk, qkm1, qkm2;
-    Scalar k1, k2, k3, k4, k5, k6, k7, k8, k26update;
-    Scalar ans;
-    int n;
+    Scalar xk{}, pk{}, pkm1{}, pkm2{}, qk{}, qkm1{}, qkm2{};
+    Scalar k1{}, k2{}, k3{}, k4{}, k5{}, k6{}, k7{}, k8{}, k26update{};
+    Scalar ans{};
+    int n = 0;
 
     constexpr int num_iters = (std::is_same<Scalar, float>::value) ? 100 : 300;
     const Scalar thresh = (std::is_same<Scalar, float>::value) ? machep : Scalar(3) * machep;
@@ -1750,8 +1836,8 @@ struct betainc_helper {};
 template <>
 struct betainc_helper<float> {
   /* Core implementation, assumes a large (> 1.0) */
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float incbsa(float aa, float bb, float xx) {
-    float ans, a, b, t, x, onemx;
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float incbsa(float aa, float bb, float xx) {
+    float ans = 0, a = 0, b = 0, t = 0, x = 0, onemx = 0;
     bool reversed_a_b = false;
 
     onemx = 1.0f - xx;
@@ -1796,8 +1882,8 @@ struct betainc_helper<float> {
     return t;
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float incbps(float a, float b, float x) {
-    float t, u, y, s;
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr float incbps(float a, float b, float x) {
+    float t = 0, u = 0, y = 0, s = 0;
     const float machep = cephes_helper<float>::machep();
 
     y = a * numext::log(x) + (b - 1.0f) * numext::log1p(-x) - numext::log(a);
@@ -1823,9 +1909,9 @@ struct betainc_helper<float> {
 
 template <>
 struct betainc_impl<float> {
-  EIGEN_DEVICE_FUNC static float run(float a, float b, float x) {
+  EIGEN_DEVICE_FUNC static constexpr float run(float a, float b, float x) {
     const float nan = NumTraits<float>::quiet_NaN();
-    float ans, t;
+    float ans = 0, t = 0;
 
     if ((numext::isnan)(a) || (numext::isnan)(b) || (numext::isnan)(x)) return nan;
     if (a == 0.0f && b == 0.0f) return nan;
@@ -1852,10 +1938,10 @@ struct betainc_impl<float> {
 
 template <>
 struct betainc_helper<double> {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double incbps(double a, double b, double x) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr double incbps(double a, double b, double x) {
     const double machep = cephes_helper<double>::machep();
 
-    double s, t, u, v, n, t1, z, ai;
+    double s = 0, t = 0, u = 0, v = 0, n = 0, t1 = 0, z = 0, ai = 0;
 
     ai = 1.0 / a;
     u = (1.0 - b) * x;
@@ -1891,10 +1977,10 @@ struct betainc_helper<double> {
 
 template <>
 struct betainc_impl<double> {
-  EIGEN_DEVICE_FUNC static double run(double aa, double bb, double xx) {
+  EIGEN_DEVICE_FUNC static constexpr double run(double aa, double bb, double xx) {
     const double nan = NumTraits<double>::quiet_NaN();
     const double machep = cephes_helper<double>::machep();
-    double a, b, t, x, xc, w, y;
+    double a = 0, b = 0, t = 0, x = 0, xc = 0, w = 0, y = 0;
     bool reversed_a_b = false;
 
     if ((numext::isnan)(aa) || (numext::isnan)(bb) || (numext::isnan)(xx)) return nan;
@@ -1987,68 +2073,68 @@ struct betainc_impl<double> {
 namespace numext {
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto lgamma(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(lgamma, Scalar)::run(x)) {
+EIGEN_DEVICE_FUNC constexpr auto lgamma(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(lgamma, Scalar)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(lgamma, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto digamma(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(digamma, Scalar)::run(x)) {
+EIGEN_DEVICE_FUNC constexpr auto digamma(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(digamma, Scalar)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(digamma, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto zeta(const Scalar& x, const Scalar& q)
+EIGEN_DEVICE_FUNC constexpr auto zeta(const Scalar& x, const Scalar& q)
     -> decltype(EIGEN_MATHFUNC_IMPL(zeta, Scalar)::run(x, q)) {
   return EIGEN_MATHFUNC_IMPL(zeta, Scalar)::run(x, q);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto polygamma(const Scalar& n, const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto polygamma(const Scalar& n, const Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(polygamma, Scalar)::run(n, x)) {
   return EIGEN_MATHFUNC_IMPL(polygamma, Scalar)::run(n, x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto erf(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(erf, Scalar)::run(x)) {
+EIGEN_DEVICE_FUNC constexpr auto erf(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(erf, Scalar)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(erf, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto erfc(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(erfc, Scalar)::run(x)) {
+EIGEN_DEVICE_FUNC constexpr auto erfc(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(erfc, Scalar)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(erfc, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto ndtri(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(ndtri, Scalar)::run(x)) {
+EIGEN_DEVICE_FUNC constexpr auto ndtri(const Scalar& x) -> decltype(EIGEN_MATHFUNC_IMPL(ndtri, Scalar)::run(x)) {
   return EIGEN_MATHFUNC_IMPL(ndtri, Scalar)::run(x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto igamma(const Scalar& a, const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto igamma(const Scalar& a, const Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(igamma, Scalar)::run(a, x)) {
   return EIGEN_MATHFUNC_IMPL(igamma, Scalar)::run(a, x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto igamma_der_a(const Scalar& a, const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto igamma_der_a(const Scalar& a, const Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(igamma_der_a, Scalar)::run(a, x)) {
   return EIGEN_MATHFUNC_IMPL(igamma_der_a, Scalar)::run(a, x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto gamma_sample_der_alpha(const Scalar& a, const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto gamma_sample_der_alpha(const Scalar& a, const Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(gamma_sample_der_alpha, Scalar)::run(a, x)) {
   return EIGEN_MATHFUNC_IMPL(gamma_sample_der_alpha, Scalar)::run(a, x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto igammac(const Scalar& a, const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto igammac(const Scalar& a, const Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(igammac, Scalar)::run(a, x)) {
   return EIGEN_MATHFUNC_IMPL(igammac, Scalar)::run(a, x);
 }
 
 template <typename Scalar>
-EIGEN_DEVICE_FUNC inline auto betainc(const Scalar& a, const Scalar& b, const Scalar& x)
+EIGEN_DEVICE_FUNC constexpr auto betainc(const Scalar& a, const Scalar& b, const Scalar& x)
     -> decltype(EIGEN_MATHFUNC_IMPL(betainc, Scalar)::run(a, b, x)) {
   return EIGEN_MATHFUNC_IMPL(betainc, Scalar)::run(a, b, x);
 }

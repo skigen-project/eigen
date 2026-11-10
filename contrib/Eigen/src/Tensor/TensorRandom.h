@@ -30,7 +30,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE uint64_t get_random_seed() {
 #endif
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE unsigned PCG_XSH_RS_generator(uint64_t* state, uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr unsigned PCG_XSH_RS_generator(uint64_t* state, uint64_t stream) {
   // TODO: Unify with the implementation in the non blocking thread pool.
   uint64_t current = *state;
   // Update the internal state
@@ -39,7 +39,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE unsigned PCG_XSH_RS_generator(uint64_t* st
   return static_cast<unsigned>((current ^ (current >> 22)) >> (22 + (current >> 61)));
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE uint64_t PCG_XSH_RS_state(uint64_t seed) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr uint64_t PCG_XSH_RS_state(uint64_t seed) {
   seed = seed ? seed : get_random_seed();
   return seed * 6364136223846793005ULL + 0xda3e39cb94b95bdbULL;
 }
@@ -48,18 +48,19 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE uint64_t PCG_XSH_RS_state(uint64_t seed) {
 // sequence and mixed (splitmix64_mix, RandomImpl.h), so it is a pure function of (seed, index) and unrelated between
 // neighbouring indices. The mixing matters because PCG_XSH_RS_generator derives its first output from the state it
 // is handed: without it, the low bits of base + index * increment would pass straight into that output.
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE uint64_t PCG_XSH_RS_state_for_index(uint64_t base_state, uint64_t index) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr uint64_t PCG_XSH_RS_state_for_index(uint64_t base_state,
+                                                                                    uint64_t index) {
   return splitmix64_mix(base_state + index * 0x9e3779b97f4a7c15ULL);
 }
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T RandomToTypeUniform(uint64_t* state, uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T RandomToTypeUniform(uint64_t* state, uint64_t stream) {
   unsigned rnd = PCG_XSH_RS_generator(state, stream);
   return static_cast<T>(rnd);
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool RandomToTypeUniform<bool>(uint64_t* state, uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool RandomToTypeUniform<bool>(uint64_t* state, uint64_t stream) {
   unsigned rnd = PCG_XSH_RS_generator(state, stream);
   return (rnd & 0x1) != 0;
 }
@@ -84,50 +85,39 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Eigen::bfloat16 RandomToTypeUniform<Eigen:
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE float RandomToTypeUniform<float>(uint64_t* state, uint64_t stream) {
-  typedef union {
-    uint32_t raw;
-    float fp;
-  } internal;
-  internal result;
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr float RandomToTypeUniform<float>(uint64_t* state, uint64_t stream) {
   // Generate 23 random bits for the mantissa.
   const unsigned rnd = PCG_XSH_RS_generator(state, stream);
-  result.raw = rnd & 0x7fffffu;
+  uint32_t raw = rnd & 0x7fffffu;
   // Set the exponent.
-  result.raw |= (static_cast<uint32_t>(127) << 23);
-  return result.fp - 1.0f;
+  raw |= (static_cast<uint32_t>(127) << 23);
+  return numext::bit_cast<float>(raw) - 1.0f;
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE double RandomToTypeUniform<double>(uint64_t* state, uint64_t stream) {
-  typedef union {
-    uint64_t raw;
-    double dp;
-  } internal;
-  internal result;
-  result.raw = 0;
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr double RandomToTypeUniform<double>(uint64_t* state, uint64_t stream) {
   // Generate 52 random bits for the mantissa
   // First generate the upper 20 bits
   unsigned rnd1 = PCG_XSH_RS_generator(state, stream) & 0xfffffu;
   // Then generate the lower 32 bits.
   unsigned rnd2 = PCG_XSH_RS_generator(state, stream);
-  result.raw = (static_cast<uint64_t>(rnd1) << 32) | rnd2;
+  uint64_t raw = (static_cast<uint64_t>(rnd1) << 32) | rnd2;
   // Set the exponent
-  result.raw |= (static_cast<uint64_t>(1023) << 52);
+  raw |= (static_cast<uint64_t>(1023) << 52);
   // Return the final result
-  return result.dp - 1.0;
+  return numext::bit_cast<double>(raw) - 1.0;
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<float> RandomToTypeUniform<std::complex<float> >(uint64_t* state,
-                                                                                                    uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<float> RandomToTypeUniform<std::complex<float> >(
+    uint64_t* state, uint64_t stream) {
   const float real = RandomToTypeUniform<float>(state, stream);
   const float imag = RandomToTypeUniform<float>(state, stream);
   return std::complex<float>(real, imag);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<double> RandomToTypeUniform<std::complex<double> >(uint64_t* state,
-                                                                                                      uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<double> RandomToTypeUniform<std::complex<double> >(
+    uint64_t* state, uint64_t stream) {
   const double real = RandomToTypeUniform<double>(state, stream);
   const double imag = RandomToTypeUniform<double>(state, stream);
   return std::complex<double>(real, imag);
@@ -142,10 +132,11 @@ class UniformRandomGenerator {
   static constexpr bool PacketAccess = true;
 
   // Uses the given "seed" if non-zero, otherwise uses a random seed.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE UniformRandomGenerator(uint64_t seed = 0) : m_state(PCG_XSH_RS_state(seed)) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr UniformRandomGenerator(uint64_t seed = 0)
+      : m_state(PCG_XSH_RS_state(seed)) {}
 
   template <typename Index>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(Index i) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T operator()(Index i) const {
     const uint64_t index = static_cast<uint64_t>(i);
     uint64_t state = PCG_XSH_RS_state_for_index(m_state, index);
     return RandomToTypeUniform<T>(&state, index);
@@ -179,11 +170,11 @@ struct functor_traits<UniformRandomGenerator<Scalar> > {
 };
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T RandomToTypeNormal(uint64_t* state, uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T RandomToTypeNormal(uint64_t* state, uint64_t stream) {
   // Use the ratio of uniform method to generate numbers following a normal
   // distribution. See for example Numerical Recipes chapter 7.3.9 for the
   // details.
-  T u, v, q;
+  T u(0), v(0), q(0);
   do {
     u = RandomToTypeUniform<T>(state, stream);
     v = T(1.7156) * (RandomToTypeUniform<T>(state, stream) - T(0.5));
@@ -213,15 +204,15 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Eigen::bfloat16 RandomToTypeNormal<Eigen::
 }
 
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<float> RandomToTypeNormal<std::complex<float> >(uint64_t* state,
-                                                                                                   uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<float> RandomToTypeNormal<std::complex<float> >(
+    uint64_t* state, uint64_t stream) {
   const float real = RandomToTypeNormal<float>(state, stream);
   const float imag = RandomToTypeNormal<float>(state, stream);
   return std::complex<float>(real, imag);
 }
 template <>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<double> RandomToTypeNormal<std::complex<double> >(uint64_t* state,
-                                                                                                     uint64_t stream) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<double> RandomToTypeNormal<std::complex<double> >(
+    uint64_t* state, uint64_t stream) {
   const double real = RandomToTypeNormal<double>(state, stream);
   const double imag = RandomToTypeNormal<double>(state, stream);
   return std::complex<double>(real, imag);
@@ -235,10 +226,11 @@ class NormalRandomGenerator {
   static constexpr bool PacketAccess = true;
 
   // Uses the given "seed" if non-zero, otherwise uses a random seed.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE NormalRandomGenerator(uint64_t seed = 0) : m_state(PCG_XSH_RS_state(seed)) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr NormalRandomGenerator(uint64_t seed = 0)
+      : m_state(PCG_XSH_RS_state(seed)) {}
 
   template <typename Index>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T operator()(Index i) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T operator()(Index i) const {
     const uint64_t index = static_cast<uint64_t>(i);
     uint64_t state = PCG_XSH_RS_state_for_index(m_state, index);
     return RandomToTypeNormal<T>(&state, index);

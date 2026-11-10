@@ -52,14 +52,17 @@ class TensorPaddingOp : public TensorBase<TensorPaddingOp<PaddingDimensions, Xpr
   using StorageKind = typename Eigen::internal::traits<TensorPaddingOp>::StorageKind;
   using Index = typename Eigen::internal::traits<TensorPaddingOp>::Index;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorPaddingOp(const XprType& expr, const PaddingDimensions& padding_dims,
-                                                        const Scalar padding_value)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorPaddingOp(const XprType& expr,
+                                                                  const PaddingDimensions& padding_dims,
+                                                                  const Scalar padding_value)
       : m_xpr(expr), m_padding_dims(padding_dims), m_padding_value(padding_value) {}
 
-  EIGEN_DEVICE_FUNC const PaddingDimensions& padding() const { return m_padding_dims; }
-  EIGEN_DEVICE_FUNC Scalar padding_value() const { return m_padding_value; }
+  EIGEN_DEVICE_FUNC constexpr const PaddingDimensions& padding() const { return m_padding_dims; }
+  EIGEN_DEVICE_FUNC constexpr Scalar padding_value() const { return m_padding_value; }
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename XprType::Nested>& expression() const { return m_xpr; }
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename XprType::Nested>& expression() const {
+    return m_xpr;
+  }
 
  protected:
   typename XprType::Nested m_xpr;
@@ -100,7 +103,7 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
   using TensorBlock = typename internal::TensorMaterializedBlock<ScalarNoConst, NumDims, Layout, Index>;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device)
       : m_impl(op.expression(), device), m_padding(op.padding()), m_paddingValue(op.padding_value()), m_device(device) {
     // The padding op doesn't change the rank of the tensor. Directly padding a scalar would lead
     // to a vector, which doesn't make sense. Instead one should reshape the scalar into a vector
@@ -132,9 +135,9 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType) {
+  EIGEN_STRONG_INLINE constexpr bool evalSubExprsIfNeeded(EvaluatorPointerType) {
     m_impl.evalSubExprsIfNeeded(nullptr);
     return true;
   }
@@ -146,9 +149,9 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
   }
 #endif  // EIGEN_USE_THREADS
 
-  EIGEN_STRONG_INLINE void cleanup() { m_impl.cleanup(); }
+  EIGEN_STRONG_INLINE constexpr void cleanup() { m_impl.cleanup(); }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index index) const {
     eigen_assert(index < dimensions().TotalSize());
     Index inputIndex = 0;
     EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {
@@ -191,7 +194,7 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
     return packetRowMajor(index);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool vectorized) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool vectorized) const {
     TensorOpCost cost = m_impl.costPerCoeff(vectorized);
     EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {
       EIGEN_UNROLL_LOOP
@@ -209,14 +212,14 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
         internal::TensorBlockResourceRequirements::skewed<Scalar>(target_size), m_impl.getResourceRequirements());
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                          bool /*root_of_expr_ast*/ = false) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
+                                                                    bool /*root_of_expr_ast*/ = false) const {
     // If one of the dimensions is zero, return empty block view.
     if (desc.size() == 0) {
       return TensorBlock(internal::TensorBlockKind::kView, nullptr, desc.dimensions());
     }
 
-    static constexpr bool IsColMajor = Layout == static_cast<int>(ColMajor);
+    constexpr bool IsColMajor = Layout == static_cast<int>(ColMajor);
     constexpr int inner_dim_idx = IsColMajor ? 0 : NumDims - 1;
 
     Index offset = desc.offset();
@@ -261,7 +264,7 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
 
     // Initialize output block iterator state. Dimension in this array are
     // always in inner_most -> outer_most order (col major layout).
-    array<BlockIteratorState, NumDims - 1> it;
+    array<BlockIteratorState, NumDims - 1> it{};
     for (int i = 0; i < NumDims - 1; ++i) {
       const int dim = IsColMajor ? i + 1 : NumDims - i - 2;
       it[i].count = 0;
@@ -435,11 +438,11 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
     return block_storage.AsTensorMaterializedBlock();
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EvaluatorPointerType data() const { return nullptr; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr EvaluatorPointerType data() const { return nullptr; }
 
  private:
   struct BlockIteratorState {
-    BlockIteratorState() = default;
+    constexpr BlockIteratorState() = default;
 
     Index count = 0;
     Index size = 0;
@@ -449,7 +452,7 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
     Index output_span = 0;
   };
 
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool isPaddingAtIndexForDim(Index index, int dim_index) const {
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool isPaddingAtIndexForDim(Index index, int dim_index) const {
     return (!internal::index_pair_first_statically_eq<PaddingDimensions>(dim_index, 0) &&
             index < m_padding[dim_index].first) ||
            (!internal::index_pair_second_statically_eq<PaddingDimensions>(dim_index, 0) &&
@@ -464,7 +467,7 @@ struct TensorEvaluator<const TensorPaddingOp<PaddingDimensions, ArgType>, Device
     return internal::index_pair_second_statically_eq<PaddingDimensions>(dim_index, 0);
   }
 
-  void updateCostPerDimension(TensorOpCost& cost, int i, bool first) const {
+  constexpr void updateCostPerDimension(TensorOpCost& cost, int i, bool first) const {
     const double in = static_cast<double>(m_impl.dimensions()[i]);
     const double out = in + m_padding[i].first + m_padding[i].second;
     if (out == 0) return;

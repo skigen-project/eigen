@@ -47,13 +47,15 @@ struct EigenvalueRange {
   long double vu;
 
   /** \returns a selector for the entire spectrum. */
-  static EigenvalueRange all() { return EigenvalueRange{All, 0, 0, 0.0L, 0.0L}; }
+  static constexpr EigenvalueRange all() { return EigenvalueRange{All, 0, 0, 0.0L, 0.0L}; }
 
   /** \returns a selector for the eigenvalues with 0-based indices in [il, iu). */
-  static EigenvalueRange indices(Index il, Index iu) { return EigenvalueRange{ByIndex, il, iu, 0.0L, 0.0L}; }
+  static constexpr EigenvalueRange indices(Index il, Index iu) { return EigenvalueRange{ByIndex, il, iu, 0.0L, 0.0L}; }
 
   /** \returns a selector for the eigenvalues in the half-open interval [vl, vu). */
-  static EigenvalueRange values(long double vl, long double vu) { return EigenvalueRange{ByValue, 0, 0, vl, vu}; }
+  static constexpr EigenvalueRange values(long double vl, long double vu) {
+    return EigenvalueRange{ByValue, 0, 0, vl, vu};
+  }
 };
 
 namespace internal {
@@ -159,15 +161,16 @@ EIGEN_STRONG_INLINE void tridiagonal_sturm_block(const RealScalar* alpha, const 
 }
 
 template <typename RealScalar>
-void tridiagonal_sturm_counts(const RealScalar* alpha, const RealScalar* beta_sq, Index n, RealScalar pivmin,
-                              const RealScalar* eval_points, numext::int64_t* count, Index num_points) {
+constexpr void tridiagonal_sturm_counts(const RealScalar* alpha, const RealScalar* beta_sq, Index n, RealScalar pivmin,
+                                        const RealScalar* eval_points, numext::int64_t* count, Index num_points) {
   using Packet = typename packet_traits<RealScalar>::type;
   constexpr Index kPacketSize = Index(unpacket_traits<Packet>::size);
   // num_points is a point count and so never negative; clearing the sign bit makes that explicit to
   // the compiler, which lets the division by the power-of-two kPacketSize lower to a shift (and tidies
   // the trailing cascade loops) instead of emitting signed-division sign-correction code.
   num_points &= (std::numeric_limits<Index>::max)();
-  const Index full = num_points / kPacketSize;  // number of whole packets
+  // Number of whole packets; constant evaluation takes the scalar tail for every point.
+  Index full = is_constant_evaluated() ? 0 : num_points / kPacketSize;
 
   // Process whole packets in register-resident blocks, cascading 8 -> 4 -> 2 -> 1 so that even a
   // small batch gets enough independent recurrences to hide the pdiv latency. Eight packets is the
@@ -226,9 +229,10 @@ void tridiagonal_sturm_counts(const RealScalar* alpha, const RealScalar* beta_sq
  * \param[out] out        converged midpoints for indices [t_lo, t_hi); length t_hi-t_lo.
  */
 template <typename RealScalar>
-void tridiagonal_bisection_block(const RealScalar* alpha, const RealScalar* beta_sq, Index n, RealScalar pivmin,
-                                 RealScalar bracket_lo, RealScalar bracket_hi, Index t_lo, Index t_hi, int max_iters,
-                                 RealScalar abs_tol, RealScalar* out) {
+EIGEN_CONSTEXPR20 void tridiagonal_bisection_block(const RealScalar* alpha, const RealScalar* beta_sq, Index n,
+                                                   RealScalar pivmin, RealScalar bracket_lo, RealScalar bracket_hi,
+                                                   Index t_lo, Index t_hi, int max_iters, RealScalar abs_tol,
+                                                   RealScalar* out) {
   using ArrayType = Array<RealScalar, Dynamic, 1>;
   using CountArrayType = Array<numext::int64_t, Dynamic, 1>;
   const Index m = t_hi - t_lo;
@@ -327,8 +331,8 @@ void tridiagonal_bisection_block(const RealScalar* alpha, const RealScalar* beta
  * \param[in] x        the shift at which to count.
  */
 template <typename RealScalar>
-Index tridiagonal_sturm_count_below(const RealScalar* alpha, const RealScalar* beta_sq, Index n, RealScalar pivmin,
-                                    RealScalar x) {
+constexpr Index tridiagonal_sturm_count_below(const RealScalar* alpha, const RealScalar* beta_sq, Index n,
+                                              RealScalar pivmin, RealScalar x) {
   RealScalar q = alpha[0] - x;
   Index count = (q < RealScalar(0)) ? 1 : 0;
   if (numext::abs(q) < pivmin) q = numext::copysign(pivmin, q);
@@ -339,6 +343,50 @@ Index tridiagonal_sturm_count_below(const RealScalar* alpha, const RealScalar* b
   }
   return count;
 }
+
+#if defined(EIGEN_HAS_OPENMP)
+/** \internal
+ *
+ * Runs tridiagonal_bisection_block() over the target indices [\c t_lo, \c t_hi) on several OpenMP
+ * threads when there is enough work, and returns whether it did. The parameters are those of
+ * tridiagonal_bisection_block().
+ */
+template <typename RealScalar>
+bool tridiagonal_bisection_parallel(const RealScalar* alpha_p, const RealScalar* beta_sq_p, Index n, RealScalar pivmin,
+                                    RealScalar bracket_lo, RealScalar bracket_hi, Index t_lo, Index t_hi, int max_iters,
+                                    RealScalar abs_tol, RealScalar* out) {
+  const Index m = t_hi - t_lo;
+  // The m eigenvalues are bisected independently, so the spectrum splits cleanly across threads with
+  // a single fork/join: thread t owns the contiguous index block [t_lo + lo, t_lo + hi) and writes
+  // its converged midpoints into the disjoint slice out[lo, hi). No communication until the join.
+  int nthreads = 1;
+  // Don't nest inside an existing parallel region, and only fork when there is enough work to
+  // amortize the thread overhead while still leaving each thread a SIMD-friendly chunk of points.
+  if (omp_get_num_threads() == 1) {
+    constexpr Index kPacketSize = Index(unpacket_traits<typename packet_traits<RealScalar>::type>::size);
+    // One work unit ~ one Sturm step (a packet division); kMinTaskSize is the minimum per thread.
+    // Multiply in double: the product overflows a 32-bit Index for matrices well within reach.
+    const double work = double(m) * double(n) * double(max_iters);
+    const double kMinTaskSize = 131072.0;
+    const Index work_threads = Index(work / kMinTaskSize);
+    const Index point_threads = m / (8 * kPacketSize);
+    const Index pb = numext::maxi(Index(1), numext::mini(work_threads, point_threads));
+    nthreads = int(numext::mini(pb, Index(Eigen::nbThreads())));
+  }
+  if (nthreads <= 1) return false;
+#pragma omp parallel num_threads(nthreads)
+  {
+    const Index nt = omp_get_num_threads();
+    const Index tid = omp_get_thread_num();
+    // Balanced split: every thread gets floor(m/nt) or ceil(m/nt) consecutive indices, none empty.
+    const Index lo = tid * m / nt;
+    const Index hi = (tid + 1) * m / nt;
+    tridiagonal_bisection_block<RealScalar>(alpha_p, beta_sq_p, n, pivmin, bracket_lo, bracket_hi, t_lo + lo, t_lo + hi,
+                                            max_iters, abs_tol, out + lo);
+  }
+  return true;
+}
+#endif
 
 /** \internal
  *
@@ -364,9 +412,10 @@ Index tridiagonal_sturm_count_below(const RealScalar* alpha, const RealScalar* b
  * \returns the number of eigenvalues written to \c eivalues.
  */
 template <typename DiagType, typename SubdiagType, typename EivalType>
-Index tridiagonal_bisection(const DiagType& diag, const SubdiagType& subdiag, const EigenvalueRange& range,
-                            typename DiagType::Scalar abs_tol, EivalType& eivalues,
-                            typename DiagType::Scalar* effective_abs_tol = nullptr) {
+EIGEN_CONSTEXPR20 Index tridiagonal_bisection(const DiagType& diag, const SubdiagType& subdiag,
+                                              const EigenvalueRange& range, typename DiagType::Scalar abs_tol,
+                                              EivalType& eivalues,
+                                              typename DiagType::Scalar* effective_abs_tol = nullptr) {
   using RealScalar = typename DiagType::Scalar;
   using ArrayType = Array<RealScalar, Dynamic, 1>;
   EIGEN_STATIC_ASSERT(NumTraits<RealScalar>::IsInteger == 0 && NumTraits<RealScalar>::IsComplex == 0,
@@ -502,36 +551,10 @@ Index tridiagonal_bisection(const DiagType& diag, const SubdiagType& subdiag, co
   const RealScalar* alpha_p = alpha.data();
   const RealScalar* beta_sq_p = beta_sq.data();
 
-  // The m eigenvalues are bisected independently, so the spectrum splits cleanly across threads with
-  // a single fork/join: thread t owns the contiguous index block [t_lo + lo, t_lo + hi) and writes
-  // its converged midpoints into the disjoint slice out[lo, hi). No communication until the join.
 #if defined(EIGEN_HAS_OPENMP)
-  int nthreads = 1;
-  // Don't nest inside an existing parallel region, and only fork when there is enough work to
-  // amortize the thread overhead while still leaving each thread a SIMD-friendly chunk of points.
-  if (omp_get_num_threads() == 1) {
-    constexpr Index kPacketSize = Index(unpacket_traits<typename packet_traits<RealScalar>::type>::size);
-    // One work unit ~ one Sturm step (a packet division); kMinTaskSize is the minimum per thread.
-    // Multiply in double: the product overflows a 32-bit Index for matrices well within reach.
-    const double work = double(m) * double(n) * double(max_iters);
-    const double kMinTaskSize = 131072.0;
-    const Index work_threads = Index(work / kMinTaskSize);
-    const Index point_threads = m / (8 * kPacketSize);
-    const Index pb = numext::maxi(Index(1), numext::mini(work_threads, point_threads));
-    nthreads = int(numext::mini(pb, Index(Eigen::nbThreads())));
-  }
-  if (nthreads > 1) {
-#pragma omp parallel num_threads(nthreads)
-    {
-      const Index nt = omp_get_num_threads();
-      const Index tid = omp_get_thread_num();
-      // Balanced split: every thread gets floor(m/nt) or ceil(m/nt) consecutive indices, none empty.
-      const Index lo = tid * m / nt;
-      const Index hi = (tid + 1) * m / nt;
-      tridiagonal_bisection_block<RealScalar>(alpha_p, beta_sq_p, n, pivmin, bracket_lo, bracket_hi, t_lo + lo,
-                                              t_lo + hi, max_iters, abs_tol, out + lo);
-    }
-  } else
+  if (is_constant_evaluated() ||
+      !tridiagonal_bisection_parallel<RealScalar>(alpha_p, beta_sq_p, n, pivmin, bracket_lo, bracket_hi, t_lo, t_hi,
+                                                  max_iters, abs_tol, out))
 #endif
   {
     tridiagonal_bisection_block<RealScalar>(alpha_p, beta_sq_p, n, pivmin, bracket_lo, bracket_hi, t_lo, t_hi,

@@ -278,7 +278,8 @@ struct redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling> {
   using Scalar = typename Evaluator::Scalar;
 
   template <typename XprType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Evaluator& eval, const Func& func,
+                                                                    const XprType& xpr) {
     EIGEN_INTERNAL_ASSERT_NONEMPTY(xpr);
     const Index innerSize = xpr.innerSize();
     const Index outerSize = xpr.outerSize();
@@ -305,8 +306,8 @@ struct redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling> {
   // Commutativity lets coefficients split across eight independent accumulators: the dependency
   // chain drops to size/8 and each stride-8 stream vectorizes without cross-lane shuffles. The
   // accumulators persist across outer slices; only the ragged inner tail of each slice joins a0.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar runCommutative(const Evaluator& eval, const Func& func,
-                                                                     Index innerSize, Index outerSize) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar runCommutative(const Evaluator& eval, const Func& func,
+                                                                               Index innerSize, Index outerSize) {
     Scalar a0 = eval.coeffByOuterInner(0, 0), a1 = eval.coeffByOuterInner(0, 1);
     Scalar a2 = eval.coeffByOuterInner(0, 2), a3 = eval.coeffByOuterInner(0, 3);
     Scalar a4 = eval.coeffByOuterInner(0, 4), a5 = eval.coeffByOuterInner(0, 5);
@@ -331,8 +332,8 @@ struct redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling> {
 
   // Associativity alone: contiguous groups of four combine in traversal order through a pairwise
   // tree, shortening the dependency chain to size/4 without reordering any operands.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar runOrderedTree(const Evaluator& eval, const Func& func,
-                                                                     Index innerSize, Index outerSize) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar runOrderedTree(const Evaluator& eval, const Func& func,
+                                                                               Index innerSize, Index outerSize) {
     const Index unrolledEnd = innerSize - innerSize % 4;
     Scalar res = reduce4(eval, func, 0, 0);
     for (Index i = 0; i < outerSize; ++i) {
@@ -343,8 +344,8 @@ struct redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling> {
     return res;
   }
 
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar reduce4(const Evaluator& eval, const Func& func, Index outer,
-                                                              Index inner) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar reduce4(const Evaluator& eval, const Func& func,
+                                                                        Index outer, Index inner) {
     return func(func(eval.coeffByOuterInner(outer, inner + 0), eval.coeffByOuterInner(outer, inner + 1)),
                 func(eval.coeffByOuterInner(outer, inner + 2), eval.coeffByOuterInner(outer, inner + 3)));
   }
@@ -355,7 +356,8 @@ struct redux_impl<Func, Evaluator, LinearTraversal, NoUnrolling> {
   using Scalar = typename Evaluator::Scalar;
 
   template <typename XprType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Evaluator& eval, const Func& func,
+                                                                    const XprType& xpr) {
     const Index size = xpr.size();
     EIGEN_INTERNAL_ASSERT_NONEMPTY_SIZE(xpr, size);
     // Do not generate wide reduction bodies for bounded expressions that cannot
@@ -378,8 +380,8 @@ struct redux_impl<Func, Evaluator, LinearTraversal, NoUnrolling> {
 
   // Commutativity lets coefficients split across eight independent accumulators: the dependency
   // chain drops to size/8 and each stride-8 stream vectorizes without cross-lane shuffles.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar runCommutative(const Evaluator& eval, const Func& func,
-                                                                     Index size) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar runCommutative(const Evaluator& eval, const Func& func,
+                                                                               Index size) {
     Scalar a0 = eval.coeff(0), a1 = eval.coeff(1), a2 = eval.coeff(2), a3 = eval.coeff(3);
     Scalar a4 = eval.coeff(4), a5 = eval.coeff(5), a6 = eval.coeff(6), a7 = eval.coeff(7);
     const Index unrolledEnd = size - size % 8;
@@ -401,8 +403,8 @@ struct redux_impl<Func, Evaluator, LinearTraversal, NoUnrolling> {
 
   // Associativity alone: contiguous groups of four combine in traversal order through a pairwise
   // tree, shortening the dependency chain to size/4 without reordering any operands.
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar runOrderedTree(const Evaluator& eval, const Func& func,
-                                                                     Index size) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar runOrderedTree(const Evaluator& eval, const Func& func,
+                                                                               Index size) {
     Scalar res = func(func(eval.coeff(0), eval.coeff(1)), func(eval.coeff(2), eval.coeff(3)));
     const Index unrolledEnd = size - size % 4;
     Index k = 4;
@@ -420,8 +422,8 @@ struct redux_impl<Func, Evaluator, DefaultTraversal, CompleteUnrolling>
   using Base = redux_novec_unroller<Func, Evaluator, 0, Evaluator::SizeAtCompileTime>;
   using Scalar = typename Evaluator::Scalar;
   template <typename XprType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval, const Func& func,
-                                                          const XprType& /*xpr*/) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Evaluator& eval, const Func& func,
+                                                                    const XprType& /*xpr*/) {
     return Base::run(eval, func);
   }
 };
@@ -432,8 +434,8 @@ struct redux_impl<Func, Evaluator, LinearTraversal, CompleteUnrolling>
   using Base = redux_novec_linear_unroller<Func, Evaluator, 0, Evaluator::SizeAtCompileTime>;
   using Scalar = typename Evaluator::Scalar;
   template <typename XprType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval, const Func& func,
-                                                          const XprType& /*xpr*/) {
+  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE constexpr Scalar run(const Evaluator& eval, const Func& func,
+                                                                    const XprType& /*xpr*/) {
     return Base::run(eval, func);
   }
 };
@@ -443,8 +445,17 @@ struct redux_impl<Func, Evaluator, LinearVectorizedTraversal, NoUnrolling> {
   using Scalar = typename Evaluator::Scalar;
   using PacketScalar = typename redux_traits<Func, Evaluator>::PacketType;
 
+  // Packet accumulators can be non-literal types, which a constexpr function cannot declare before C++23.
   template <typename XprType>
-  static Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+    if (internal::is_constant_evaluated())
+      return redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling>::run(eval, func, xpr);
+    return run_vectorized(eval, func, xpr);
+  }
+
+ private:
+  template <typename XprType>
+  EIGEN_DEVICE_FUNC static Scalar run_vectorized(const Evaluator& eval, const Func& func, const XprType& xpr) {
     const Index size = xpr.size();
 
     constexpr Index packetSize = redux_traits<Func, Evaluator>::PacketSize;
@@ -459,7 +470,6 @@ struct redux_impl<Func, Evaluator, LinearVectorizedTraversal, NoUnrolling> {
     const Index alignedSize = numext::round_down(size - alignedStart, packetSize);
     const Index alignedEnd4 = alignedStart + alignedSize4;
     const Index alignedEnd = alignedStart + alignedSize;
-    Scalar res;
     constexpr Index maxSize = redux_max_size<XprType>::Size;
     EIGEN_IF_CONSTEXPR (maxSize == Dynamic || maxSize >= packetSize) {
       if (alignedSize) {
@@ -512,7 +522,7 @@ struct redux_impl<Func, Evaluator, LinearVectorizedTraversal, NoUnrolling> {
             }
           }
         }
-        res = func.predux(packet_res0);
+        Scalar res = func.predux(packet_res0);
 
         for (Index index = 0; index < alignedStart; ++index) res = func(res, eval.coeff(index));
 
@@ -521,7 +531,7 @@ struct redux_impl<Func, Evaluator, LinearVectorizedTraversal, NoUnrolling> {
       }
     }
     // Too small to vectorize anything.
-    res = eval.coeff(0);
+    Scalar res = eval.coeff(0);
     for (Index index = 1; index < size; ++index) res = func(res, eval.coeff(index));
     return res;
   }
@@ -539,14 +549,22 @@ struct redux_impl<Func, Evaluator, SliceVectorizedTraversal, Unrolling> {
     return eval.template packetByOuterInner<Unaligned, PacketType>(j, i);
   }
 
+  // Packet accumulators can be non-literal types, which a constexpr function cannot declare before C++23.
   template <typename XprType>
-  EIGEN_DEVICE_FUNC static Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+    if (internal::is_constant_evaluated())
+      return redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling>::run(eval, func, xpr);
+    return run_vectorized(eval, func, xpr);
+  }
+
+ private:
+  template <typename XprType>
+  EIGEN_DEVICE_FUNC static Scalar run_vectorized(const Evaluator& eval, const Func& func, const XprType& xpr) {
     EIGEN_INTERNAL_ASSERT_NONEMPTY(xpr);
     const Index innerSize = xpr.innerSize();
     const Index outerSize = xpr.outerSize();
     const Index packetedInnerSize = numext::round_down(innerSize, PacketSize);
     const Index quadInnerSize = numext::round_down(innerSize, 4 * PacketSize);
-    Scalar res;
     if (packetedInnerSize) {
       // A single accumulator leaves one packetOp latency between consecutive iterations, so carry
       // four of them across the whole (j, i) traversal and merge them once.
@@ -617,16 +635,14 @@ struct redux_impl<Func, Evaluator, SliceVectorizedTraversal, Unrolling> {
             packet_res0 = func.packetOp(packet_res0, packetAt(eval, j, i));
       }
 
-      res = func.predux(packet_res0);
+      Scalar res = func.predux(packet_res0);
       for (Index j = 0; j < outerSize; ++j)
         for (Index i = packetedInnerSize; i < innerSize; ++i) res = func(res, eval.coeffByOuterInner(j, i));
-    } else  // too small to vectorize anything.
-            // since this is dynamic-size hence inefficient anyway for such small sizes, don't try to optimize.
-    {
-      res = redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling>::run(eval, func, xpr);
+      return res;
     }
-
-    return res;
+    // Too small to vectorize anything. Since this is dynamic-size hence inefficient anyway for such small sizes, don't
+    // try to optimize.
+    return redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling>::run(eval, func, xpr);
   }
 };
 
@@ -640,7 +656,12 @@ struct redux_impl<Func, Evaluator, LinearVectorizedTraversal, CompleteUnrolling>
   static constexpr Index VectorizedSize = (int(Size) / int(PacketSize)) * int(PacketSize);
 
   template <typename XprType>
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval, const Func& func, const XprType& xpr) {
+  EIGEN_DEVICE_FUNC static constexpr EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval, const Func& func,
+                                                                    const XprType& xpr) {
+    if (internal::is_constant_evaluated()) {
+      return redux_impl<Func, Evaluator, DefaultTraversal, NoUnrolling>::run(eval, func, xpr);
+    }
+
     EIGEN_ONLY_USED_FOR_DEBUG(xpr);
     EIGEN_INTERNAL_ASSERT_NONEMPTY(xpr);
     if (VectorizedSize > 0) {
@@ -663,7 +684,7 @@ class redux_evaluator : public internal::evaluator<const XprType_> {
 
  public:
   using XprType = XprType_;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE explicit redux_evaluator(const XprType& xpr) : Base(xpr) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr explicit redux_evaluator(const XprType& xpr) : Base(xpr) {}
 
   using Scalar = typename XprType::Scalar;
   using CoeffReturnType = typename XprType::CoeffReturnType;
@@ -680,7 +701,7 @@ class redux_evaluator : public internal::evaluator<const XprType_> {
     InnerSizeAtCompileTime = XprType::InnerSizeAtCompileTime
   };
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeffByOuterInner(Index outer, Index inner) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeffByOuterInner(Index outer, Index inner) const {
     return Base::coeff(IsRowMajor ? outer : inner, IsRowMajor ? inner : outer);
   }
 
@@ -716,8 +737,9 @@ struct redux_has_runtime_unit_stride_path {
 template <typename Func, typename Evaluator, typename XprType,
           bool = redux_has_runtime_unit_stride_path<Func, Evaluator>::value>
 struct redux_dispatch {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename Evaluator::Scalar run(const Evaluator& thisEval,
-                                                                              const Func& func, const XprType& xpr) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename Evaluator::Scalar run(const Evaluator& thisEval,
+                                                                                        const Func& func,
+                                                                                        const XprType& xpr) {
     return redux_impl<Func, Evaluator>::run(thisEval, func, xpr);
   }
 };
@@ -730,8 +752,8 @@ struct redux_dispatch {
 template <typename Func, typename Evaluator, typename XprType>
 struct redux_dispatch<Func, Evaluator, XprType, true> {
   using Scalar = typename Evaluator::Scalar;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& thisEval, const Func& func,
-                                                          const XprType& xpr) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar run(const Evaluator& thisEval, const Func& func,
+                                                                    const XprType& xpr) {
     if (xpr.innerStride() == 1 && (xpr.outerSize() == 1 || xpr.outerStride() == xpr.innerSize())) {
       using PlainVector = Matrix<Scalar, Dynamic, 1>;
       using MapType = Map<const PlainVector, Evaluator::Alignment>;
@@ -747,10 +769,8 @@ struct redux_dispatch<Func, Evaluator, XprType, true> {
 // Tag dispatch avoids instantiating redux for statically empty inputs or converting an unused identity in C++14.
 // TODO(C++17): replace tag dispatch with if constexpr.
 template <typename Derived, typename Func, typename Identity>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE typename Derived::Scalar redux_with_identity_impl(const DenseBase<Derived>&,
-                                                                                        const Func&,
-                                                                                        Identity&& identity,
-                                                                                        true_type) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr typename Derived::Scalar redux_with_identity_impl(
+    const DenseBase<Derived>&, const Func&, Identity&& identity, true_type) {
   return typename Derived::Scalar(std::forward<Identity>(identity));
 }
 
@@ -758,26 +778,22 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE typename Derived::Scalar redux_with_identi
 // which keeps Clang header modules from merging template redeclarations across textual inclusions.
 template <typename Derived, typename Func, typename Identity,
           std::enable_if_t<(Derived::SizeAtCompileTime < 0), int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE typename Derived::Scalar redux_with_identity_impl(const DenseBase<Derived>& xpr,
-                                                                                        const Func& func,
-                                                                                        Identity&& identity,
-                                                                                        false_type) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr typename Derived::Scalar redux_with_identity_impl(
+    const DenseBase<Derived>& xpr, const Func& func, Identity&& identity, false_type) {
   if (xpr.size() == 0) return typename Derived::Scalar(std::forward<Identity>(identity));
   return xpr.derived().redux(func);
 }
 
 template <typename Derived, typename Func, typename Identity,
           std::enable_if_t<(Derived::SizeAtCompileTime >= 0), int> = 0>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE typename Derived::Scalar redux_with_identity_impl(const DenseBase<Derived>& xpr,
-                                                                                        const Func& func, Identity&&,
-                                                                                        false_type) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr typename Derived::Scalar redux_with_identity_impl(
+    const DenseBase<Derived>& xpr, const Func& func, Identity&&, false_type) {
   return xpr.derived().redux(func);
 }
 
 template <typename Derived, typename Func, typename Identity>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE typename Derived::Scalar redux_with_identity(const DenseBase<Derived>& xpr,
-                                                                                   const Func& func,
-                                                                                   Identity&& identity) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr typename Derived::Scalar redux_with_identity(
+    const DenseBase<Derived>& xpr, const Func& func, Identity&& identity) {
   return redux_with_identity_impl(xpr, func, std::forward<Identity>(identity),
                                   bool_constant<Derived::MaxSizeAtCompileTime == 0>());
 }
@@ -802,7 +818,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE typename Derived::Scalar redux_with_identi
  */
 template <typename Derived>
 template <typename Func>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar DenseBase<Derived>::redux(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar DenseBase<Derived>::redux(
     const Func& func) const {
   EIGEN_INTERNAL_ASSERT_NONEMPTY(*this);
 
@@ -825,7 +841,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar
  */
 template <typename Derived>
 template <int NaNPropagation>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar DenseBase<Derived>::minCoeff() const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar
+DenseBase<Derived>::minCoeff() const {
   return derived().redux(Eigen::internal::scalar_min_op<Scalar, Scalar, NaNPropagation>());
 }
 
@@ -838,7 +855,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar
  */
 template <typename Derived>
 template <int NaNPropagation>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar DenseBase<Derived>::maxCoeff() const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar
+DenseBase<Derived>::maxCoeff() const {
   return derived().redux(Eigen::internal::scalar_max_op<Scalar, Scalar, NaNPropagation>());
 }
 
@@ -849,7 +867,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar
  * \sa trace(), prod(), mean()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar DenseBase<Derived>::sum() const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar DenseBase<Derived>::sum()
+    const {
   return internal::redux_with_identity(*this, internal::scalar_sum_op<Scalar, Scalar>(), 0);
 }
 
@@ -858,7 +877,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar
  * \sa trace(), prod(), sum()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar DenseBase<Derived>::mean() const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar DenseBase<Derived>::mean()
+    const {
 #ifdef __INTEL_COMPILER
 #pragma warning push
 #pragma warning(disable : 2259)
@@ -877,7 +897,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar
  * \sa sum(), mean(), trace()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar DenseBase<Derived>::prod() const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar DenseBase<Derived>::prod()
+    const {
   return internal::redux_with_identity(*this, internal::scalar_product_op<Scalar>(), 1);
 }
 
@@ -888,7 +909,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar
  * \sa diagonal(), sum()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename internal::traits<Derived>::Scalar MatrixBase<Derived>::trace() const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr typename internal::traits<Derived>::Scalar MatrixBase<Derived>::trace()
+    const {
   return derived().diagonal().sum();
 }
 

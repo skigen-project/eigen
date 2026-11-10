@@ -20,7 +20,7 @@ namespace internal {
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
 template <typename BVH, typename Intersector>
-bool intersect_helper(const BVH &tree, Intersector &intersector, typename BVH::Index root) {
+constexpr bool intersect_helper(const BVH &tree, Intersector &intersector, typename BVH::Index root) {
   using Index = typename BVH::Index;
   using VolIter = typename BVH::VolumeIterator;
   using ObjIter = typename BVH::ObjectIterator;
@@ -46,9 +46,9 @@ bool intersect_helper(const BVH &tree, Intersector &intersector, typename BVH::I
 
 template <typename Volume1, typename Object1, typename Object2, typename Intersector>
 struct intersector_helper1 {
-  intersector_helper1(const Object2 &inStored, Intersector &in) : stored(inStored), intersector(in) {}
-  bool intersectVolume(const Volume1 &vol) { return intersector.intersectVolumeObject(vol, stored); }
-  bool intersectObject(const Object1 &obj) { return intersector.intersectObjectObject(obj, stored); }
+  constexpr intersector_helper1(const Object2 &inStored, Intersector &in) : stored(inStored), intersector(in) {}
+  constexpr bool intersectVolume(const Volume1 &vol) { return intersector.intersectVolumeObject(vol, stored); }
+  constexpr bool intersectObject(const Object1 &obj) { return intersector.intersectObjectObject(obj, stored); }
   Object2 stored;
   Intersector &intersector;
 
@@ -58,9 +58,9 @@ struct intersector_helper1 {
 
 template <typename Volume2, typename Object2, typename Object1, typename Intersector>
 struct intersector_helper2 {
-  intersector_helper2(const Object1 &inStored, Intersector &in) : stored(inStored), intersector(in) {}
-  bool intersectVolume(const Volume2 &vol) { return intersector.intersectObjectVolume(stored, vol); }
-  bool intersectObject(const Object2 &obj) { return intersector.intersectObjectObject(stored, obj); }
+  constexpr intersector_helper2(const Object1 &inStored, Intersector &in) : stored(inStored), intersector(in) {}
+  constexpr bool intersectVolume(const Volume2 &vol) { return intersector.intersectObjectVolume(stored, vol); }
+  constexpr bool intersectObject(const Object2 &obj) { return intersector.intersectObjectObject(stored, obj); }
   Object1 stored;
   Intersector &intersector;
 
@@ -77,7 +77,7 @@ struct intersector_helper2 {
   \endcode
   */
 template <typename BVH, typename Intersector>
-void BVIntersect(const BVH &tree, Intersector &intersector) {
+constexpr void BVIntersect(const BVH &tree, Intersector &intersector) {
   internal::intersect_helper(tree, intersector, tree.getRootIndex());
 }
 
@@ -90,8 +90,8 @@ void BVIntersect(const BVH &tree, Intersector &intersector) {
   const BVH2::Object &o2) //returns true if the search should terminate immediately \endcode
   */
 template <typename BVH1, typename BVH2, typename Intersector>
-void BVIntersect(const BVH1 &tree1, const BVH2 &tree2,
-                 Intersector &intersector)  // TODO: tandem descent when it makes sense
+constexpr void BVIntersect(const BVH1 &tree1, const BVH2 &tree2,
+                           Intersector &intersector)  // TODO: tandem descent when it makes sense
 {
   using Index1 = typename BVH1::Index;
   using Index2 = typename BVH2::Index;

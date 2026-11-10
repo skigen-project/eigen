@@ -43,8 +43,8 @@ namespace Eigen {
  * \sa class AngleAxis
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC inline Matrix<typename MatrixBase<Derived>::Scalar, 3, 1> MatrixBase<Derived>::canonicalEulerAngles(
-    Index a0, Index a1, Index a2) const {
+EIGEN_DEVICE_FUNC constexpr Matrix<typename MatrixBase<Derived>::Scalar, 3, 1>
+MatrixBase<Derived>::canonicalEulerAngles(Index a0, Index a1, Index a2) const {
   /* Implemented from Graphics Gems IV */
   EIGEN_STATIC_ASSERT_MATRIX_SPECIFIC_SIZE(Derived, 3, 3)
 
@@ -95,7 +95,7 @@ EIGEN_DEVICE_FUNC inline Matrix<typename MatrixBase<Derived>::Scalar, 3, 1> Matr
     // Recover sin(res[0]) and cos(res[0]) from the atan2 arguments directly,
     // avoiding a redundant sin+cos evaluation. s2 = hypot(coeff(j,i), coeff(k,i))
     // is the norm of the atan2 arguments (with sign adjustment for !odd).
-    Scalar s1, c1;
+    Scalar s1{}, c1{};
     if (s2 > NumTraits<Scalar>::epsilon()) {
       Scalar inv_s2 = Scalar(1) / s2;
       if (odd) {
@@ -133,7 +133,7 @@ EIGEN_DEVICE_FUNC inline Matrix<typename MatrixBase<Derived>::Scalar, 3, 1> Matr
     // range [-pi/2, pi/2]
     res[1] = numext::atan2(-coeff(i, k), c2);
 
-    Scalar s1, c1;
+    Scalar s1{}, c1{};
     if (n1 > NumTraits<Scalar>::epsilon()) {
       Scalar inv_n1 = Scalar(1) / n1;
       s1 = coeff(j, k) * inv_n1;
@@ -166,7 +166,7 @@ EIGEN_DEVICE_FUNC inline Matrix<typename MatrixBase<Derived>::Scalar, 3, 1> Matr
  * \sa class AngleAxis
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC inline Matrix<typename MatrixBase<Derived>::Scalar, 3, 1> MatrixBase<Derived>::eulerAngles(
+EIGEN_DEVICE_FUNC constexpr Matrix<typename MatrixBase<Derived>::Scalar, 3, 1> MatrixBase<Derived>::eulerAngles(
     Index a0, Index a1, Index a2) const {
   /* Implemented from Graphics Gems IV */
   EIGEN_STATIC_ASSERT_MATRIX_SPECIFIC_SIZE(Derived, 3, 3)

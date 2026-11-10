@@ -28,7 +28,7 @@ namespace Eigen {
  *   \f$ |x| \le 1 \f$
  */
 template <typename Polynomials, typename T>
-inline T poly_eval_horner(const Polynomials& poly, const T& x) {
+constexpr T poly_eval_horner(const Polynomials& poly, const T& x) {
   T val = poly[poly.size() - 1];
   for (DenseIndex i = poly.size() - 2; i >= 0; --i) {
     val = val * x + poly[i];
@@ -45,7 +45,7 @@ inline T poly_eval_horner(const Polynomials& poly, const T& x) {
  * \param[in] x : the value to evaluate the polynomial at.
  */
 template <typename Polynomials, typename T>
-inline T poly_eval(const Polynomials& poly, const T& x) {
+constexpr T poly_eval(const Polynomials& poly, const T& x) {
   using Real = typename NumTraits<T>::Real;
 
   if (numext::abs2(x) <= Real(1)) {
@@ -72,8 +72,7 @@ inline T poly_eval(const Polynomials& poly, const T& x) {
  *   the leading coefficient of the input polynomial poly must be nonzero
  */
 template <typename Polynomial>
-inline typename NumTraits<typename Polynomial::Scalar>::Real cauchy_max_bound(const Polynomial& poly) {
-  using std::abs;
+constexpr typename NumTraits<typename Polynomial::Scalar>::Real cauchy_max_bound(const Polynomial& poly) {
   using Scalar = typename Polynomial::Scalar;
   using Real = typename NumTraits<Scalar>::Real;
 
@@ -82,7 +81,7 @@ inline typename NumTraits<typename Polynomial::Scalar>::Real cauchy_max_bound(co
   Real cb(0);
 
   for (DenseIndex i = 0; i < poly.size() - 1; ++i) {
-    cb += abs(poly[i] * inv_leading_coeff);
+    cb += numext::abs(poly[i] * inv_leading_coeff);
   }
   return cb + Real(1);
 }
@@ -94,8 +93,7 @@ inline typename NumTraits<typename Polynomial::Scalar>::Real cauchy_max_bound(co
  *  e.g. \f$ 1 + 3x^2 \f$ is stored as a vector \f$ [ 1, 0, 3 ] \f$.
  */
 template <typename Polynomial>
-inline typename NumTraits<typename Polynomial::Scalar>::Real cauchy_min_bound(const Polynomial& poly) {
-  using std::abs;
+constexpr typename NumTraits<typename Polynomial::Scalar>::Real cauchy_min_bound(const Polynomial& poly) {
   using Scalar = typename Polynomial::Scalar;
   using Real = typename NumTraits<Scalar>::Real;
 
@@ -110,7 +108,7 @@ inline typename NumTraits<typename Polynomial::Scalar>::Real cauchy_min_bound(co
   const Scalar inv_min_coeff = Scalar(1) / poly[i];
   Real cb(1);
   for (DenseIndex j = i + 1; j < poly.size(); ++j) {
-    cb += abs(poly[j] * inv_min_coeff);
+    cb += numext::abs(poly[j] * inv_min_coeff);
   }
   return Real(1) / cb;
 }
@@ -126,7 +124,7 @@ inline typename NumTraits<typename Polynomial::Scalar>::Real cauchy_min_bound(co
  *  e.g. \f$ 3 + x^2 \f$ is stored as a vector \f$ [ 3, 0, 1 ] \f$.
  */
 template <typename RootVector, typename Polynomial>
-void roots_to_monicPolynomial(const RootVector& rv, Polynomial& poly) {
+constexpr void roots_to_monicPolynomial(const RootVector& rv, Polynomial& poly) {
   using Scalar = typename Polynomial::Scalar;
 
   poly.setZero(rv.size() + 1);

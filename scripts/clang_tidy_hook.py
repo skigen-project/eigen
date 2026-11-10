@@ -24,8 +24,8 @@ LLVM's ``clang-tidy-diff.py`` cannot replace this routing: it invokes changed
 headers directly, which trips Eigen's internal-header guard, and a PostToolUse
 payload is not a unified diff.
 
-No compilation database is required: ``-std=c++14 -I<repo>`` parses any file
-in the C++14 trees, with ``test/`` added for the test sources and
+No compilation database is required: ``-std=c++17 -I<repo>`` parses any file
+in the checked trees, with ``test/`` added for the test sources and
 ``contrib/`` for the contrib ones, which keeps the hook usable in a
 fresh checkout with no build directory.
 
@@ -156,7 +156,7 @@ def compile_args(rel_path, root=REPO_ROOT):
     with ``contrib/`` on the path.  These are the directories
     ``contrib/test/CMakeLists.txt`` adds for them.
     """
-    args = ["-std=c++14", "-I" + root]
+    args = ["-std=c++17", "-I" + root]
     if rel_path.startswith(("test/", "contrib/test/")):
         args += ["-I" + os.path.join(root, "test")]
     if rel_path.startswith("contrib/test/"):

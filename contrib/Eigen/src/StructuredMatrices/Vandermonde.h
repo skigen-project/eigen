@@ -76,7 +76,9 @@ struct evaluator<Vandermonde<Scalar_, Rows_, Cols_>> : evaluator_base<Vandermond
 
   EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE explicit evaluator(const XprType& xpr) : m_xpr(xpr) {}
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(Index row, Index col) const { return m_xpr.coeff(row, col); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar coeff(Index row, Index col) const {
+    return m_xpr.coeff(row, col);
+  }
 
  private:
   const XprType& m_xpr;
@@ -94,8 +96,10 @@ struct blas_traits<Vandermonde<Scalar_, Rows_, Cols_>> {
   static constexpr bool NeedToConjugate = false;
   static constexpr bool HasUsableDirectAccess = false;
   static constexpr bool HasScalarFactor = false;
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE ExtractType extract(const XprType& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE Scalar extractScalarFactor(const XprType&) { return Scalar(1); }
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr ExtractType extract(const XprType& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr Scalar extractScalarFactor(const XprType&) {
+    return Scalar(1);
+  }
 };
 
 template <typename Scalar_>
@@ -189,7 +193,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
 
   /** Builds an \c m x \a cols Vandermonde matrix from the \c m nodes \a nodes. */
   template <typename Derived>
-  Vandermonde(const MatrixBase<Derived>& nodes, Index cols) : m_x(nodes), m_cols(cols) {
+  constexpr Vandermonde(const MatrixBase<Derived>& nodes, Index cols) : m_x(nodes), m_cols(cols) {
     EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
     EIGEN_INTERNAL_ASSERT_NONEMPTY_MSG(*this, "Vandermonde must be non-empty");
     eigen_assert((Cols_ == Dynamic || Cols_ == cols) && "cols does not match the compile-time column count");
@@ -197,21 +201,21 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
 
   /** Builds the square Vandermonde matrix of the nodes \a nodes. */
   template <typename Derived>
-  explicit Vandermonde(const MatrixBase<Derived>& nodes) : Vandermonde(nodes, nodes.size()) {
+  explicit constexpr Vandermonde(const MatrixBase<Derived>& nodes) : Vandermonde(nodes, nodes.size()) {
     EIGEN_STATIC_ASSERT(Rows_ == Dynamic || Cols_ == Dynamic || Rows_ == Cols_, YOU_MIXED_MATRICES_OF_DIFFERENT_SIZES)
     EIGEN_STATIC_ASSERT(
         Cols_ == Dynamic || Derived::SizeAtCompileTime == Dynamic || Cols_ == Derived::SizeAtCompileTime,
         YOU_MIXED_MATRICES_OF_DIFFERENT_SIZES)
   }
 
-  EIGEN_DEVICE_FUNC Index rows() const { return m_x.size(); }
-  EIGEN_DEVICE_FUNC Index cols() const { return m_cols; }
+  EIGEN_DEVICE_FUNC constexpr Index rows() const { return m_x.size(); }
+  EIGEN_DEVICE_FUNC constexpr Index cols() const { return m_cols; }
 
   /** \returns the node vector. */
-  const NodeVector& nodes() const { return m_x; }
+  constexpr const NodeVector& nodes() const { return m_x; }
 
   /** \returns the coefficient at row \a row and column \a col, \f$ x_i^j \f$. */
-  EIGEN_DEVICE_FUNC Scalar coeff(Index row, Index col) const {
+  EIGEN_DEVICE_FUNC constexpr Scalar coeff(Index row, Index col) const {
     Scalar p(1);
     const Scalar xi = m_x.coeff(row);
     for (Index t = 0; t < col; ++t) p *= xi;
@@ -229,7 +233,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
    * nodes, giving an exactly singular matrix) and non-finite factors propagate
    * exactly; a node difference that overflows makes the determinant infinite, or
    * NaN when a zero factor is also present. */
-  Scalar determinant() const {
+  constexpr Scalar determinant() const {
     EIGEN_INTERNAL_ASSERT_SQUARE_MSG(*this, "Vandermonde::determinant requires a square matrix");
     const Index n = rows();
     Scalar det(1);
@@ -247,14 +251,14 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
    * elementwise product of column \c j-1 with the nodes, so only cumulative
    * columnwise products are involved. Invoked through \c dense = vandermonde; */
   template <typename Dest>
-  void evalTo(Dest& dst) const {
+  constexpr void evalTo(Dest& dst) const {
     dst.col(0).setOnes();
     for (Index j = 1; j < m_cols; ++j) dst.col(j) = dst.col(j - 1).cwiseProduct(m_x);
   }
 
   /** \internal Computes \c dst += (*this), see evalTo(). */
   template <typename Dest>
-  void addTo(Dest& dst) const {
+  constexpr void addTo(Dest& dst) const {
     NodeVector p = NodeVector::Ones(rows());
     dst.col(0) += p;
     for (Index j = 1; j < m_cols; ++j) {
@@ -265,7 +269,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
 
   /** \internal Computes \c dst -= (*this), see evalTo(). */
   template <typename Dest>
-  void subTo(Dest& dst) const {
+  constexpr void subTo(Dest& dst) const {
     NodeVector p = NodeVector::Ones(rows());
     dst.col(0) -= p;
     for (Index j = 1; j < m_cols; ++j) {
@@ -281,7 +285,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
    * temporary resolves aliasing between the destination and \a a, and
    * \c .noalias() skips it. */
   template <typename Rhs>
-  Product<Vandermonde, Rhs> operator*(const MatrixBase<Rhs>& a) const {
+  constexpr Product<Vandermonde, Rhs> operator*(const MatrixBase<Rhs>& a) const {
     return Product<Vandermonde, Rhs>(*this, a.derived());
   }
 
@@ -293,7 +297,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
    * in plain floating-point arithmetic, so an intermediate can overflow even
    * when the polynomial value is representable. */
   template <typename Dest, typename Rhs, typename ProductScalar>
-  void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
+  constexpr void addProduct(Dest& dst, const Rhs& rhs, const ProductScalar& alpha) const {
     EIGEN_INTERNAL_ASSERT_PRODUCT_SHAPE_MSG(*this, rhs, "invalid product: dimensions do not match");
     // A unit alpha must not multiply: even the identity complex scalar (1,0)
     // pollutes an (Inf,0) value with NaN through the 0*Inf cross term.
@@ -313,7 +317,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
 
  private:
   template <typename ProductScalar, typename Rhs>
-  void horner(Array<ProductScalar, Rows_, 1>& acc, const Rhs& rhs, Index k, std::false_type) const {
+  constexpr void horner(Array<ProductScalar, Rows_, 1>& acc, const Rhs& rhs, Index k, std::false_type) const {
     const Index n = m_cols;
     acc.setConstant(ProductScalar(rhs.coeff(n - 1, k)));
     for (Index j = n - 2; j >= 0; --j)
@@ -324,7 +328,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
   // real-times-complex arithmetic of a dense product, which the
   // complex-times-complex form would break through 0 * Inf cross terms.
   template <typename ProductScalar, typename Rhs>
-  void horner(Array<ProductScalar, Rows_, 1>& acc, const Rhs& rhs, Index k, std::true_type) const {
+  constexpr void horner(Array<ProductScalar, Rows_, 1>& acc, const Rhs& rhs, Index k, std::true_type) const {
     using NodeArray = Array<Scalar, Rows_, 1>;
     const Index n = m_cols;
     const ProductScalar top(rhs.coeff(n - 1, k));
@@ -346,7 +350,7 @@ class Vandermonde : public EigenBase<Vandermonde<Scalar_, Rows_, Cols_>> {
  * \returns an \c m x \a cols \ref Vandermonde operator with node vector \a nodes;
  * the compile-time row count is deduced from \a nodes. */
 template <typename Derived>
-Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Dynamic> makeVandermonde(
+constexpr Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Dynamic> makeVandermonde(
     const MatrixBase<Derived>& nodes, Index cols) {
   return Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Dynamic>(nodes, cols);
 }
@@ -354,7 +358,7 @@ Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Dynamic> makeV
 /** \ingroup StructuredMatrices_Module
  * \returns the square \ref Vandermonde operator of the nodes \a nodes. */
 template <typename Derived>
-Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Derived::SizeAtCompileTime> makeVandermonde(
+constexpr Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Derived::SizeAtCompileTime> makeVandermonde(
     const MatrixBase<Derived>& nodes) {
   return Vandermonde<typename Derived::Scalar, Derived::SizeAtCompileTime, Derived::SizeAtCompileTime>(nodes);
 }
@@ -409,11 +413,12 @@ class BjorckPereyra : public SolverBase<BjorckPereyra<Scalar_>> {
   using NodeVector = Matrix<Scalar, Dynamic, 1>;
 
   /** Default constructor; call \ref compute before \ref solve. */
-  BjorckPereyra() : m_isInitialized(false), m_info(InvalidInput) {}
+  constexpr BjorckPereyra() : m_isInitialized(false), m_info(InvalidInput) {}
 
   /** Constructs the solver for the square Vandermonde matrix \a V. */
   template <int Rows_, int Cols_>
-  explicit BjorckPereyra(const Vandermonde<Scalar, Rows_, Cols_>& V) : m_isInitialized(false), m_info(InvalidInput) {
+  explicit constexpr BjorckPereyra(const Vandermonde<Scalar, Rows_, Cols_>& V)
+      : m_isInitialized(false), m_info(InvalidInput) {
     compute(V);
   }
 
@@ -421,7 +426,7 @@ class BjorckPereyra : public SolverBase<BjorckPereyra<Scalar_>> {
    * are finite and distinct, and computes a Leja order for genuinely complex
    * nodes. */
   template <int Rows_, int Cols_>
-  BjorckPereyra& compute(const Vandermonde<Scalar, Rows_, Cols_>& V) {
+  constexpr BjorckPereyra& compute(const Vandermonde<Scalar, Rows_, Cols_>& V) {
     EIGEN_INTERNAL_CHECK_SHAPE(V.rows() == V.cols() && "BjorckPereyra requires a square Vandermonde matrix",
                                YOU_MIXED_MATRICES_OF_DIFFERENT_SIZES,
                                internal::square_dimensions<Vandermonde<Scalar, Rows_, Cols_>>);
@@ -442,13 +447,13 @@ class BjorckPereyra : public SolverBase<BjorckPereyra<Scalar_>> {
     return *this;
   }
 
-  Index rows() const noexcept { return m_x.size(); }
-  Index cols() const noexcept { return m_x.size(); }
+  constexpr Index rows() const noexcept { return m_x.size(); }
+  constexpr Index cols() const noexcept { return m_x.size(); }
 
   /** \returns \c Success, \c NumericalIssue when the nodes contain an exact
    * duplicate (the matrix is singular), or \c InvalidInput for a non-finite
    * node. */
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "BjorckPereyra is not initialized.");
     return m_info;
   }
@@ -459,14 +464,14 @@ class BjorckPereyra : public SolverBase<BjorckPereyra<Scalar_>> {
    * systems are solved through \c transpose().solve(b) and \c adjoint().solve(b).
    * \pre \ref compute has been called. */
   template <typename Rhs>
-  inline const Solve<BjorckPereyra, Rhs> solve(const MatrixBase<Rhs>& f) const;
+  constexpr const Solve<BjorckPereyra, Rhs> solve(const MatrixBase<Rhs>& f) const;
 #endif
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   /** \internal Primal solve V*a = rhs: divided differences (Newton coefficients),
    * then the Newton-to-monomial basis change. */
   template <typename RhsType, typename DstType>
-  void _solve_impl(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl(const RhsType& rhs, DstType& dst) const {
     using RhsScalar = typename RhsType::Scalar;
     using WorkScalar = typename DstType::Scalar;
     using ProductOp EIGEN_UNUSED = internal::scalar_product_op<Scalar, RhsScalar>;
@@ -493,7 +498,7 @@ class BjorckPereyra : public SolverBase<BjorckPereyra<Scalar_>> {
    * elementary steps, applied in reverse order; conjugated on the way in and out
    * for the adjoint. */
   template <bool Conjugate, typename RhsType, typename DstType>
-  void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
+  constexpr void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const {
     using RhsScalar = typename RhsType::Scalar;
     using WorkScalar = typename DstType::Scalar;
     using ProductOp EIGEN_UNUSED = internal::scalar_product_op<Scalar, RhsScalar>;
@@ -522,11 +527,11 @@ class BjorckPereyra : public SolverBase<BjorckPereyra<Scalar_>> {
 #endif
 
  private:
-  static RealScalar lejaLogAbs(const Scalar& z) { return numext::log(numext::abs(z)); }
+  static constexpr RealScalar lejaLogAbs(const Scalar& z) { return numext::log(numext::abs(z)); }
 
-  void initializeNodeOrder(const NodeVector&, std::false_type) {}
+  constexpr void initializeNodeOrder(const NodeVector&, std::false_type) {}
 
-  void initializeNodeOrder(const NodeVector& nodes, std::true_type) {
+  EIGEN_CONSTEXPR20 void initializeNodeOrder(const NodeVector& nodes, std::true_type) {
     using Real = typename NumTraits<Scalar>::Real;
     const Index n = nodes.size();
     bool genuinelyComplex = false;
@@ -615,7 +620,7 @@ struct scaled_vandermonde_product_impl
   using Scalar = typename Product<ScaledOp, Rhs>::Scalar;
 
   template <typename Dest>
-  static void scaleAndAddTo(Dest& dst, const ScaledOp& lhs, const Rhs& rhs, const Scalar& alpha) {
+  static constexpr void scaleAndAddTo(Dest& dst, const ScaledOp& lhs, const Rhs& rhs, const Scalar& alpha) {
     using RhsNested = typename nested_eval<Rhs, Rows_>::type;
     RhsNested actualRhs(rhs);
     lhs.rhs().addProduct(dst, actualRhs, Scalar(alpha * lhs.lhs().functor().m_other));

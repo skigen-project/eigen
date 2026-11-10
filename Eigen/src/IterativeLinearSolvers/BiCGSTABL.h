@@ -48,8 +48,8 @@ namespace internal {
    false in the case of numerical issue, for example a break down of BiCGSTABL.
 */
 template <typename MatrixType, typename Rhs, typename Dest, typename Preconditioner>
-bool bicgstabl(const MatrixType &mat, const Rhs &rhs, Dest &x, const Preconditioner &precond, Index &iters,
-               typename Dest::RealScalar &tol_error, Index L) {
+constexpr bool bicgstabl(const MatrixType& mat, const Rhs& rhs, Dest& x, const Preconditioner& precond, Index& iters,
+                         typename Dest::RealScalar& tol_error, Index L) {
   using RealScalar = typename Dest::RealScalar;
   using Scalar = typename Dest::Scalar;
   const Index N = rhs.size();
@@ -73,7 +73,7 @@ bool bicgstabl(const MatrixType &mat, const Rhs &rhs, Dest &x, const Preconditio
 
   x.setZero();  // This will contain the updates to the solution.
   // rShadow is arbitrary, but must never be orthogonal to any residual.
-  VectorType rShadow = VectorType::Random(N);
+  VectorType rShadow = internal::shadow_space_random<VectorType>(N, 1);
 
   VectorType x_prime = x;
 
@@ -297,7 +297,7 @@ class BiCGSTABL : public IterativeSolverBase<BiCGSTABL<MatrixType_, Precondition
   using Preconditioner = Preconditioner_;
 
   /** Default constructor. */
-  BiCGSTABL() = default;
+  constexpr BiCGSTABL() = default;
 
   /**
   Initialize the solver with matrix \a A for further \c Ax=b solving.
@@ -311,7 +311,7 @@ class BiCGSTABL : public IterativeSolverBase<BiCGSTABL<MatrixType_, Precondition
   matrix A, or modify a copy of A.
   */
   template <typename MatrixDerived>
-  explicit BiCGSTABL(const EigenBase<MatrixDerived> &A) : Base(A.derived()) {}
+  constexpr explicit BiCGSTABL(const EigenBase<MatrixDerived>& A) : Base(A.derived()) {}
 
   /** \internal */
   /** Loops over the number of columns of b and does the following:
@@ -319,7 +319,7 @@ class BiCGSTABL : public IterativeSolverBase<BiCGSTABL<MatrixType_, Precondition
     2. Calls the function that has the core solver routine
   */
   template <typename Rhs, typename Dest>
-  void _solve_vector_with_guess_impl(const Rhs &b, Dest &x) const {
+  constexpr void _solve_vector_with_guess_impl(const Rhs& b, Dest& x) const {
     const Index max_iterations = Base::maxIterations();
     m_iterations = max_iterations;
 
@@ -342,7 +342,7 @@ class BiCGSTABL : public IterativeSolverBase<BiCGSTABL<MatrixType_, Precondition
 
   /** Sets the parameter L, indicating how many minimize residual steps are
    * used. Default: 2 */
-  void setL(Index L) {
+  constexpr void setL(Index L) {
     eigen_assert(L >= 1 && "L needs to be positive");
     m_L = L;
   }

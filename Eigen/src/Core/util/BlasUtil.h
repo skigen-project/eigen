@@ -599,12 +599,12 @@ struct blas_traits {
   };
   using DirectLinearAccessType =
       std::conditional_t<bool(HasUsableDirectAccess), ExtractType, typename ExtractType_::PlainObject>;
-  EIGEN_DEVICE_FUNC static inline EIGEN_DEVICE_FUNC ExtractType extract(const XprType& x) { return x; }
-  EIGEN_DEVICE_FUNC static inline EIGEN_DEVICE_FUNC const Scalar extractScalarFactor(const XprType&) {
+  EIGEN_DEVICE_FUNC static constexpr EIGEN_DEVICE_FUNC ExtractType extract(const XprType& x) { return x; }
+  EIGEN_DEVICE_FUNC static constexpr EIGEN_DEVICE_FUNC const Scalar extractScalarFactor(const XprType&) {
     return Scalar(1);
   }
   // Inspect explicit factors without combining them across noncommuting coefficients.
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType&) { return false; }
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType&) { return false; }
 };
 
 // pop conjugate
@@ -615,11 +615,13 @@ struct blas_traits<CwiseUnaryOp<scalar_conjugate_op<Scalar>, NestedXpr> > : blas
   using ExtractType = typename Base::ExtractType;
 
   enum { IsComplex = NumTraits<Scalar>::IsComplex, NeedToConjugate = Base::NeedToConjugate ? 0 : IsComplex };
-  EIGEN_DEVICE_FUNC static inline ExtractType extract(const XprType& x) { return Base::extract(x.nestedExpression()); }
-  EIGEN_DEVICE_FUNC static inline Scalar extractScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr ExtractType extract(const XprType& x) {
+    return Base::extract(x.nestedExpression());
+  }
+  EIGEN_DEVICE_FUNC static constexpr Scalar extractScalarFactor(const XprType& x) {
     return numext::conj(Base::extractScalarFactor(x.nestedExpression()));
   }
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType& x) {
     return Base::hasZeroScalarFactor(x.nestedExpression());
   }
 };
@@ -634,13 +636,13 @@ struct blas_traits<
   using XprType =
       CwiseBinaryOp<scalar_product_op<Scalar>, const CwiseNullaryOp<scalar_constant_op<Scalar>, Plain>, NestedXpr>;
   using ExtractType = typename Base::ExtractType;
-  EIGEN_DEVICE_FUNC static inline EIGEN_DEVICE_FUNC ExtractType extract(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr EIGEN_DEVICE_FUNC ExtractType extract(const XprType& x) {
     return Base::extract(x.rhs());
   }
-  EIGEN_DEVICE_FUNC static inline EIGEN_DEVICE_FUNC Scalar extractScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr EIGEN_DEVICE_FUNC Scalar extractScalarFactor(const XprType& x) {
     return x.lhs().functor().m_other * Base::extractScalarFactor(x.rhs());
   }
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType& x) {
     return numext::is_exactly_zero(x.lhs().functor().m_other) || Base::hasZeroScalarFactor(x.rhs());
   }
 };
@@ -653,11 +655,11 @@ struct blas_traits<
   using XprType =
       CwiseBinaryOp<scalar_product_op<Scalar>, NestedXpr, const CwiseNullaryOp<scalar_constant_op<Scalar>, Plain>>;
   using ExtractType = typename Base::ExtractType;
-  EIGEN_DEVICE_FUNC static inline ExtractType extract(const XprType& x) { return Base::extract(x.lhs()); }
-  EIGEN_DEVICE_FUNC static inline Scalar extractScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr ExtractType extract(const XprType& x) { return Base::extract(x.lhs()); }
+  EIGEN_DEVICE_FUNC static constexpr Scalar extractScalarFactor(const XprType& x) {
     return Base::extractScalarFactor(x.lhs()) * x.rhs().functor().m_other;
   }
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType& x) {
     return numext::is_exactly_zero(x.rhs().functor().m_other) || Base::hasZeroScalarFactor(x.lhs());
   }
 };
@@ -671,12 +673,12 @@ struct blas_traits<CwiseBinaryOp<scalar_product_op<Scalar>, const CwiseNullaryOp
   using XprType = CwiseBinaryOp<scalar_product_op<Scalar>, const CwiseNullaryOp<scalar_constant_op<Scalar>, Plain1>,
                                 const CwiseNullaryOp<scalar_constant_op<Scalar>, Plain2>>;
   using ExtractType = typename Base::ExtractType;
-  EIGEN_DEVICE_FUNC static inline ExtractType extract(const XprType& x) { return Base::extract(x.rhs()); }
-  EIGEN_DEVICE_FUNC static inline Scalar extractScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr ExtractType extract(const XprType& x) { return Base::extract(x.rhs()); }
+  EIGEN_DEVICE_FUNC static constexpr Scalar extractScalarFactor(const XprType& x) {
     return x.lhs().functor().m_other * Base::extractScalarFactor(x.rhs());
   }
   // Either constant can represent coefficients; preserve zero/NaN multiplication.
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType&) { return false; }
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType&) { return false; }
 };
 
 // pop opposite
@@ -686,11 +688,13 @@ struct blas_traits<CwiseUnaryOp<scalar_opposite_op<Scalar>, NestedXpr> > : blas_
   using Base = blas_traits<NestedXpr>;
   using XprType = CwiseUnaryOp<scalar_opposite_op<Scalar>, NestedXpr>;
   using ExtractType = typename Base::ExtractType;
-  EIGEN_DEVICE_FUNC static inline ExtractType extract(const XprType& x) { return Base::extract(x.nestedExpression()); }
-  EIGEN_DEVICE_FUNC static inline Scalar extractScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr ExtractType extract(const XprType& x) {
+    return Base::extract(x.nestedExpression());
+  }
+  EIGEN_DEVICE_FUNC static constexpr Scalar extractScalarFactor(const XprType& x) {
     return -Base::extractScalarFactor(x.nestedExpression());
   }
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType& x) {
     return Base::hasZeroScalarFactor(x.nestedExpression());
   }
 };
@@ -707,13 +711,13 @@ struct blas_traits<Transpose<NestedXpr> > : blas_traits<NestedXpr> {
   using DirectLinearAccessType =
       std::conditional_t<bool(Base::HasUsableDirectAccess), ExtractType, typename ExtractType::PlainObject>;
   enum { IsTransposed = Base::IsTransposed ? 0 : 1 };
-  EIGEN_DEVICE_FUNC static inline ExtractType extract(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr ExtractType extract(const XprType& x) {
     return ExtractType(Base::extract(x.nestedExpression()));
   }
-  EIGEN_DEVICE_FUNC static inline Scalar extractScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr Scalar extractScalarFactor(const XprType& x) {
     return Base::extractScalarFactor(x.nestedExpression());
   }
-  EIGEN_DEVICE_FUNC static bool hasZeroScalarFactor(const XprType& x) {
+  EIGEN_DEVICE_FUNC static constexpr bool hasZeroScalarFactor(const XprType& x) {
     return Base::hasZeroScalarFactor(x.nestedExpression());
   }
 };

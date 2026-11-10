@@ -77,11 +77,11 @@ namespace Eigen {
 namespace internal {
 // Defined in MathFunctions.h, which follows this header.
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_multiply(const std::complex<T>& a,
-                                                                       const std::complex<T>& b);
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> complex_multiply(const std::complex<T>& a,
+                                                                                 const std::complex<T>& b);
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE std::complex<T> complex_divide(const std::complex<T>& a,
-                                                                     const std::complex<T>& b);
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr std::complex<T> complex_divide(const std::complex<T>& a,
+                                                                               const std::complex<T>& b);
 }  // namespace internal
 
 // Specialized std::complex overloads.

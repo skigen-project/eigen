@@ -27,6 +27,13 @@ EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE Derived& DenseBase<Derived>::ope
 template <typename Derived>
 template <bool Enable, typename>
 EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE Derived& DenseBase<Derived>::operator*=(const RealScalar& other) {
+  // Before C++26, constant evaluation cannot write through realView() of std::complex coefficients.
+  if (!internal::constexpr_complex_components && internal::is_constant_evaluated()) {
+    using ConstantExpr = typename internal::plain_constant_type<Derived, RealScalar>::type;
+    internal::call_assignment(derived(), ConstantExpr(rows(), cols(), other),
+                              internal::mul_assign_op<Scalar, RealScalar>());
+    return derived();
+  }
   realView() *= other;
   return derived();
 }
@@ -42,6 +49,13 @@ EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE Derived& DenseBase<Derived>::ope
 template <typename Derived>
 template <bool Enable, typename>
 EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE Derived& DenseBase<Derived>::operator/=(const RealScalar& other) {
+  // Before C++26, constant evaluation cannot write through realView() of std::complex coefficients.
+  if (!internal::constexpr_complex_components && internal::is_constant_evaluated()) {
+    using ConstantExpr = typename internal::plain_constant_type<Derived, RealScalar>::type;
+    internal::call_assignment(derived(), ConstantExpr(rows(), cols(), other),
+                              internal::div_assign_op<Scalar, RealScalar>());
+    return derived();
+  }
   realView() /= other;
   return derived();
 }

@@ -88,26 +88,28 @@ class DPR1EigenSolver {
                 "DPR1EigenSolver supports only float, double, and long double scalar types.");
 
   /** Default constructor; call \ref compute before querying results. */
-  DPR1EigenSolver() = default;
+  EIGEN_CONSTEXPR20 DPR1EigenSolver() = default;
 
   /** Computes the eigendecomposition of \c diag(d) + \c rho*z*z^T.
    * \a options is \c ComputeEigenvectors (the default) or \c EigenvaluesOnly. */
-  DPR1EigenSolver(const VectorType& d, RealScalar rho, const VectorType& z, int options = ComputeEigenvectors) {
+  EIGEN_CONSTEXPR20 DPR1EigenSolver(const VectorType& d, RealScalar rho, const VectorType& z,
+                                    int options = ComputeEigenvectors) {
     compute(d, rho, z, options);
   }
 
   /** Computes the eigendecomposition of \c diag(d) + \c rho*z*z^T. \sa DPR1EigenSolver() */
-  DPR1EigenSolver& compute(const VectorType& d, RealScalar rho, const VectorType& z, int options = ComputeEigenvectors);
+  EIGEN_CONSTEXPR20 DPR1EigenSolver& compute(const VectorType& d, RealScalar rho, const VectorType& z,
+                                             int options = ComputeEigenvectors);
 
   /** \returns the eigenvalues, sorted in increasing order. */
-  const VectorType& eigenvalues() const {
+  EIGEN_CONSTEXPR20 const VectorType& eigenvalues() const {
     eigen_assert(m_isInitialized && "DPR1EigenSolver is not initialized.");
     return m_eivalues;
   }
 
   /** \returns the orthogonal matrix of eigenvectors; column \c k matches
    * \c eigenvalues()[k]. \pre \ref compute was called with \c ComputeEigenvectors. */
-  const MatrixType& eigenvectors() const {
+  EIGEN_CONSTEXPR20 const MatrixType& eigenvectors() const {
     eigen_assert(m_isInitialized && "DPR1EigenSolver is not initialized.");
     eigen_assert(m_vectorsComputed && "eigenvectors were not computed");
     return m_eivec;
@@ -117,7 +119,7 @@ class DPR1EigenSolver {
    * secular root could not be fully resolved, \c InvalidInput if the input was
    * non-finite, \f$ \rho \|z\|^2 \f$ overflows, or a computed eigenvalue is
    * not finite (the eigenvalues are then NaN). */
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "DPR1EigenSolver is not initialized.");
     return m_info;
   }
@@ -132,7 +134,8 @@ class DPR1EigenSolver {
   /** \internal Evaluates the shifted secular function
    * g(tau) = 1 + rho * sum_i zeta_i^2 / (delta_i - tau), with delta_i the pole
    * offsets relative to the chosen shift. */
-  static RealScalar secular(const VectorType& delta, const VectorType& zeta2, RealScalar rho, RealScalar tau) {
+  static EIGEN_CONSTEXPR20 RealScalar secular(const VectorType& delta, const VectorType& zeta2, RealScalar rho,
+                                              RealScalar tau) {
     return RealScalar(1) + rho * (zeta2.array() / (delta.array() - tau)).sum();
   }
 
@@ -144,8 +147,10 @@ class DPR1EigenSolver {
 };
 
 template <typename RealScalar_>
-DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const VectorType& d, RealScalar rho,
-                                                                    const VectorType& z, int options) {
+EIGEN_CONSTEXPR20 DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const VectorType& d,
+                                                                                      RealScalar rho,
+                                                                                      const VectorType& z,
+                                                                                      int options) {
   const Index n = d.size();
   EIGEN_INTERNAL_ASSERT_SAME_SIZE_MSG(d, z, "d and z must have the same size");
   eigen_assert((options & ~EigVecMask) == 0 && (options & EigVecMask) != EigVecMask && "invalid option parameter");
@@ -177,7 +182,9 @@ DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const Vector
   std::vector<Index> pi;
   pi.reserve(static_cast<std::size_t>(n));
   for (Index i = 0; i < n; ++i) pi.push_back(i);
-  std::stable_sort(pi.begin(), pi.end(), [&dW](Index a, Index b) { return dW[a] < dW[b]; });
+  // A stable sort of the identity permutation, as std::sort with an index tie-break: std::stable_sort is not
+  // constexpr before C++26.
+  std::sort(pi.begin(), pi.end(), [&dW](Index a, Index b) { return dW[a] < dW[b] || (dW[a] == dW[b] && a < b); });
   VectorType ds(n), zs(n);
   for (Index i = 0; i < n; ++i) {
     ds[i] = dW[pi[static_cast<std::size_t>(i)]];
@@ -198,13 +205,11 @@ DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const Vector
     m_isInitialized = true;
     return *this;
   }
-  EIGEN_USING_STD(frexp)
-  EIGEN_USING_STD(ldexp)
   RealScalar scaledNorm = numext::maxi(ds.cwiseAbs().maxCoeff(), rhoW);  // in [1/2, 1) once scaled
   int scaleExp = 0;
-  if (scaledNorm > RealScalar(0)) scaledNorm = frexp(scaledNorm, &scaleExp);
+  if (scaledNorm > RealScalar(0)) scaledNorm = numext::frexp(scaledNorm, &scaleExp);
   ds = ds.array().ldexp(-scaleExp).matrix();
-  rhoW = ldexp(rhoW, -scaleExp);
+  rhoW = numext::ldexp(rhoW, -scaleExp);
 
   // Backward-error budget: dropping a coupling of size <= tol perturbs the
   // matrix by O(tol), like LAPACK's xLAED2. Using max(|d|_inf, rho*||z||^2) as
@@ -381,7 +386,8 @@ DPR1EigenSolver<RealScalar_>& DPR1EigenSolver<RealScalar_>::compute(const Vector
   std::vector<Index> order;
   order.reserve(static_cast<std::size_t>(n));
   for (Index i = 0; i < n; ++i) order.push_back(i);
-  std::stable_sort(order.begin(), order.end(), [&lambdaW](Index a, Index b) { return lambdaW[a] < lambdaW[b]; });
+  std::sort(order.begin(), order.end(),
+            [&lambdaW](Index a, Index b) { return lambdaW[a] < lambdaW[b] || (lambdaW[a] == lambdaW[b] && a < b); });
 
   std::vector<Index> subSlot(static_cast<std::size_t>(n), -1);
   for (Index a = 0; a < m; ++a) subSlot[static_cast<std::size_t>(sub[static_cast<std::size_t>(a)])] = a;

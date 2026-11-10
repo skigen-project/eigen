@@ -13,17 +13,18 @@ namespace internal {
 
 // TODO : once qrsolv2 is removed, use ColPivHouseholderQR or PermutationMatrix instead of ipvt
 template <typename Scalar>
-void qrsolv(Matrix<Scalar, Dynamic, Dynamic> &s,
-            // TODO : use a PermutationMatrix once lmpar is no more:
-            const VectorXi &ipvt, const Matrix<Scalar, Dynamic, 1> &diag, const Matrix<Scalar, Dynamic, 1> &qtb,
-            Matrix<Scalar, Dynamic, 1> &x, Matrix<Scalar, Dynamic, 1> &sdiag)
+constexpr void qrsolv(Matrix<Scalar, Dynamic, Dynamic> &s,
+                      // TODO : use a PermutationMatrix once lmpar is no more:
+                      const VectorXi &ipvt, const Matrix<Scalar, Dynamic, 1> &diag,
+                      const Matrix<Scalar, Dynamic, 1> &qtb, Matrix<Scalar, Dynamic, 1> &x,
+                      Matrix<Scalar, Dynamic, 1> &sdiag)
 
 {
   using Index = DenseIndex;
 
   /* Local variables */
-  Index i, j, k, l;
-  Scalar temp;
+  Index i = 0, j = 0, k = 0, l = 0;
+  Scalar temp{};
   Index n = s.cols();
   Matrix<Scalar, Dynamic, 1> wa(n);
   JacobiRotation<Scalar> givens;
@@ -75,7 +76,7 @@ void qrsolv(Matrix<Scalar, Dynamic, Dynamic> &s,
 
   /*     solve the triangular system for z. if the system is */
   /*     singular, then obtain a least squares solution. */
-  Index nsing;
+  Index nsing = 0;
   for (nsing = 0; nsing < n && sdiag[nsing] != 0; nsing++) {
   }
 

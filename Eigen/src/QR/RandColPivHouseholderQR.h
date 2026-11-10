@@ -55,8 +55,9 @@ EIGEN_STRONG_INLINE std::enable_if_t<NumTraits<typename Derived::Scalar>::IsComp
 // scratch when the running estimate has lost too much precision (see
 // http://www.netlib.org/lapack/lawnspdf/lawn176.pdf).
 template <typename RealScalar, typename Scalar, typename RecomputeFn>
-EIGEN_STRONG_INLINE void lawn176_norm_downdate(RealScalar& norm_updated, RealScalar& norm_direct, Scalar pivot_entry,
-                                               RealScalar downdate_threshold, RecomputeFn&& tail_norm_fn) {
+EIGEN_STRONG_INLINE constexpr void lawn176_norm_downdate(RealScalar& norm_updated, RealScalar& norm_direct,
+                                                         Scalar pivot_entry, RealScalar downdate_threshold,
+                                                         RecomputeFn&& tail_norm_fn) {
   if (numext::is_exactly_zero(norm_updated)) return;
   RealScalar t = numext::abs(pivot_entry) / norm_updated;
   t = (RealScalar(1) + t) * (RealScalar(1) - t);
@@ -114,7 +115,8 @@ EIGEN_STRONG_INLINE void lawn176_norm_downdate(RealScalar& norm_updated, RealSca
  * The block size \c b can be configured via setBlockSize(); a value of
  * \c 0 (the default) leaves the algorithm free to pick a size that scales
  * with the input. The seed for the internal RNG can be fixed with
- * setSeed() for reproducible output.
+ * setSeed() for reproducible output. In constant evaluation, compute()
+ * always takes the unblocked column-pivoted path, which uses neither.
  *
  * \note The \c setOversampling() / \c oversampling() accessors are
  * retained as documented no-ops for source compatibility with earlier
@@ -229,7 +231,7 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
     return b;
   }
 
-  void init(Index rows, Index cols) {
+  constexpr void init(Index rows, Index cols) {
     Index diag = numext::mini(rows, cols);
     m_hCoeffs.resize(diag);
     m_colsPermutation.resize(cols);
@@ -239,21 +241,21 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
 
  public:
   /** \brief Default constructor. */
-  RandColPivHouseholderQR() = default;
+  constexpr RandColPivHouseholderQR() = default;
 
   /** \brief Constructor with memory preallocation. */
-  RandColPivHouseholderQR(Index rows, Index cols) : m_qr(rows, cols) { init(rows, cols); }
+  constexpr RandColPivHouseholderQR(Index rows, Index cols) : m_qr(rows, cols) { init(rows, cols); }
 
   /** \brief Constructs and computes a QR factorization from \a matrix. */
   template <typename InputType>
-  explicit RandColPivHouseholderQR(const EigenBase<InputType>& matrix) : m_qr(matrix.rows(), matrix.cols()) {
+  constexpr explicit RandColPivHouseholderQR(const EigenBase<InputType>& matrix) : m_qr(matrix.rows(), matrix.cols()) {
     init(matrix.rows(), matrix.cols());
     compute(matrix.derived());
   }
 
   /** \brief Inplace constructor: takes a Ref and decomposes in place. */
   template <typename InputType>
-  explicit RandColPivHouseholderQR(EigenBase<InputType>& matrix) : m_qr(matrix.derived()) {
+  constexpr explicit RandColPivHouseholderQR(EigenBase<InputType>& matrix) : m_qr(matrix.derived()) {
     init(matrix.rows(), matrix.cols());
     computeInPlace();
   }
@@ -263,45 +265,45 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
   inline Solve<RandColPivHouseholderQR, Rhs> solve(const MatrixBase<Rhs>& b) const;
 #endif
 
-  HouseholderSequenceType householderQ() const;
-  HouseholderSequenceType matrixQ() const { return householderQ(); }
+  constexpr HouseholderSequenceType householderQ() const;
+  constexpr HouseholderSequenceType matrixQ() const { return householderQ(); }
 
-  const MatrixType& matrixQR() const {
+  constexpr const MatrixType& matrixQR() const {
     eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
     return m_qr;
   }
 
-  const MatrixType& matrixR() const {
+  constexpr const MatrixType& matrixR() const {
     eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
     return m_qr;
   }
 
   template <typename InputType>
-  RandColPivHouseholderQR& compute(const EigenBase<InputType>& matrix);
+  constexpr RandColPivHouseholderQR& compute(const EigenBase<InputType>& matrix);
 
-  const PermutationType& colsPermutation() const {
+  constexpr const PermutationType& colsPermutation() const {
     eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
     return m_colsPermutation;
   }
 
-  typename MatrixType::Scalar determinant() const;
-  typename MatrixType::RealScalar absDeterminant() const;
-  typename MatrixType::RealScalar logAbsDeterminant() const;
-  typename MatrixType::Scalar signDeterminant() const;
+  constexpr typename MatrixType::Scalar determinant() const;
+  constexpr typename MatrixType::RealScalar absDeterminant() const;
+  constexpr typename MatrixType::RealScalar logAbsDeterminant() const;
+  constexpr typename MatrixType::Scalar signDeterminant() const;
 
-  RealScalar pivotCoeff(Index i) const { return numext::abs(m_qr.coeff(i, i)); }
+  constexpr RealScalar pivotCoeff(Index i) const { return numext::abs(m_qr.coeff(i, i)); }
 
-  inline Inverse<RandColPivHouseholderQR> inverse() const {
+  constexpr Inverse<RandColPivHouseholderQR> inverse() const {
     eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
     return Inverse<RandColPivHouseholderQR>(*this);
   }
 
-  inline Index rows() const { return m_qr.rows(); }
-  inline Index cols() const { return m_qr.cols(); }
+  constexpr Index rows() const { return m_qr.rows(); }
+  constexpr Index cols() const { return m_qr.cols(); }
 
-  const HCoeffsType& hCoeffs() const { return m_hCoeffs; }
+  constexpr const HCoeffsType& hCoeffs() const { return m_hCoeffs; }
 
-  ComputationInfo info() const {
+  constexpr ComputationInfo info() const {
     eigen_assert(m_isInitialized && "Decomposition is not initialized.");
     return Success;
   }
@@ -317,7 +319,7 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
    * For small matrices (where \c min(m,n) < 2b) this class transparently
    * falls back to the unblocked column-pivoted scalar loop.
    */
-  RandColPivHouseholderQR& setBlockSize(Index b) {
+  constexpr RandColPivHouseholderQR& setBlockSize(Index b) {
     eigen_assert(b >= 0 && "Block size must be non-negative.");
     m_blockSize = b;
     return *this;
@@ -331,14 +333,14 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
    * independent of the oversampling factor). Retained for source
    * compatibility; the value is ignored.
    */
-  RandColPivHouseholderQR& setOversampling(Index /*p*/) { return *this; }
+  constexpr RandColPivHouseholderQR& setOversampling(Index /*p*/) { return *this; }
 
   /** \brief Fixes the seed of the internal RNG for reproducible factorization.
    *
    * If never called, each call to compute() draws a fresh seed from
    * \c std::random_device.
    */
-  RandColPivHouseholderQR& setSeed(uint64_t seed) {
+  constexpr RandColPivHouseholderQR& setSeed(uint64_t seed) {
     m_seed = seed;
     m_seedSet = true;
     return *this;
@@ -348,17 +350,17 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
    * algorithm should pick automatically. The actual block size used
    * during compute() is not exposed.
    */
-  Index blockSize() const { return m_blockSize; }
+  constexpr Index blockSize() const { return m_blockSize; }
 
   /** \deprecated Returns 0; oversampling is no longer used. \sa setOversampling() */
-  Index oversampling() const { return Index(0); }
+  constexpr Index oversampling() const { return Index(0); }
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   template <typename RhsType, typename DstType>
-  void _solve_impl(const RhsType& rhs, DstType& dst) const;
+  constexpr void _solve_impl(const RhsType& rhs, DstType& dst) const;
 
   template <bool Conjugate, typename RhsType, typename DstType>
-  void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const;
+  constexpr void _solve_impl_transposed(const RhsType& rhs, DstType& dst) const;
 #endif
 
  protected:
@@ -366,7 +368,10 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
 
   EIGEN_STATIC_ASSERT_NON_INTEGER(Scalar)
 
-  void computeInPlace();
+  constexpr void computeInPlace();
+
+  // Blocked BQRRP path of computeInPlace() with panel size b. Not constexpr: it draws the sketch from <random>.
+  void computeBlockedInPlace(Index b, RealScalar threshold_helper);
 
   // Unblocked column-pivoted Householder QR on rows [row0, m) and columns
   // [col0, col0 + ncols), using full-column swaps. Updates m_hCoeffs in
@@ -374,11 +379,11 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
   // Returns the number of column transpositions applied. Used both as
   // the small-matrix fallback path and as the rank-deficient tail of the
   // blocked path.
-  Index unblocked_pivoted_qr(Index row0, Index col0, Index ncols, RealScalar threshold_helper);
+  constexpr Index unblocked_pivoted_qr(Index row0, Index col0, Index ncols, RealScalar threshold_helper);
 
   // Scan the diagonal of m_qr and set m_nonzero_pivots / m_maxpivot using
   // the LAWN-176 threshold (same scale as ColPivHouseholderQR).
-  void finalize_rank(RealScalar threshold_helper);
+  constexpr void finalize_rank(RealScalar threshold_helper);
 
   MatrixType m_qr;
   HCoeffsType m_hCoeffs;
@@ -392,49 +397,51 @@ class RandColPivHouseholderQR : public SolverBase<RandColPivHouseholderQR<Matrix
 };
 
 template <typename MatrixType, typename PermutationIndex>
-typename MatrixType::Scalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::determinant() const {
+constexpr typename MatrixType::Scalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::determinant() const {
   eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
   EIGEN_INTERNAL_ASSERT_SQUARE_MSG(m_qr, "You can't take the determinant of a non-square matrix!");
-  Scalar detQ;
+  Scalar detQ{};
   internal::householder_determinant<HCoeffsType, Scalar, NumTraits<Scalar>::IsComplex>::run(m_hCoeffs, detQ);
   return isInjective() ? (detQ * Scalar(m_det_p)) * m_qr.diagonal().prod() : Scalar(0);
 }
 
 template <typename MatrixType, typename PermutationIndex>
-typename MatrixType::RealScalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::absDeterminant() const {
+constexpr typename MatrixType::RealScalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::absDeterminant()
+    const {
   eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
   EIGEN_INTERNAL_ASSERT_SQUARE_MSG(m_qr, "You can't take the determinant of a non-square matrix!");
   return isInjective() ? numext::abs(m_qr.diagonal().prod()) : RealScalar(0);
 }
 
 template <typename MatrixType, typename PermutationIndex>
-typename MatrixType::RealScalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::logAbsDeterminant() const {
+constexpr typename MatrixType::RealScalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::logAbsDeterminant()
+    const {
   eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
   EIGEN_INTERNAL_ASSERT_SQUARE_MSG(m_qr, "You can't take the determinant of a non-square matrix!");
   return isInjective() ? m_qr.diagonal().cwiseAbs().array().log().sum() : -NumTraits<RealScalar>::infinity();
 }
 
 template <typename MatrixType, typename PermutationIndex>
-typename MatrixType::Scalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::signDeterminant() const {
+constexpr typename MatrixType::Scalar RandColPivHouseholderQR<MatrixType, PermutationIndex>::signDeterminant() const {
   eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
   EIGEN_INTERNAL_ASSERT_SQUARE_MSG(m_qr, "You can't take the determinant of a non-square matrix!");
-  Scalar detQ;
+  Scalar detQ{};
   internal::householder_determinant<HCoeffsType, Scalar, NumTraits<Scalar>::IsComplex>::run(m_hCoeffs, detQ);
   return isInjective() ? (detQ * Scalar(m_det_p)) * m_qr.diagonal().array().sign().prod() : Scalar(0);
 }
 
 template <typename MatrixType, typename PermutationIndex>
 template <typename InputType>
-RandColPivHouseholderQR<MatrixType, PermutationIndex>& RandColPivHouseholderQR<MatrixType, PermutationIndex>::compute(
-    const EigenBase<InputType>& matrix) {
+constexpr RandColPivHouseholderQR<MatrixType, PermutationIndex>&
+RandColPivHouseholderQR<MatrixType, PermutationIndex>::compute(const EigenBase<InputType>& matrix) {
   m_qr = matrix.derived();
   computeInPlace();
   return *this;
 }
 
 template <typename MatrixType, typename PermutationIndex>
-Index RandColPivHouseholderQR<MatrixType, PermutationIndex>::unblocked_pivoted_qr(Index row0, Index col0, Index ncols,
-                                                                                  RealScalar threshold_helper) {
+constexpr Index RandColPivHouseholderQR<MatrixType, PermutationIndex>::unblocked_pivoted_qr(
+    Index row0, Index col0, Index ncols, RealScalar threshold_helper) {
   const Index rows = m_qr.rows();
   const Index col_end = col0 + ncols;
   const Index sub_rows = rows - row0;
@@ -446,7 +453,7 @@ Index RandColPivHouseholderQR<MatrixType, PermutationIndex>::unblocked_pivoted_q
 
   const Index size = (std::min)(sub_rows, ncols);
   for (Index k = 0; k < size; ++k) {
-    Index biggest;
+    Index biggest = 0;
     RealScalar biggest_sq = numext::abs2(norms_updated.tail(ncols - k).maxCoeff(&biggest));
     biggest += k;
 
@@ -461,7 +468,7 @@ Index RandColPivHouseholderQR<MatrixType, PermutationIndex>::unblocked_pivoted_q
       ++num_transpositions;
     }
 
-    RealScalar beta;
+    RealScalar beta(0);
     m_qr.col(col0 + k).tail(sub_rows - k).makeHouseholderInPlace(m_hCoeffs.coeffRef(col0 + k), beta);
     m_qr.coeffRef(row0 + k, col0 + k) = beta;
     if (numext::abs(beta) > this->m_maxpivot) this->m_maxpivot = numext::abs(beta);
@@ -487,7 +494,7 @@ Index RandColPivHouseholderQR<MatrixType, PermutationIndex>::unblocked_pivoted_q
 }
 
 template <typename MatrixType, typename PermutationIndex>
-void RandColPivHouseholderQR<MatrixType, PermutationIndex>::finalize_rank(RealScalar threshold_helper) {
+constexpr void RandColPivHouseholderQR<MatrixType, PermutationIndex>::finalize_rank(RealScalar threshold_helper) {
   const Index rows = m_qr.rows();
   const Index size = (std::min)(rows, m_qr.cols());
   // m_maxpivot is already up-to-date: the blocked path tracks it per
@@ -509,7 +516,7 @@ void RandColPivHouseholderQR<MatrixType, PermutationIndex>::finalize_rank(RealSc
 }
 
 template <typename MatrixType, typename PermutationIndex>
-void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeInPlace() {
+constexpr void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeInPlace() {
   eigen_assert(m_qr.cols() <= NumTraits<PermutationIndex>::highest());
 
   const Index rows = m_qr.rows();
@@ -518,6 +525,9 @@ void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeInPlace() {
 
   m_hCoeffs.resize(size);
   m_temp.resize(cols);
+  // The Householder updates write only part of this workspace, and constant evaluation rejects copying
+  // a partially initialized object.
+  if (internal::is_constant_evaluated()) m_temp.setZero();
   m_colsPermutation.resize(cols);
   m_colsPermutation.setIdentity();
   this->m_nonzero_pivots = size;
@@ -533,8 +543,11 @@ void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeInPlace() {
       cols == 0 ? RealScalar(0)
                 : numext::abs2<RealScalar>(max_initial_norm * NumTraits<RealScalar>::epsilon()) / RealScalar(rows);
 
+  // The blocked path seeds its sketch from std::random_device and sizes its panels from the runtime cache
+  // sizes, so constant evaluation always takes the unblocked path.
   const bool auto_block = (m_blockSize == kAutoBlockSize);
-  const Index requested_b = auto_block ? computeAutoBlockSize(rows, size) : m_blockSize;
+  Index requested_b =
+      internal::is_constant_evaluated() ? Index(0) : (auto_block ? computeAutoBlockSize(rows, size) : m_blockSize);
   const Index b = (std::min)(requested_b, size);
 
   // Gates for entering the blocked path:
@@ -554,6 +567,17 @@ void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeInPlace() {
     m_isInitialized = true;
     return;
   }
+
+  computeBlockedInPlace(b, threshold_helper);
+}
+
+template <typename MatrixType, typename PermutationIndex>
+void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeBlockedInPlace(Index b,
+                                                                                  RealScalar threshold_helper) {
+  const Index rows = m_qr.rows();
+  const Index cols = m_qr.cols();
+  const Index size = (std::min)(rows, cols);
+  Index num_transpositions = 0;
 
   using WorkMatrix = Matrix<Scalar, Dynamic, Dynamic, ColMajor>;
   using WorkVector = Matrix<Scalar, Dynamic, 1>;
@@ -739,7 +763,8 @@ void RandColPivHouseholderQR<MatrixType, PermutationIndex>::computeInPlace() {
 #ifndef EIGEN_PARSED_BY_DOXYGEN
 template <typename MatrixType_, typename PermutationIndex_>
 template <typename RhsType, typename DstType>
-void RandColPivHouseholderQR<MatrixType_, PermutationIndex_>::_solve_impl(const RhsType& rhs, DstType& dst) const {
+constexpr void RandColPivHouseholderQR<MatrixType_, PermutationIndex_>::_solve_impl(const RhsType& rhs,
+                                                                                    DstType& dst) const {
   const Index nonzero_pivots = nonzeroPivots();
 
   if (nonzero_pivots == 0) {
@@ -761,8 +786,8 @@ void RandColPivHouseholderQR<MatrixType_, PermutationIndex_>::_solve_impl(const 
 
 template <typename MatrixType_, typename PermutationIndex_>
 template <bool Conjugate, typename RhsType, typename DstType>
-void RandColPivHouseholderQR<MatrixType_, PermutationIndex_>::_solve_impl_transposed(const RhsType& rhs,
-                                                                                     DstType& dst) const {
+constexpr void RandColPivHouseholderQR<MatrixType_, PermutationIndex_>::_solve_impl_transposed(const RhsType& rhs,
+                                                                                               DstType& dst) const {
   const Index nonzero_pivots = nonzeroPivots();
 
   if (nonzero_pivots == 0) {
@@ -794,8 +819,8 @@ struct Assignment<DstXprType, Inverse<RandColPivHouseholderQR<MatrixType, Permut
                   Dense2Dense> {
   using QrType = RandColPivHouseholderQR<MatrixType, PermutationIndex>;
   using SrcXprType = Inverse<QrType>;
-  static void run(DstXprType& dst, const SrcXprType& src,
-                  const internal::assign_op<typename DstXprType::Scalar, typename QrType::Scalar>&) {
+  static constexpr void run(DstXprType& dst, const SrcXprType& src,
+                            const internal::assign_op<typename DstXprType::Scalar, typename QrType::Scalar>&) {
     dst = src.nestedExpression().solve(MatrixType::Identity(src.rows(), src.cols()));
   }
 };
@@ -803,7 +828,7 @@ struct Assignment<DstXprType, Inverse<RandColPivHouseholderQR<MatrixType, Permut
 }  // end namespace internal
 
 template <typename MatrixType, typename PermutationIndex>
-typename RandColPivHouseholderQR<MatrixType, PermutationIndex>::HouseholderSequenceType
+constexpr typename RandColPivHouseholderQR<MatrixType, PermutationIndex>::HouseholderSequenceType
 RandColPivHouseholderQR<MatrixType, PermutationIndex>::householderQ() const {
   eigen_assert(m_isInitialized && "RandColPivHouseholderQR is not initialized.");
   return HouseholderSequenceType(m_qr, m_hCoeffs.conjugate());
@@ -815,7 +840,7 @@ RandColPivHouseholderQR<MatrixType, PermutationIndex>::householderQ() const {
  */
 template <typename Derived>
 template <typename PermutationIndexType>
-RandColPivHouseholderQR<typename MatrixBase<Derived>::PlainObject, PermutationIndexType>
+constexpr RandColPivHouseholderQR<typename MatrixBase<Derived>::PlainObject, PermutationIndexType>
 MatrixBase<Derived>::randColPivHouseholderQr() const {
   return RandColPivHouseholderQR<PlainObject, PermutationIndexType>(eval());
 }

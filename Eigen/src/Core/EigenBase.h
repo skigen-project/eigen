@@ -51,10 +51,10 @@ struct EigenBase {
   /** \returns a const reference to the derived object */
   EIGEN_DEVICE_FUNC constexpr const Derived& derived() const { return *static_cast<const Derived*>(this); }
 
-  EIGEN_DEVICE_FUNC inline constexpr Derived& const_cast_derived() const {
+  EIGEN_DEVICE_FUNC constexpr Derived& const_cast_derived() const {
     return *static_cast<Derived*>(const_cast<EigenBase*>(this));
   }
-  EIGEN_DEVICE_FUNC constexpr inline const Derived& const_derived() const { return *static_cast<const Derived*>(this); }
+  EIGEN_DEVICE_FUNC constexpr const Derived& const_derived() const { return *static_cast<const Derived*>(this); }
 
   /** \returns the number of rows. \sa cols(), RowsAtCompileTime */
   EIGEN_DEVICE_FUNC constexpr Index rows() const noexcept { return derived().rows(); }
@@ -66,13 +66,13 @@ struct EigenBase {
 
   /** \internal Don't use it, but do the equivalent: \code dst = *this; \endcode */
   template <typename Dest>
-  EIGEN_DEVICE_FUNC constexpr inline void evalTo(Dest& dst) const {
+  EIGEN_DEVICE_FUNC constexpr void evalTo(Dest& dst) const {
     derived().evalTo(dst);
   }
 
   /** \internal Don't use it, but do the equivalent: \code dst += *this; \endcode */
   template <typename Dest>
-  EIGEN_DEVICE_FUNC constexpr inline void addTo(Dest& dst) const {
+  EIGEN_DEVICE_FUNC constexpr void addTo(Dest& dst) const {
     // This is the default implementation,
     // derived class can reimplement it in a more optimized way.
     typename Dest::PlainObject res(rows(), cols());
@@ -82,7 +82,7 @@ struct EigenBase {
 
   /** \internal Don't use it, but do the equivalent: \code dst -= *this; \endcode */
   template <typename Dest>
-  EIGEN_DEVICE_FUNC constexpr inline void subTo(Dest& dst) const {
+  EIGEN_DEVICE_FUNC constexpr void subTo(Dest& dst) const {
     // This is the default implementation,
     // derived class can reimplement it in a more optimized way.
     typename Dest::PlainObject res(rows(), cols());
@@ -92,7 +92,7 @@ struct EigenBase {
 
   /** \internal Don't use it, but do the equivalent: \code dst.applyOnTheRight(*this); \endcode */
   template <typename Dest>
-  EIGEN_DEVICE_FUNC constexpr inline void applyThisOnTheRight(Dest& dst) const {
+  EIGEN_DEVICE_FUNC constexpr void applyThisOnTheRight(Dest& dst) const {
     // This is the default implementation,
     // derived class can reimplement it in a more optimized way.
     dst = dst * this->derived();
@@ -100,16 +100,16 @@ struct EigenBase {
 
   /** \internal Don't use it, but do the equivalent: \code dst.applyOnTheLeft(*this); \endcode */
   template <typename Dest>
-  EIGEN_DEVICE_FUNC constexpr inline void applyThisOnTheLeft(Dest& dst) const {
+  EIGEN_DEVICE_FUNC constexpr void applyThisOnTheLeft(Dest& dst) const {
     // This is the default implementation,
     // derived class can reimplement it in a more optimized way.
     dst = this->derived() * dst;
   }
 
   template <typename Device>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DeviceWrapper<Derived, Device> device(Device& device);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DeviceWrapper<Derived, Device> device(Device& device);
   template <typename Device>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DeviceWrapper<const Derived, Device> device(Device& device) const;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DeviceWrapper<const Derived, Device> device(Device& device) const;
 };
 
 /***************************************************************************

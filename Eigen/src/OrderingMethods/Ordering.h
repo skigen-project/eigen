@@ -37,7 +37,7 @@ class AMDOrdering {
    * This routine is much faster if the input matrix is column-major.
    */
   template <typename MatrixType>
-  void operator()(const MatrixType& mat, PermutationType& perm) const {
+  constexpr void operator()(const MatrixType& mat, PermutationType& perm) const {
     // AMD only reads the sparsity pattern. Build a column-major view of mat,
     // then materialize \c pattern(mat + mat^T) directly into a
     // SparseMatrix<signed char> (1-byte placeholder values), bypassing
@@ -54,7 +54,7 @@ class AMDOrdering {
    * Only the sparsity pattern is used; scalar values are not.
    */
   template <typename SrcType, unsigned int SrcUpLo>
-  void operator()(const SparseSelfAdjointView<SrcType, SrcUpLo>& mat, PermutationType& perm) const {
+  constexpr void operator()(const SparseSelfAdjointView<SrcType, SrcUpLo>& mat, PermutationType& perm) const {
     // Build a column-major pattern view of the underlying matrix and expand
     // its UpLo triangle to the full symmetric pattern in one pass, bypassing
     // Eigen's generic selfadjointView assignment evaluator.
@@ -83,7 +83,7 @@ class NaturalOrdering {
 
   /** Compute the permutation vector from a column-major sparse matrix */
   template <typename MatrixType>
-  void operator()(const MatrixType& /*mat*/, PermutationType& perm) const {
+  constexpr void operator()(const MatrixType& /*mat*/, PermutationType& perm) const {
     perm.resize(0);
   }
 };
@@ -104,7 +104,7 @@ class COLAMDOrdering {
 
   /** Compute the permutation vector \a perm from the sparse matrix \a mat. */
   template <typename MatrixType>
-  void operator()(const MatrixType& mat, PermutationType& perm) const {
+  constexpr void operator()(const MatrixType& mat, PermutationType& perm) const {
     using MatrixStorageIndex = typename MatrixType::StorageIndex;
     Matrix<MatrixStorageIndex, Dynamic, 1> outer_buf, inner_buf;
     internal::SparsityPatternRef<MatrixStorageIndex> pat =
@@ -120,8 +120,8 @@ class COLAMDOrdering {
     const StorageIndex nnz = internal::convert_index<StorageIndex>(total_nnz);
 
     StorageIndex Alen = internal::Colamd::recommended(nnz, m, n);
-    double knobs[internal::Colamd::NKnobs];
-    StorageIndex stats[internal::Colamd::NStats];
+    double knobs[internal::Colamd::NKnobs] = {};
+    StorageIndex stats[internal::Colamd::NStats] = {};
     internal::Colamd::set_defaults(knobs);
 
     // Colamd writes into A[] in place and needs a contiguous CSC layout, so
@@ -146,12 +146,12 @@ class COLAMDOrdering {
 
  private:
   template <typename SrcStorageIndex>
-  static void copy_colamd_indices(const SrcStorageIndex* src, Index nz, StorageIndex* dst, std::true_type) {
+  static constexpr void copy_colamd_indices(const SrcStorageIndex* src, Index nz, StorageIndex* dst, std::true_type) {
     std::copy_n(src, nz, dst);
   }
 
   template <typename SrcStorageIndex>
-  static void copy_colamd_indices(const SrcStorageIndex* src, Index nz, StorageIndex* dst, std::false_type) {
+  static constexpr void copy_colamd_indices(const SrcStorageIndex* src, Index nz, StorageIndex* dst, std::false_type) {
     for (Index k = 0; k < nz; ++k) dst[k] = internal::convert_index<StorageIndex>(src[k]);
   }
 };

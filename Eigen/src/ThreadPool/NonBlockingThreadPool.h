@@ -30,7 +30,7 @@ class ThreadPoolTempl : public Eigen::ThreadPoolInterface {
   };
 
   struct ThreadData {
-    constexpr ThreadData() = default;
+    ThreadData() = default;
     std::unique_ptr<Thread> thread;
     std::atomic<unsigned> steal_partition{0};
     Queue queue;

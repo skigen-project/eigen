@@ -40,7 +40,7 @@ namespace internal {
 
 /** Find the root of the tree/set containing the vertex i : Use Path halving */
 template <typename Index, typename IndexVector>
-Index etree_find(Index i, IndexVector& pp) {
+constexpr Index etree_find(Index i, IndexVector& pp) {
   Index p = pp(i);   // Parent
   Index gp = pp(p);  // Grand parent
   while (gp != p) {
@@ -59,8 +59,8 @@ Index etree_find(Index i, IndexVector& pp) {
  * \param perm The permutation to apply to the column of \b mat
  */
 template <typename MatrixType, typename IndexVector>
-int coletree(const MatrixType& mat, IndexVector& parent, IndexVector& firstRowElt,
-             typename MatrixType::StorageIndex* perm = 0) {
+constexpr int coletree(const MatrixType& mat, IndexVector& parent, IndexVector& firstRowElt,
+                       typename MatrixType::StorageIndex* perm = 0) {
   using StorageIndex = typename MatrixType::StorageIndex;
   StorageIndex nc = convert_index<StorageIndex>(mat.cols());  // Number of columns
   StorageIndex m = convert_index<StorageIndex>(mat.rows());
@@ -74,7 +74,7 @@ int coletree(const MatrixType& mat, IndexVector& parent, IndexVector& firstRowEl
   firstRowElt.resize(m);
   firstRowElt.setConstant(nc);
   firstRowElt.segment(0, diagSize).setLinSpaced(diagSize, 0, diagSize - 1);
-  bool found_diag;
+  bool found_diag = false;
   for (StorageIndex col = 0; col < nc; col++) {
     StorageIndex pcol = col;
     if (perm) pcol = perm[col];
@@ -87,7 +87,7 @@ int coletree(const MatrixType& mat, IndexVector& parent, IndexVector& firstRowEl
           except use (firstRowElt[r],c) in place of an edge (r,c) of A.
     Thus each row clique in A'*A is replaced by a star
     centered at its first vertex, which has the same fill. */
-  StorageIndex rset, cset, rroot;
+  StorageIndex rset = 0, cset = 0, rroot = 0;
   for (StorageIndex col = 0; col < nc; col++) {
     found_diag = col >= m;
     pp(col) = col;
@@ -124,10 +124,10 @@ int coletree(const MatrixType& mat, IndexVector& parent, IndexVector& firstRowEl
  * This routine was contributed by Cédric Doucet, CEDRAT Group, Meylan, France.
  */
 template <typename IndexVector>
-void nr_etdfs(typename IndexVector::Scalar n, IndexVector& parent, IndexVector& first_kid, IndexVector& next_kid,
-              IndexVector& post, typename IndexVector::Scalar postnum) {
+constexpr void nr_etdfs(typename IndexVector::Scalar n, IndexVector& parent, IndexVector& first_kid,
+                        IndexVector& next_kid, IndexVector& post, typename IndexVector::Scalar postnum) {
   using StorageIndex = typename IndexVector::Scalar;
-  StorageIndex current = n, first, next;
+  StorageIndex current = n, first = 0, next = 0;
   while (postnum != n) {
     first = first_kid(current);
 
@@ -165,10 +165,10 @@ void nr_etdfs(typename IndexVector::Scalar n, IndexVector& parent, IndexVector& 
  * \param post postordered tree
  */
 template <typename IndexVector>
-void treePostorder(typename IndexVector::Scalar n, IndexVector& parent, IndexVector& post) {
+constexpr void treePostorder(typename IndexVector::Scalar n, IndexVector& parent, IndexVector& post) {
   using StorageIndex = typename IndexVector::Scalar;
   IndexVector first_kid, next_kid;  // Linked list of children
-  StorageIndex postnum;
+  StorageIndex postnum = 0;
   // Allocate storage for working arrays and results
   first_kid.resize(n + 1);
   next_kid.setZero(n + 1);

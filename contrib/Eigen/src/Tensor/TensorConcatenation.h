@@ -57,18 +57,19 @@ class TensorConcatenationOp : public TensorBase<TensorConcatenationOp<Axis, LhsX
                                                                   typename RhsXprType::CoeffReturnType>::ret;
   using RealScalar = typename NumTraits<Scalar>::Real;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorConcatenationOp(const LhsXprType& lhs, const RhsXprType& rhs, Axis axis)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorConcatenationOp(const LhsXprType& lhs, const RhsXprType& rhs,
+                                                                        Axis axis)
       : m_lhs_xpr(lhs), m_rhs_xpr(rhs), m_axis(axis) {}
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename LhsXprType::Nested>& lhsExpression() const {
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename LhsXprType::Nested>& lhsExpression() const {
     return m_lhs_xpr;
   }
 
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<typename RhsXprType::Nested>& rhsExpression() const {
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename RhsXprType::Nested>& rhsExpression() const {
     return m_rhs_xpr;
   }
 
-  EIGEN_DEVICE_FUNC const Axis& axis() const { return m_axis; }
+  EIGEN_DEVICE_FUNC constexpr const Axis& axis() const { return m_axis; }
 
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(TensorConcatenationOp)
  protected:
@@ -118,7 +119,7 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
   using TensorBlock = typename internal::TensorMaterializedBlock<ScalarNoConst, NumDims, Layout, Index>;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device)
       : m_leftImpl(op.lhsExpression(), device),
         m_rightImpl(op.rhsExpression(), device),
         m_device(device),
@@ -177,10 +178,10 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
     }
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const Dimensions& dimensions() const { return m_dimensions; }
 
   // TODO(phli): Add short-circuit memcpy evaluation if underlying data are linear.
-  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType) {
+  EIGEN_STRONG_INLINE EIGEN_CONSTEXPR20 bool evalSubExprsIfNeeded(EvaluatorPointerType) {
     m_leftImpl.evalSubExprsIfNeeded(nullptr);
     // The executor does not call cleanup() when evaluation throws, so release the operand evaluated first.
     EIGEN_TRY { m_rightImpl.evalSubExprsIfNeeded(nullptr); }
@@ -191,7 +192,7 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
     return true;
   }
 
-  EIGEN_STRONG_INLINE void cleanup() {
+  EIGEN_STRONG_INLINE constexpr void cleanup() {
     m_leftImpl.cleanup();
     m_rightImpl.cleanup();
   }
@@ -215,9 +216,9 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
   // whose shape is `operand_dims` -- i.e. it can be addressed as a plain
   // pointer offset with no per-row stride walk. Mirrors the direct-access test
   // in TensorMaterializedBlock::materialize().
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool isContiguousOperandSlab(const Dimensions& operand_dims,
-                                                                     const Dimensions& block_dims) const {
-    static constexpr bool IsColMajor = Layout == static_cast<int>(ColMajor);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool isContiguousOperandSlab(const Dimensions& operand_dims,
+                                                                               const Dimensions& block_dims) const {
+    constexpr bool IsColMajor = Layout == static_cast<int>(ColMajor);
     int matching_inner_dims = 0;
     for (int i = 0; i < NumDims; ++i) {
       const int dim = IsColMajor ? i : NumDims - i - 1;
@@ -235,9 +236,9 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
   // Returns a zero-copy view when the block lies within a single operand and
   // is contiguous there; otherwise materializes the slab(s) with
   // TensorBlockIO::Copy, which collapses to a memcpy per contiguous slab.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
-                                                          bool root_of_expr_ast = false) const {
-    static constexpr bool IsColMajor = Layout == static_cast<int>(ColMajor);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorBlock block(TensorBlockDesc& desc, TensorBlockScratch& scratch,
+                                                                    bool root_of_expr_ast = false) const {
+    constexpr bool IsColMajor = Layout == static_cast<int>(ColMajor);
 
     if (desc.size() == 0) {
       return TensorBlock(internal::TensorBlockKind::kView, nullptr, desc.dimensions());
@@ -352,9 +353,9 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
   // Intel Raptor Lake when prototyped for TensorBroadcasting (see the comment
   // on TensorBroadcasting::indexColMajor). Modern x86 hardware div (~20
   // cycles) amortizes well and the mul+shifts don't win back the added state.
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const {
+  EIGEN_DEVICE_FUNC constexpr EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const {
     // Collect dimension-wise indices (subs).
-    array<Index, NumDims> subs;
+    array<Index, NumDims> subs{};
     EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {
       for (int i = NumDims - 1; i > 0; --i) {
         subs[i] = index / m_outputStrides[i];
@@ -371,7 +372,7 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
 
     const Dimensions& left_dims = m_leftImpl.dimensions();
     if (subs[m_axis] < left_dims[m_axis]) {
-      Index left_index;
+      Index left_index = 0;
       EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {
         left_index = subs[0];
         EIGEN_UNROLL_LOOP
@@ -389,7 +390,7 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
     } else {
       subs[m_axis] -= left_dims[m_axis];
       const Dimensions& right_dims = m_rightImpl.dimensions();
-      Index right_index;
+      Index right_index = 0;
       EIGEN_IF_CONSTEXPR (static_cast<int>(Layout) == static_cast<int>(ColMajor)) {
         right_index = subs[0];
         EIGEN_UNROLL_LOOP
@@ -511,7 +512,7 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
     return rslt;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorOpCost costPerCoeff(bool vectorized) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr TensorOpCost costPerCoeff(bool vectorized) const {
     const double compute_cost = NumDims * (2 * TensorOpCost::AddCost<Index>() + 2 * TensorOpCost::MulCost<Index>() +
                                            TensorOpCost::DivCost<Index>() + TensorOpCost::ModCost<Index>());
     const double lhs_size = m_leftImpl.dimensions().TotalSize();
@@ -520,7 +521,7 @@ struct TensorEvaluator<const TensorConcatenationOp<Axis, LeftArgType, RightArgTy
            (rhs_size / (lhs_size + rhs_size)) * m_rightImpl.costPerCoeff(vectorized) + TensorOpCost(0, 0, compute_cost);
   }
 
-  EIGEN_DEVICE_FUNC EvaluatorPointerType data() const { return nullptr; }
+  EIGEN_DEVICE_FUNC constexpr EvaluatorPointerType data() const { return nullptr; }
 
  protected:
   Dimensions m_dimensions;
@@ -568,17 +569,17 @@ struct TensorEvaluator<TensorConcatenationOp<Axis, LeftArgType, RightArgType>, D
   // instantiate this type for RowMajor concat operands without ever calling
   // its lvalue methods. writeBlock() below is layout-generic, so tiled
   // assignments through a RowMajor concatenation are supported.
-  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
+  EIGEN_STRONG_INLINE constexpr TensorEvaluator(const XprType& op, const Device& device) : Base(op, device) {}
 
   using Index = typename XprType::Index;
   using Scalar = typename XprType::Scalar;
   using CoeffReturnType = typename XprType::CoeffReturnType;
   using PacketReturnType = typename PacketType<CoeffReturnType, Device>::type;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType& coeffRef(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType& coeffRef(Index index) const {
     EIGEN_STATIC_ASSERT((static_cast<int>(Layout) == static_cast<int>(ColMajor)), YOU_MADE_A_PROGRAMMING_MISTAKE);
     // Collect dimension-wise indices (subs).
-    array<Index, Base::NumDims> subs;
+    array<Index, Base::NumDims> subs{};
     for (int i = Base::NumDims - 1; i > 0; --i) {
       subs[i] = index / this->m_outputStrides[i];
       index -= subs[i] * this->m_outputStrides[i];
@@ -620,7 +621,7 @@ struct TensorEvaluator<TensorConcatenationOp<Axis, LeftArgType, RightArgType>, D
   // Mirror of the rvalue block(): split the block at the concat axis and copy
   // each piece into the corresponding operand's buffer.
   template <typename TensorBlock>
-  EIGEN_STRONG_INLINE void writeBlock(const TensorBlockDesc& desc, const TensorBlock& block) {
+  EIGEN_STRONG_INLINE constexpr void writeBlock(const TensorBlockDesc& desc, const TensorBlock& block) {
     if (desc.size() == 0) return;
     eigen_assert(this->m_leftImpl.data() != nullptr && this->m_rightImpl.data() != nullptr);
 

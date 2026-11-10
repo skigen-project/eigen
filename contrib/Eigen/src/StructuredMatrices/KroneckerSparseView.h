@@ -59,14 +59,14 @@ struct traits<KroneckerSparseView<OperatorType, Options>> {
 template <typename Factor, int Options, int Kind = kron_factor_kind<Factor>()>
 struct kron_view_factor {
   using type = Factor;
-  static const Factor& convert(const Factor& f) { return f; }
+  static constexpr const Factor& convert(const Factor& f) { return f; }
 };
 template <typename Scalar, int FactorOptions, typename StorageIndex, int Options>
 struct kron_view_factor<SparseMatrix<Scalar, FactorOptions, StorageIndex>, Options, kKronSparseFactor> {
   using type = SparseMatrix<Scalar, Options & RowMajorBit ? RowMajor : ColMajor, StorageIndex>;
   // A same-order copy keeps the factor's entry order, and a compressed matrix
   // may hold unsorted inner vectors; the iterators need them sorted.
-  static type convert(const SparseMatrix<Scalar, FactorOptions, StorageIndex>& f) {
+  static constexpr type convert(const SparseMatrix<Scalar, FactorOptions, StorageIndex>& f) {
     type g(f);
     if (g.innerIndicesAreSorted() != g.outerSize()) g.sortInnerIndices();
     return g;
@@ -77,7 +77,7 @@ struct kron_view_factor<KroneckerOperator<LhsMatrix, RhsMatrix>, Options, kKronK
   using Lhs = kron_view_factor<LhsMatrix, Options>;
   using Rhs = kron_view_factor<RhsMatrix, Options>;
   using type = KroneckerOperator<typename Lhs::type, typename Rhs::type>;
-  static type convert(const KroneckerOperator<LhsMatrix, RhsMatrix>& f) {
+  static constexpr type convert(const KroneckerOperator<LhsMatrix, RhsMatrix>& f) {
     return type(Lhs::convert(f.lhs()), Rhs::convert(f.rhs()));
   }
 };
@@ -86,7 +86,7 @@ struct kron_view_factor<KroneckerSum<LhsMatrix, RhsMatrix>, Options, kKronSumFac
   using Lhs = kron_view_factor<LhsMatrix, Options>;
   using Rhs = kron_view_factor<RhsMatrix, Options>;
   using type = KroneckerSum<typename Lhs::type, typename Rhs::type>;
-  static type convert(const KroneckerSum<LhsMatrix, RhsMatrix>& f) {
+  static constexpr type convert(const KroneckerSum<LhsMatrix, RhsMatrix>& f) {
     return type(Lhs::convert(f.lhs()), Rhs::convert(f.rhs()));
   }
 };
@@ -98,15 +98,15 @@ template <typename Factor, bool RowMajor, int Kind = kron_factor_kind<Factor>()>
 class kron_view_iterator {
  public:
   using Scalar = typename Factor::Scalar;
-  kron_view_iterator(const Factor& f, Index outer)
+  constexpr kron_view_iterator(const Factor& f, Index outer)
       : m_f(&f), m_outer(outer), m_inner(0), m_end(RowMajor ? f.cols() : f.rows()) {}
-  explicit operator bool() const { return m_inner < m_end; }
-  kron_view_iterator& operator++() {
+  explicit constexpr operator bool() const { return m_inner < m_end; }
+  constexpr kron_view_iterator& operator++() {
     ++m_inner;
     return *this;
   }
-  Index index() const { return m_inner; }
-  Scalar value() const { return RowMajor ? m_f->coeff(m_outer, m_inner) : m_f->coeff(m_inner, m_outer); }
+  constexpr Index index() const { return m_inner; }
+  constexpr Scalar value() const { return RowMajor ? m_f->coeff(m_outer, m_inner) : m_f->coeff(m_inner, m_outer); }
 
  private:
   const Factor* m_f;
@@ -118,14 +118,14 @@ template <typename Factor, bool RowMajor>
 class kron_view_iterator<Factor, RowMajor, kKronDiagonalFactor> {
  public:
   using Scalar = typename Factor::Scalar;
-  kron_view_iterator(const Factor& f, Index outer) : m_f(&f), m_outer(outer), m_valid(true) {}
-  explicit operator bool() const { return m_valid; }
-  kron_view_iterator& operator++() {
+  constexpr kron_view_iterator(const Factor& f, Index outer) : m_f(&f), m_outer(outer), m_valid(true) {}
+  explicit constexpr operator bool() const { return m_valid; }
+  constexpr kron_view_iterator& operator++() {
     m_valid = false;
     return *this;
   }
-  Index index() const { return m_outer; }
-  Scalar value() const { return m_f->diagonal().coeff(m_outer); }
+  constexpr Index index() const { return m_outer; }
+  constexpr Scalar value() const { return m_f->diagonal().coeff(m_outer); }
 
  private:
   const Factor* m_f;
@@ -137,15 +137,15 @@ template <typename Factor, bool RowMajor>
 class kron_view_iterator<Factor, RowMajor, kKronIdentityFactor> {
  public:
   using Scalar = typename Factor::Scalar;
-  kron_view_iterator(const Factor& f, Index outer)
+  constexpr kron_view_iterator(const Factor& f, Index outer)
       : m_outer(outer), m_valid(outer < numext::mini(f.rows(), f.cols())) {}
-  explicit operator bool() const { return m_valid; }
-  kron_view_iterator& operator++() {
+  explicit constexpr operator bool() const { return m_valid; }
+  constexpr kron_view_iterator& operator++() {
     m_valid = false;
     return *this;
   }
-  Index index() const { return m_outer; }
-  Scalar value() const { return Scalar(1); }
+  constexpr Index index() const { return m_outer; }
+  constexpr Scalar value() const { return Scalar(1); }
 
  private:
   Index m_outer;
@@ -160,20 +160,20 @@ class kron_view_iterator<Factor, RowMajor, kKronSparseFactor> {
  public:
   using Scalar = typename Factor::Scalar;
   static_assert(bool(Factor::IsRowMajor) == RowMajor, "the view converts sparse factors to its storage order");
-  kron_view_iterator(const Factor& f, Index outer)
+  constexpr kron_view_iterator(const Factor& f, Index outer)
       : m_values(f.valuePtr()),
         m_indices(f.innerIndexPtr()),
         m_pos(convert_index<Index>(f.outerIndexPtr()[outer])),
         m_end(convert_index<Index>(f.outerIndexPtr()[outer + 1])) {
     eigen_internal_assert(f.isCompressed());
   }
-  explicit operator bool() const { return m_pos < m_end; }
-  kron_view_iterator& operator++() {
+  explicit constexpr operator bool() const { return m_pos < m_end; }
+  constexpr kron_view_iterator& operator++() {
     ++m_pos;
     return *this;
   }
-  Index index() const { return Index(m_indices[m_pos]); }
-  Scalar value() const { return m_values[m_pos]; }
+  constexpr Index index() const { return Index(m_indices[m_pos]); }
+  constexpr Scalar value() const { return m_values[m_pos]; }
 
  private:
   const Scalar* m_values;
@@ -190,15 +190,15 @@ class kron_view_iterator<KroneckerOperator<LhsMatrix, RhsMatrix>, RowMajor, kKro
  public:
   using Factor = KroneckerOperator<LhsMatrix, RhsMatrix>;
   using Scalar = typename Factor::Scalar;
-  kron_view_iterator(const Factor& f, Index outer)
+  constexpr kron_view_iterator(const Factor& f, Index outer)
       : m_rhs(&f.rhs()),
         m_outerR(outer % outerSize(f.rhs())),
         m_innerR(RowMajor ? f.rhs().cols() : f.rhs().rows()),
         m_itL(f.lhs(), outer / outerSize(f.rhs())),
         m_itR(f.rhs(), m_outerR),
         m_nonEmptyR(bool(m_itR)) {}
-  explicit operator bool() const { return m_nonEmptyR && bool(m_itL); }
-  kron_view_iterator& operator++() {
+  explicit constexpr operator bool() const { return m_nonEmptyR && bool(m_itL); }
+  constexpr kron_view_iterator& operator++() {
     ++m_itR;
     if (!m_itR) {
       ++m_itL;
@@ -206,14 +206,14 @@ class kron_view_iterator<KroneckerOperator<LhsMatrix, RhsMatrix>, RowMajor, kKro
     }
     return *this;
   }
-  Index index() const { return m_itL.index() * m_innerR + m_itR.index(); }
-  Scalar value() const { return m_itL.value() * m_itR.value(); }
+  constexpr Index index() const { return m_itL.index() * m_innerR + m_itR.index(); }
+  constexpr Scalar value() const { return m_itL.value() * m_itR.value(); }
 
  private:
   using LhsIterator = kron_view_iterator<LhsMatrix, RowMajor>;
   using RhsIterator = kron_view_iterator<RhsMatrix, RowMajor>;
   template <typename F>
-  static Index outerSize(const F& f) {
+  static constexpr Index outerSize(const F& f) {
     return RowMajor ? f.rows() : f.cols();
   }
 
@@ -233,23 +233,23 @@ class kron_view_iterator<KroneckerSum<LhsMatrix, RhsMatrix>, RowMajor, kKronSumF
  public:
   using Factor = KroneckerSum<LhsMatrix, RhsMatrix>;
   using Scalar = typename Factor::Scalar;
-  kron_view_iterator(const Factor& f, Index outer)
+  constexpr kron_view_iterator(const Factor& f, Index outer)
       : m_n2(f.rhs().rows()),
         m_outerL(outer / m_n2),
         m_outerR(outer % m_n2),
         m_itL(f.lhs(), m_outerL),
         m_itR(f.rhs(), m_outerR) {}
-  explicit operator bool() const { return bool(m_itL) || bool(m_itR); }
-  kron_view_iterator& operator++() {
+  explicit constexpr operator bool() const { return bool(m_itL) || bool(m_itR); }
+  constexpr kron_view_iterator& operator++() {
     const Index current = index();
     if (indexL() == current) ++m_itL;
     if (indexR() == current) ++m_itR;
     return *this;
   }
-  Index index() const { return numext::mini(indexL(), indexR()); }
+  constexpr Index index() const { return numext::mini(indexL(), indexR()); }
   // The values of the materialization (A (x) I) + (I (x) B), signed zeros
   // included: a + b on the diagonal, a + 0 and 0 + b off it.
-  Scalar value() const {
+  constexpr Scalar value() const {
     const Index l = indexL(), r = indexR();
     if (l == r) return m_itL.value() + m_itR.value();
     return l < r ? m_itL.value() + Scalar(0) : Scalar(0) + m_itR.value();
@@ -258,8 +258,8 @@ class kron_view_iterator<KroneckerSum<LhsMatrix, RhsMatrix>, RowMajor, kKronSumF
  private:
   using LhsIterator = kron_view_iterator<LhsMatrix, RowMajor>;
   using RhsIterator = kron_view_iterator<RhsMatrix, RowMajor>;
-  Index indexL() const { return m_itL ? m_itL.index() * m_n2 + m_outerR : NumTraits<Index>::highest(); }
-  Index indexR() const { return m_itR ? m_outerL * m_n2 + m_itR.index() : NumTraits<Index>::highest(); }
+  constexpr Index indexL() const { return m_itL ? m_itL.index() * m_n2 + m_outerR : NumTraits<Index>::highest(); }
+  constexpr Index indexR() const { return m_itR ? m_outerL * m_n2 + m_itR.index() : NumTraits<Index>::highest(); }
 
   Index m_n2, m_outerL, m_outerR;
   LhsIterator m_itL;
@@ -270,17 +270,17 @@ class kron_view_iterator<KroneckerSum<LhsMatrix, RhsMatrix>, RowMajor, kKronSumF
  * an upper bound for Kronecker sums (whose two terms share the diagonal). */
 template <typename Factor, int Kind = kron_factor_kind<Factor>()>
 struct kron_view_nonzeros {
-  static Index run(const Factor& f) { return kron_factor_ops<Factor>::innerNonZeros(f, false).sum(); }
+  static constexpr Index run(const Factor& f) { return kron_factor_ops<Factor>::innerNonZeros(f, false).sum(); }
 };
 template <typename LhsMatrix, typename RhsMatrix>
 struct kron_view_nonzeros<KroneckerOperator<LhsMatrix, RhsMatrix>, kKronKroneckerFactor> {
-  static Index run(const KroneckerOperator<LhsMatrix, RhsMatrix>& f) {
+  static constexpr Index run(const KroneckerOperator<LhsMatrix, RhsMatrix>& f) {
     return kron_view_nonzeros<LhsMatrix>::run(f.lhs()) * kron_view_nonzeros<RhsMatrix>::run(f.rhs());
   }
 };
 template <typename LhsMatrix, typename RhsMatrix>
 struct kron_view_nonzeros<KroneckerSum<LhsMatrix, RhsMatrix>, kKronSumFactor> {
-  static Index run(const KroneckerSum<LhsMatrix, RhsMatrix>& f) {
+  static constexpr Index run(const KroneckerSum<LhsMatrix, RhsMatrix>& f) {
     return kron_view_nonzeros<LhsMatrix>::run(f.lhs()) * f.rhs().rows() +
            f.lhs().rows() * kron_view_nonzeros<RhsMatrix>::run(f.rhs());
   }
@@ -348,29 +348,29 @@ class KroneckerSparseView : public SparseMatrixBase<KroneckerSparseView<Operator
   using ViewOperator = typename ViewFactor::type;
   static constexpr bool RowMajorView = (unsigned(Options) & RowMajorBit) != 0;
 
-  explicit KroneckerSparseView(const OperatorType& op) : m_op(ViewFactor::convert(op)) {}
+  explicit constexpr KroneckerSparseView(const OperatorType& op) : m_op(ViewFactor::convert(op)) {}
 
-  Index rows() const { return m_op.rows(); }
-  Index cols() const { return m_op.cols(); }
+  constexpr Index rows() const { return m_op.rows(); }
+  constexpr Index cols() const { return m_op.cols(); }
 
   /** \returns the operator the view iterates, with its sparse factors in the
    * view's storage order. */
-  const ViewOperator& nestedOperator() const { return m_op; }
+  constexpr const ViewOperator& nestedOperator() const { return m_op; }
 
   /** Iterates the stored entries of an inner vector in increasing inner index. */
   class InnerIterator {
    public:
-    InnerIterator(const KroneckerSparseView& view, Index outer) : m_it(view.m_op, outer), m_outer(outer) {}
-    InnerIterator& operator++() {
+    constexpr InnerIterator(const KroneckerSparseView& view, Index outer) : m_it(view.m_op, outer), m_outer(outer) {}
+    constexpr InnerIterator& operator++() {
       ++m_it;
       return *this;
     }
-    operator bool() const { return bool(m_it); }
-    Index index() const { return m_it.index(); }
-    Index outer() const { return m_outer; }
-    Index row() const { return RowMajorView ? m_outer : index(); }
-    Index col() const { return RowMajorView ? index() : m_outer; }
-    Scalar value() const { return m_it.value(); }
+    constexpr operator bool() const { return bool(m_it); }
+    constexpr Index index() const { return m_it.index(); }
+    constexpr Index outer() const { return m_outer; }
+    constexpr Index row() const { return RowMajorView ? m_outer : index(); }
+    constexpr Index col() const { return RowMajorView ? index() : m_outer; }
+    constexpr Scalar value() const { return m_it.value(); }
 
    private:
     internal::kron_view_iterator<ViewOperator, RowMajorView> m_it;
@@ -393,11 +393,11 @@ struct evaluator<KroneckerSparseView<OperatorType, Options>>
 
   class InnerIterator : public XprType::InnerIterator {
    public:
-    InnerIterator(const evaluator& eval, Index outer) : XprType::InnerIterator(eval.m_view, outer) {}
+    constexpr InnerIterator(const evaluator& eval, Index outer) : XprType::InnerIterator(eval.m_view, outer) {}
   };
 
-  explicit evaluator(const XprType& xpr) : m_view(xpr) {}
-  Index nonZerosEstimate() const {
+  explicit constexpr evaluator(const XprType& xpr) : m_view(xpr) {}
+  constexpr Index nonZerosEstimate() const {
     return kron_view_nonzeros<typename XprType::ViewOperator>::run(m_view.nestedOperator());
   }
 

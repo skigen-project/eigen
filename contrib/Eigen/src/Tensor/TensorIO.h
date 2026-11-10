@@ -120,7 +120,7 @@ class TensorWithFormat;
 template <typename T, int rank, typename Format>
 class TensorWithFormat<T, RowMajor, rank, Format> {
  public:
-  TensorWithFormat(const T& tensor, const Format& format) : t_tensor(tensor), t_format(format) {}
+  constexpr TensorWithFormat(const T& tensor, const Format& format) : t_tensor(tensor), t_format(format) {}
 
   friend std::ostream& operator<<(std::ostream& os, const TensorWithFormat<T, RowMajor, rank, Format>& wf) {
     // Evaluate the expression if needed
@@ -142,7 +142,7 @@ class TensorWithFormat<T, RowMajor, rank, Format> {
 template <typename T, int rank, typename Format>
 class TensorWithFormat<T, ColMajor, rank, Format> {
  public:
-  TensorWithFormat(const T& tensor, const Format& format) : t_tensor(tensor), t_format(format) {}
+  constexpr TensorWithFormat(const T& tensor, const Format& format) : t_tensor(tensor), t_format(format) {}
 
   friend std::ostream& operator<<(std::ostream& os, const TensorWithFormat<T, ColMajor, rank, Format>& wf) {
     // Switch to RowMajor storage and print afterwards
@@ -172,7 +172,7 @@ class TensorWithFormat<T, ColMajor, rank, Format> {
 template <typename T, typename Format>
 class TensorWithFormat<T, ColMajor, 0, Format> {
  public:
-  TensorWithFormat(const T& tensor, const Format& format) : t_tensor(tensor), t_format(format) {}
+  constexpr TensorWithFormat(const T& tensor, const Format& format) : t_tensor(tensor), t_format(format) {}
 
   friend std::ostream& operator<<(std::ostream& os, const TensorWithFormat<T, ColMajor, 0, Format>& wf) {
     // Evaluate the expression if needed

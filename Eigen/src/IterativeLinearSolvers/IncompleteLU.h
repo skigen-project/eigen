@@ -33,28 +33,28 @@ class IncompleteLU : public SparseSolverBase<IncompleteLU<Scalar_> > {
   static constexpr int ColsAtCompileTime = Dynamic;
   static constexpr int MaxColsAtCompileTime = Dynamic;
 
-  IncompleteLU() {}
+  constexpr IncompleteLU() {}
 
   template <typename MatrixType>
-  IncompleteLU(const MatrixType& mat) {
+  constexpr IncompleteLU(const MatrixType& mat) {
     compute(mat);
   }
 
-  Index rows() const { return m_lu.rows(); }
-  Index cols() const { return m_lu.cols(); }
+  constexpr Index rows() const { return m_lu.rows(); }
+  constexpr Index cols() const { return m_lu.cols(); }
 
   template <typename MatrixType>
-  IncompleteLU& analyzePattern(const MatrixType&) {
+  constexpr IncompleteLU& analyzePattern(const MatrixType&) {
     return *this;
   }
 
   template <typename MatrixType>
-  IncompleteLU& factorize(const MatrixType& mat) {
+  constexpr IncompleteLU& factorize(const MatrixType& mat) {
     return compute(mat);
   }
 
   template <typename MatrixType>
-  IncompleteLU& compute(const MatrixType& mat) {
+  constexpr IncompleteLU& compute(const MatrixType& mat) {
     m_lu = mat;
     Index size = mat.cols();
     Vector diag(size);
@@ -87,10 +87,10 @@ class IncompleteLU : public SparseSolverBase<IncompleteLU<Scalar_> > {
     return *this;
   }
 
-  ComputationInfo info() const { return Success; }
+  constexpr ComputationInfo info() const { return Success; }
 
   template <typename Rhs, typename Dest>
-  void _solve_impl(const Rhs& b, Dest& x) const {
+  constexpr void _solve_impl(const Rhs& b, Dest& x) const {
     x = m_lu.template triangularView<UnitLower>().solve(b);
     x = m_lu.template triangularView<Upper>().solve(x);
   }

@@ -57,15 +57,16 @@ namespace internal {
  *
  */
 template <typename Scalar, typename StorageIndex>
-void SparseLUImpl<Scalar, StorageIndex>::panel_bmod(const Index m, const Index w, const Index jcol, const Index nseg,
-                                                    ScalarVector& dense, ScalarVector& tempv, IndexVector& segrep,
-                                                    IndexVector& repfnz, GlobalLU_t& glu) {
-  Index ksub, jj, nextl_col;
-  Index fsupc, nsupc, nsupr, nrow;
-  Index krep, kfnz;
-  Index lptr;   // points to the row subscripts of a supernode
-  Index luptr;  // ...
-  Index segsize, no_zeros;
+constexpr void SparseLUImpl<Scalar, StorageIndex>::panel_bmod(const Index m, const Index w, const Index jcol,
+                                                              const Index nseg, ScalarVector& dense,
+                                                              ScalarVector& tempv, IndexVector& segrep,
+                                                              IndexVector& repfnz, GlobalLU_t& glu) {
+  Index ksub = 0, jj = 0, nextl_col = 0;
+  Index fsupc = 0, nsupc = 0, nsupr = 0, nrow = 0;
+  Index krep = 0, kfnz = 0;
+  Index lptr = 0;   // points to the row subscripts of a supernode
+  Index luptr = 0;  // ...
+  Index segsize = 0, no_zeros = 0;
   // For each nonz supernode segment of U[*,j] in topological order
   Index k = nseg - 1;
   const Index PacketSize = internal::packet_traits<Scalar>::size;
@@ -141,7 +142,10 @@ void SparseLUImpl<Scalar, StorageIndex>::panel_bmod(const Index m, const Index w
       eigen_assert(tempv.size() > w * ldu + nrow * w + 1);
 
       Index ldl = internal::first_multiple<Index>(nrow, PacketSize);
-      Index offset = (PacketSize - internal::first_default_aligned(B.data(), PacketSize)) % PacketSize;
+      // The offset only aligns L with B for packet access, which constant evaluation does not use.
+      Index offset = internal::is_constant_evaluated()
+                         ? 0
+                         : (PacketSize - internal::first_default_aligned(B.data(), PacketSize)) % PacketSize;
       MappedMatrixBlock L(tempv.data() + w * ldu + offset, nrow, u_cols, OuterStride<>(ldl));
 
       L.noalias() = B * U;
