@@ -21,7 +21,7 @@ namespace internal {
 // the grouping, but a short-circuit may read past the deciding coefficient, up to the end of its block.
 template <typename Scalar>
 struct nonzero_predicate {
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const { return x != Scalar(0); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool operator()(const Scalar& x) const { return x != Scalar(0); }
   template <typename Packet>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& x) const {
     return pandnot(ptrue(x), pcmp_eq(x, pzero(x)));
@@ -38,7 +38,9 @@ struct functor_traits<nonzero_predicate<Scalar>> {
 
 template <typename Scalar>
 struct isfinite_predicate {
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const { return (numext::isfinite)(x); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool operator()(const Scalar& x) const {
+    return (numext::isfinite)(x);
+  }
   template <typename Packet>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packetOp(const Packet& x) const {
     return pisfinite(x);
@@ -56,7 +58,7 @@ struct fuzzy_constant_predicate {
   using RealScalar = typename NumTraits<Scalar>::Real;
   Scalar value;
   RealScalar precision;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool operator()(const Scalar& x) const {
     return internal::isApprox(x, value, precision);
   }
   // Requires 0 <= precision <= 1 and a finite value. Then min(|x|, |v|) p = min(|x| p, |v| p) exactly, and |x| p is
@@ -68,7 +70,7 @@ struct fuzzy_constant_predicate {
     const Packet scale = pset1<Packet>(numext::copysign(precision, value));
     return pcmp_le(pabs(psub(x, pset1<Packet>(value))), pmin(pmul(x, scale), bound));
   }
-  EIGEN_DEVICE_FUNC bool packetOpApplies() const {
+  EIGEN_DEVICE_FUNC constexpr bool packetOpApplies() const {
     return precision >= RealScalar(0) && precision <= RealScalar(1) && (numext::isfinite)(value);
   }
 };
@@ -76,7 +78,7 @@ template <typename Scalar>
 struct fuzzy_constant_predicate<Scalar, false> {
   Scalar value;
   typename NumTraits<Scalar>::Real precision;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool operator()(const Scalar& x) const {
     return internal::isMuchSmallerThan(x, Scalar(1), precision);
   }
   template <typename Packet>
@@ -106,7 +108,7 @@ template <typename Predicate>
 struct scalar_predicate {
   Predicate pred;
   template <typename Scalar>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool operator()(const Scalar& x) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool operator()(const Scalar& x) const {
     return pred(x);
   }
 };
@@ -512,9 +514,16 @@ struct predicate_reduction {
   using Segment = predicate_segment<Evaluator>;
 
   template <bool Target>
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool search(const Derived& xpr, Predicate pred) {
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool search(const Derived& xpr, Predicate pred) {
     using impl = predicate_search_segment<typename predicate_search_for<Target, Predicate>::type, Packet, Vectorize>;
     Evaluator eval(xpr);
+    // Packet operations are not constant expressions.
+    if (is_constant_evaluated()) {
+      for (Index j = 0; j < eval.cols(); ++j)
+        for (Index i = 0; i < eval.rows(); ++i)
+          if (static_cast<bool>(pred(eval.coeff(i, j))) == Target) return true;
+      return false;
+    }
     EIGEN_IF_CONSTEXPR (LinearAccess) {
       return impl::run(Segment(eval, 0, eval.size()), pred);
     } else {
@@ -537,37 +546,37 @@ struct predicate_reduction {
 
 /** \internal \returns true if \a pred holds for every coefficient of \a xpr. */
 template <typename Derived, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool all_of(const Derived& xpr, const Predicate& pred) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool all_of(const Derived& xpr, const Predicate& pred) {
   return !predicate_reduction<Derived, Predicate>::template search<false>(xpr, pred);
 }
 
 /** \internal \returns true if \a pred holds for some coefficient of \a xpr. */
 template <typename Derived, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool any_of(const Derived& xpr, const Predicate& pred) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool any_of(const Derived& xpr, const Predicate& pred) {
   return predicate_reduction<Derived, Predicate>::template search<true>(xpr, pred);
 }
 
 // The packet test of fuzzy_constant_predicate holds only where packetOpApplies; elsewhere it tests scalars.
 template <typename Derived, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool fuzzy_constant_all_of(const Derived& xpr, const Predicate& pred,
-                                                                 std::true_type) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool fuzzy_constant_all_of(const Derived& xpr, const Predicate& pred,
+                                                                           std::true_type) {
   if (EIGEN_PREDICT_FALSE(!pred.packetOpApplies())) return all_of(xpr, scalar_predicate<Predicate>{pred});
   return all_of(xpr, pred);
 }
 template <typename Derived, typename Predicate>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool fuzzy_constant_all_of(const Derived& xpr, const Predicate& pred,
-                                                                 std::false_type) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool fuzzy_constant_all_of(const Derived& xpr, const Predicate& pred,
+                                                                           std::false_type) {
   return all_of(xpr, pred);
 }
 
 template <typename Derived, bool AlwaysTrue = NumTraits<typename traits<Derived>::Scalar>::IsInteger>
 struct all_finite_impl {
-  static EIGEN_DEVICE_FUNC inline bool run(const Derived& /*derived*/) { return true; }
+  static EIGEN_DEVICE_FUNC constexpr bool run(const Derived& /*derived*/) { return true; }
 };
 #if !defined(__FINITE_MATH_ONLY__) || !(__FINITE_MATH_ONLY__)
 template <typename Derived>
 struct all_finite_impl<Derived, false> {
-  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool run(const Derived& derived) {
+  static EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool run(const Derived& derived) {
     return all_of(derived, isfinite_predicate<typename traits<Derived>::Scalar>());
   }
 };
@@ -583,7 +592,7 @@ struct all_finite_impl<Derived, false> {
  * \sa any(), Cwise::operator<()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::all() const {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool DenseBase<Derived>::all() const {
   return internal::all_of(derived(), internal::nonzero_predicate<Scalar>());
 }
 
@@ -592,12 +601,12 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::all() const {
  * \sa all()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::any() const {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool DenseBase<Derived>::any() const {
   return internal::any_of(derived(), internal::nonzero_predicate<Scalar>());
 }
 
 template <typename Derived>
-EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::hasNaN() const {
+EIGEN_DEVICE_FUNC constexpr bool DenseBase<Derived>::hasNaN() const {
   return derived().cwiseTypedNotEqual(derived()).any();
 }
 
@@ -606,14 +615,14 @@ EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::hasNaN() const {
  * \sa hasNaN()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::allFinite() const {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool DenseBase<Derived>::allFinite() const {
   return internal::all_finite_impl<Derived>::run(derived());
 }
 
 /** \returns true if all coefficients in this matrix are approximately equal to \a val, to within precision \a prec */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::isApproxToConstant(const Scalar& val,
-                                                                                  const RealScalar& prec) const {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool DenseBase<Derived>::isApproxToConstant(
+    const Scalar& val, const RealScalar& prec) const {
   using Predicate = internal::fuzzy_constant_predicate<Scalar, true>;
   return internal::fuzzy_constant_all_of(
       derived(), Predicate{val, prec},
@@ -629,7 +638,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::isApproxToConstan
  * \sa class CwiseNullaryOp, Zero()
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE bool DenseBase<Derived>::isZero(const RealScalar& prec) const {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr bool DenseBase<Derived>::isZero(const RealScalar& prec) const {
   return internal::all_of(derived(), internal::fuzzy_constant_predicate<Scalar, false>{Scalar(0), prec});
 }
 

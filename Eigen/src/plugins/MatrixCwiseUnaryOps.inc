@@ -98,7 +98,6 @@ using CwisePowReturnType =
                      CwiseUnaryOp<internal::scalar_unary_pow_op<Scalar, ScalarExponent>, const Derived>>;
 
 template <typename ScalarExponent>
-EIGEN_DEVICE_FUNC constexpr inline const CwisePowReturnType<ScalarExponent> cwisePow(
-    const ScalarExponent& exponent) const {
+EIGEN_DEVICE_FUNC constexpr const CwisePowReturnType<ScalarExponent> cwisePow(const ScalarExponent& exponent) const {
   return CwisePowReturnType<ScalarExponent>(derived(), internal::scalar_unary_pow_op<Scalar, ScalarExponent>(exponent));
 }

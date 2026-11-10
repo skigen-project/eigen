@@ -81,14 +81,14 @@ class Diagonal : public internal::dense_xpr_base<Diagonal<MatrixType, DiagIndex_
   using Base = typename internal::dense_xpr_base<Diagonal>::type;
   EIGEN_DENSE_PUBLIC_INTERFACE(Diagonal)
 
-  EIGEN_DEVICE_FUNC constexpr explicit inline Diagonal(MatrixType& matrix, Index a_index = DiagIndex)
+  EIGEN_DEVICE_FUNC constexpr explicit Diagonal(MatrixType& matrix, Index a_index = DiagIndex)
       : m_matrix(matrix), m_index(a_index) {
     eigen_assert(a_index <= m_matrix.cols() && -a_index <= m_matrix.rows());
   }
 
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(Diagonal)
 
-  EIGEN_DEVICE_FUNC constexpr inline Index rows() const {
+  EIGEN_DEVICE_FUNC constexpr Index rows() const {
     return m_index.value() < 0 ? numext::mini<Index>(m_matrix.cols(), m_matrix.rows() + m_index.value())
                                : numext::mini<Index>(m_matrix.rows(), m_matrix.cols() - m_index.value());
   }
@@ -103,45 +103,44 @@ class Diagonal : public internal::dense_xpr_base<Diagonal<MatrixType, DiagIndex_
 
   using ScalarWithConstIfNotLvalue = std::conditional_t<internal::is_lvalue<MatrixType>::value, Scalar, const Scalar>;
 
-  EIGEN_DEVICE_FUNC inline ScalarWithConstIfNotLvalue* data() {
+  EIGEN_DEVICE_FUNC constexpr ScalarWithConstIfNotLvalue* data() {
     return rows() > 0 ? &(m_matrix.coeffRef(rowOffset(), colOffset())) : nullptr;
   }
-  EIGEN_DEVICE_FUNC inline const Scalar* data() const {
+  EIGEN_DEVICE_FUNC constexpr const Scalar* data() const {
     return rows() > 0 ? &(m_matrix.coeffRef(rowOffset(), colOffset())) : nullptr;
   }
 
-  EIGEN_DEVICE_FUNC inline Scalar& coeffRef(Index row, Index) {
+  EIGEN_DEVICE_FUNC constexpr Scalar& coeffRef(Index row, Index) {
     EIGEN_STATIC_ASSERT_LVALUE(MatrixType)
     return m_matrix.coeffRef(row + rowOffset(), row + colOffset());
   }
 
-  EIGEN_DEVICE_FUNC inline const Scalar& coeffRef(Index row, Index) const {
+  EIGEN_DEVICE_FUNC constexpr const Scalar& coeffRef(Index row, Index) const {
     return m_matrix.coeffRef(row + rowOffset(), row + colOffset());
   }
 
-  EIGEN_DEVICE_FUNC inline CoeffReturnType coeff(Index row, Index) const {
+  EIGEN_DEVICE_FUNC constexpr CoeffReturnType coeff(Index row, Index) const {
     return m_matrix.coeff(row + rowOffset(), row + colOffset());
   }
 
-  EIGEN_DEVICE_FUNC inline Scalar& coeffRef(Index idx) {
+  EIGEN_DEVICE_FUNC constexpr Scalar& coeffRef(Index idx) {
     EIGEN_STATIC_ASSERT_LVALUE(MatrixType)
     return m_matrix.coeffRef(idx + rowOffset(), idx + colOffset());
   }
 
-  EIGEN_DEVICE_FUNC inline const Scalar& coeffRef(Index idx) const {
+  EIGEN_DEVICE_FUNC constexpr const Scalar& coeffRef(Index idx) const {
     return m_matrix.coeffRef(idx + rowOffset(), idx + colOffset());
   }
 
-  EIGEN_DEVICE_FUNC inline CoeffReturnType coeff(Index idx) const {
+  EIGEN_DEVICE_FUNC constexpr CoeffReturnType coeff(Index idx) const {
     return m_matrix.coeff(idx + rowOffset(), idx + colOffset());
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline const internal::remove_all_t<typename MatrixType::Nested>& nestedExpression()
-      const {
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename MatrixType::Nested>& nestedExpression() const {
     return m_matrix;
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline Index index() const { return m_index.value(); }
+  EIGEN_DEVICE_FUNC constexpr Index index() const { return m_index.value(); }
 
  protected:
   typename internal::ref_selector<MatrixType>::non_const_type m_matrix;

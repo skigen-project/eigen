@@ -151,19 +151,20 @@ class MatrixBase : public DenseBase<Derived> {
   EIGEN_DEVICE_FUNC constexpr Derived& operator=(const ReturnByValue<OtherDerived>& other);
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator+=(const MatrixBase<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator+=(const MatrixBase<OtherDerived>& other);
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator-=(const MatrixBase<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator-=(const MatrixBase<OtherDerived>& other);
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC const Product<Derived, OtherDerived> operator*(const MatrixBase<OtherDerived>& other) const;
-
-  template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC const Product<Derived, OtherDerived, LazyProduct> lazyProduct(
+  EIGEN_DEVICE_FUNC constexpr const Product<Derived, OtherDerived> operator*(
       const MatrixBase<OtherDerived>& other) const;
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC Derived& operator*=(const EigenBase<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC constexpr const Product<Derived, OtherDerived, LazyProduct> lazyProduct(
+      const MatrixBase<OtherDerived>& other) const;
+
+  template <typename OtherDerived>
+  EIGEN_DEVICE_FUNC constexpr Derived& operator*=(const EigenBase<OtherDerived>& other);
 
   template <typename OtherDerived>
   EIGEN_DEVICE_FUNC void applyOnTheLeft(const EigenBase<OtherDerived>& other);
@@ -172,11 +173,11 @@ class MatrixBase : public DenseBase<Derived> {
   EIGEN_DEVICE_FUNC void applyOnTheRight(const EigenBase<OtherDerived>& other);
 
   template <typename DiagonalDerived>
-  EIGEN_DEVICE_FUNC const Product<Derived, DiagonalDerived, LazyProduct> operator*(
+  EIGEN_DEVICE_FUNC constexpr const Product<Derived, DiagonalDerived, LazyProduct> operator*(
       const DiagonalBase<DiagonalDerived>& diagonal) const;
 
   template <typename SkewDerived>
-  EIGEN_DEVICE_FUNC const Product<Derived, SkewDerived, LazyProduct> operator*(
+  EIGEN_DEVICE_FUNC constexpr const Product<Derived, SkewDerived, LazyProduct> operator*(
       const SkewSymmetricBase<SkewDerived>& skew) const;
 
   template <typename OtherDerived>
@@ -185,17 +186,17 @@ class MatrixBase : public DenseBase<Derived> {
   dot(const MatrixBase<OtherDerived>& other) const;
 
   EIGEN_DEVICE_FUNC constexpr RealScalar squaredNorm() const;
-  EIGEN_DEVICE_FUNC RealScalar norm() const;
-  RealScalar stableNorm() const;
-  RealScalar blueNorm() const;
-  RealScalar hypotNorm() const;
-  EIGEN_DEVICE_FUNC const PlainObject normalized() const;
-  EIGEN_DEVICE_FUNC const PlainObject stableNormalized() const;
-  EIGEN_DEVICE_FUNC void normalize();
-  EIGEN_DEVICE_FUNC void stableNormalize();
+  EIGEN_DEVICE_FUNC constexpr RealScalar norm() const;
+  constexpr RealScalar stableNorm() const;
+  constexpr RealScalar blueNorm() const;
+  constexpr RealScalar hypotNorm() const;
+  EIGEN_DEVICE_FUNC constexpr const PlainObject normalized() const;
+  EIGEN_DEVICE_FUNC constexpr const PlainObject stableNormalized() const;
+  EIGEN_DEVICE_FUNC constexpr void normalize();
+  EIGEN_DEVICE_FUNC constexpr void stableNormalize();
 
   EIGEN_DEVICE_FUNC constexpr const AdjointReturnType adjoint() const;
-  EIGEN_DEVICE_FUNC void adjointInPlace();
+  EIGEN_DEVICE_FUNC constexpr void adjointInPlace();
 
   using DiagonalReturnType = Diagonal<Derived>;
   EIGEN_DEVICE_FUNC constexpr DiagonalReturnType diagonal();
@@ -243,36 +244,36 @@ class MatrixBase : public DenseBase<Derived> {
   const SparseView<Derived> sparseView(
       const Scalar& m_reference = Scalar(0),
       const typename NumTraits<Scalar>::Real& m_epsilon = NumTraits<Scalar>::dummy_precision()) const;
-  EIGEN_DEVICE_FUNC static const IdentityReturnType Identity();
-  EIGEN_DEVICE_FUNC static const IdentityReturnType Identity(Index rows, Index cols);
-  EIGEN_DEVICE_FUNC static const BasisReturnType Unit(Index size, Index i);
-  EIGEN_DEVICE_FUNC static const BasisReturnType Unit(Index i);
-  EIGEN_DEVICE_FUNC static const BasisReturnType UnitX();
-  EIGEN_DEVICE_FUNC static const BasisReturnType UnitY();
-  EIGEN_DEVICE_FUNC static const BasisReturnType UnitZ();
-  EIGEN_DEVICE_FUNC static const BasisReturnType UnitW();
+  EIGEN_DEVICE_FUNC static constexpr const IdentityReturnType Identity();
+  EIGEN_DEVICE_FUNC static constexpr const IdentityReturnType Identity(Index rows, Index cols);
+  EIGEN_DEVICE_FUNC static constexpr const BasisReturnType Unit(Index size, Index i);
+  EIGEN_DEVICE_FUNC static constexpr const BasisReturnType Unit(Index i);
+  EIGEN_DEVICE_FUNC static constexpr const BasisReturnType UnitX();
+  EIGEN_DEVICE_FUNC static constexpr const BasisReturnType UnitY();
+  EIGEN_DEVICE_FUNC static constexpr const BasisReturnType UnitZ();
+  EIGEN_DEVICE_FUNC static constexpr const BasisReturnType UnitW();
 
   EIGEN_DEVICE_FUNC constexpr const DiagonalWrapper<const Derived> asDiagonal() const;
-  const PermutationWrapper<const Derived> asPermutation() const;
+  constexpr const PermutationWrapper<const Derived> asPermutation() const;
   EIGEN_DEVICE_FUNC constexpr const SkewSymmetricWrapper<const Derived> asSkewSymmetric() const;
 
-  EIGEN_DEVICE_FUNC Derived& setIdentity();
-  EIGEN_DEVICE_FUNC Derived& setIdentity(Index rows, Index cols);
-  EIGEN_DEVICE_FUNC Derived& setUnit(Index i);
-  EIGEN_DEVICE_FUNC Derived& setUnit(Index newSize, Index i);
+  EIGEN_DEVICE_FUNC constexpr Derived& setIdentity();
+  EIGEN_DEVICE_FUNC constexpr Derived& setIdentity(Index rows, Index cols);
+  EIGEN_DEVICE_FUNC constexpr Derived& setUnit(Index i);
+  EIGEN_DEVICE_FUNC constexpr Derived& setUnit(Index newSize, Index i);
 
-  bool isIdentity(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
-  bool isDiagonal(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isIdentity(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isDiagonal(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
 
-  bool isUpperTriangular(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
-  bool isLowerTriangular(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isUpperTriangular(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isLowerTriangular(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
 
-  bool isSkewSymmetric(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isSkewSymmetric(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
 
   template <typename OtherDerived>
-  bool isOrthogonal(const MatrixBase<OtherDerived>& other,
-                    const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
-  bool isUnitary(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isOrthogonal(const MatrixBase<OtherDerived>& other,
+                              const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
+  constexpr bool isUnitary(const RealScalar& prec = NumTraits<Scalar>::dummy_precision()) const;
 
   /* diagonalView */
   template <int DiagIndex_ = 0>
@@ -290,7 +291,7 @@ class MatrixBase : public DenseBase<Derived> {
    *          fuzzy comparison such as isApprox()
    * \sa isApprox(), operator!= */
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC inline bool operator==(const MatrixBase<OtherDerived>& other) const {
+  EIGEN_DEVICE_FUNC constexpr bool operator==(const MatrixBase<OtherDerived>& other) const {
     return (this->rows() == other.rows()) && (this->cols() == other.cols()) && cwiseEqual(other).all();
   }
 
@@ -299,11 +300,11 @@ class MatrixBase : public DenseBase<Derived> {
    *          fuzzy comparison such as isApprox()
    * \sa isApprox(), operator== */
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC inline bool operator!=(const MatrixBase<OtherDerived>& other) const {
+  EIGEN_DEVICE_FUNC constexpr bool operator!=(const MatrixBase<OtherDerived>& other) const {
     return !(*this == other);
   }
 
-  NoAlias<Derived, Eigen::MatrixBase> EIGEN_DEVICE_FUNC noalias();
+  constexpr NoAlias<Derived, Eigen::MatrixBase> EIGEN_DEVICE_FUNC noalias();
 
   // TODO forceAlignedAccess is temporarily disabled
   // Need to find a nicer workaround.
@@ -318,10 +319,10 @@ class MatrixBase : public DenseBase<Derived> {
     return derived();
   }
 
-  EIGEN_DEVICE_FUNC Scalar trace() const;
+  EIGEN_DEVICE_FUNC constexpr Scalar trace() const;
 
   template <int p>
-  EIGEN_DEVICE_FUNC RealScalar lpNorm() const;
+  EIGEN_DEVICE_FUNC constexpr RealScalar lpNorm() const;
 
   EIGEN_DEVICE_FUNC constexpr MatrixBase<Derived>& matrix() { return *this; }
   EIGEN_DEVICE_FUNC constexpr const MatrixBase<Derived>& matrix() const { return *this; }
@@ -455,8 +456,8 @@ class MatrixBase : public DenseBase<Derived> {
   ///////// SparseCore module /////////
 
   template <typename OtherDerived>
-  EIGEN_STRONG_INLINE const CwiseBinaryOp<internal::scalar_product_op<Scalar, typename OtherDerived::Scalar>,
-                                          const Derived, const OtherDerived>
+  EIGEN_STRONG_INLINE constexpr const CwiseBinaryOp<internal::scalar_product_op<Scalar, typename OtherDerived::Scalar>,
+                                                    const Derived, const OtherDerived>
   cwiseProduct(const SparseMatrixBase<OtherDerived>& other) const {
     return {derived(), other.derived()};
   }
@@ -496,22 +497,22 @@ class MatrixBase : public DenseBase<Derived> {
   EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(MatrixBase)
 
  private:
-  EIGEN_DEVICE_FUNC explicit MatrixBase(int);
-  EIGEN_DEVICE_FUNC MatrixBase(int, int);
+  EIGEN_DEVICE_FUNC constexpr explicit MatrixBase(int);
+  EIGEN_DEVICE_FUNC constexpr MatrixBase(int, int);
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC explicit MatrixBase(const MatrixBase<OtherDerived>&);
+  EIGEN_DEVICE_FUNC constexpr explicit MatrixBase(const MatrixBase<OtherDerived>&);
 
  protected:
   // mixing arrays and matrices is not legal
   template <typename OtherDerived>
-  Derived& operator+=(const ArrayBase<OtherDerived>&) {
+  constexpr Derived& operator+=(const ArrayBase<OtherDerived>&) {
     EIGEN_STATIC_ASSERT(std::ptrdiff_t(sizeof(typename OtherDerived::Scalar)) == -1,
                         YOU_CANNOT_MIX_ARRAYS_AND_MATRICES);
     return *this;
   }
   // mixing arrays and matrices is not legal
   template <typename OtherDerived>
-  Derived& operator-=(const ArrayBase<OtherDerived>&) {
+  constexpr Derived& operator-=(const ArrayBase<OtherDerived>&) {
     EIGEN_STATIC_ASSERT(std::ptrdiff_t(sizeof(typename OtherDerived::Scalar)) == -1,
                         YOU_CANNOT_MIX_ARRAYS_AND_MATRICES);
     return *this;
@@ -531,7 +532,7 @@ class MatrixBase : public DenseBase<Derived> {
  */
 template <typename Derived>
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC inline Derived& MatrixBase<Derived>::operator*=(const EigenBase<OtherDerived>& other) {
+EIGEN_DEVICE_FUNC constexpr Derived& MatrixBase<Derived>::operator*=(const EigenBase<OtherDerived>& other) {
   other.derived().applyThisOnTheRight(derived());
   return derived();
 }

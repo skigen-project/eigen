@@ -44,7 +44,7 @@ class NestByValue : public internal::dense_xpr_base<NestByValue<ExpressionType> 
 
   EIGEN_DENSE_PUBLIC_INTERFACE(NestByValue)
 
-  EIGEN_DEVICE_FUNC constexpr explicit inline NestByValue(const ExpressionType& matrix) : m_expression(matrix) {}
+  EIGEN_DEVICE_FUNC constexpr explicit NestByValue(const ExpressionType& matrix) : m_expression(matrix) {}
 
   EIGEN_DEVICE_FUNC constexpr Index rows() const noexcept { return m_expression.rows(); }
   EIGEN_DEVICE_FUNC constexpr Index cols() const noexcept { return m_expression.cols(); }
@@ -75,7 +75,7 @@ class NestByValue : public internal::dense_xpr_base<NestByValue<ExpressionType> 
 /** \returns an expression of the temporary version of *this.
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC constexpr inline const NestByValue<Derived> DenseBase<Derived>::nestByValue() const {
+EIGEN_DEVICE_FUNC constexpr const NestByValue<Derived> DenseBase<Derived>::nestByValue() const {
   return NestByValue<Derived>(derived());
 }
 

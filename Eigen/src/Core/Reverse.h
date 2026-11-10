@@ -38,12 +38,12 @@ struct traits<Reverse<MatrixType, Direction> > : traits<MatrixType> {
 
 template <typename PacketType, bool ReversePacket>
 struct reverse_packet_cond {
-  static inline PacketType run(const PacketType& x) { return preverse(x); }
+  static PacketType run(const PacketType& x) { return preverse(x); }
 };
 
 template <typename PacketType>
 struct reverse_packet_cond<PacketType, false> {
-  static inline PacketType run(const PacketType& x) { return x; }
+  static constexpr PacketType run(const PacketType& x) { return x; }
 };
 
 }  // end namespace internal
@@ -84,14 +84,14 @@ class Reverse : public internal::dense_xpr_base<Reverse<MatrixType, Direction> >
   using reverse_packet = internal::reverse_packet_cond<PacketScalar, ReversePacket>;
 
  public:
-  EIGEN_DEVICE_FUNC constexpr explicit inline Reverse(const MatrixType& matrix) : m_matrix(matrix) {}
+  EIGEN_DEVICE_FUNC constexpr explicit Reverse(const MatrixType& matrix) : m_matrix(matrix) {}
 
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(Reverse)
 
   EIGEN_DEVICE_FUNC constexpr Index rows() const noexcept { return m_matrix.rows(); }
   EIGEN_DEVICE_FUNC constexpr Index cols() const noexcept { return m_matrix.cols(); }
 
-  EIGEN_DEVICE_FUNC inline Index innerStride() const { return -m_matrix.innerStride(); }
+  EIGEN_DEVICE_FUNC constexpr Index innerStride() const { return -m_matrix.innerStride(); }
 
   EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<typename MatrixType::Nested>& nestedExpression() const {
     return m_matrix;
@@ -108,7 +108,7 @@ class Reverse : public internal::dense_xpr_base<Reverse<MatrixType, Direction> >
  *
  */
 template <typename Derived>
-EIGEN_DEVICE_FUNC inline typename DenseBase<Derived>::ReverseReturnType DenseBase<Derived>::reverse() {
+EIGEN_DEVICE_FUNC constexpr typename DenseBase<Derived>::ReverseReturnType DenseBase<Derived>::reverse() {
   return ReverseReturnType(derived());
 }
 
@@ -127,7 +127,7 @@ EIGEN_DEVICE_FUNC inline typename DenseBase<Derived>::ReverseReturnType DenseBas
  *
  * \sa VectorwiseOp::reverseInPlace(), reverse() */
 template <typename Derived>
-EIGEN_DEVICE_FUNC inline void DenseBase<Derived>::reverseInPlace() {
+EIGEN_DEVICE_FUNC constexpr void DenseBase<Derived>::reverseInPlace() {
   constexpr int HalfRowsAtCompileTime = RowsAtCompileTime == Dynamic ? Dynamic : RowsAtCompileTime / 2;
   constexpr int HalfColsAtCompileTime = ColsAtCompileTime == Dynamic ? Dynamic : ColsAtCompileTime / 2;
   // The middle column or row is a block rather than col()/row(): both branches compile for every shape, and with a
@@ -161,7 +161,7 @@ struct vectorwise_reverse_inplace_impl;
 template <>
 struct vectorwise_reverse_inplace_impl<Vertical> {
   template <typename ExpressionType>
-  static void run(ExpressionType& xpr) {
+  static constexpr void run(ExpressionType& xpr) {
     constexpr Index HalfAtCompileTime =
         ExpressionType::RowsAtCompileTime == Dynamic ? Dynamic : ExpressionType::RowsAtCompileTime / 2;
     Index half = xpr.rows() / 2;
@@ -173,7 +173,7 @@ struct vectorwise_reverse_inplace_impl<Vertical> {
 template <>
 struct vectorwise_reverse_inplace_impl<Horizontal> {
   template <typename ExpressionType>
-  static void run(ExpressionType& xpr) {
+  static constexpr void run(ExpressionType& xpr) {
     constexpr Index HalfAtCompileTime =
         ExpressionType::ColsAtCompileTime == Dynamic ? Dynamic : ExpressionType::ColsAtCompileTime / 2;
     Index half = xpr.cols() / 2;
@@ -196,7 +196,7 @@ struct vectorwise_reverse_inplace_impl<Horizontal> {
  *
  * \sa DenseBase::reverseInPlace(), reverse() */
 template <typename ExpressionType, int Direction>
-EIGEN_DEVICE_FUNC void VectorwiseOp<ExpressionType, Direction>::reverseInPlace() {
+EIGEN_DEVICE_FUNC constexpr void VectorwiseOp<ExpressionType, Direction>::reverseInPlace() {
   internal::vectorwise_reverse_inplace_impl<Direction>::run(m_matrix);
 }
 

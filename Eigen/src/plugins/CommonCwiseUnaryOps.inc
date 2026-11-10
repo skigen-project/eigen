@@ -44,7 +44,7 @@ using NegativeReturnType = CwiseUnaryOp<internal::scalar_opposite_op<Scalar>, co
 ///
 EIGEN_DOC_UNARY_ADDONS(operator-, opposite)
 ///
-EIGEN_DEVICE_FUNC constexpr inline const NegativeReturnType operator-() const { return NegativeReturnType(derived()); }
+EIGEN_DEVICE_FUNC constexpr const NegativeReturnType operator-() const { return NegativeReturnType(derived()); }
 
 template <class NewType>
 struct CastXpr {
@@ -71,7 +71,7 @@ EIGEN_DEVICE_FUNC constexpr typename CastXpr<NewType>::Type cast() const {
 EIGEN_DOC_UNARY_ADDONS(conjugate, complex conjugate)
 ///
 /// \sa <a href="group__CoeffwiseMathFunctions.html#cwisetable_conj">Math functions</a>, MatrixBase::adjoint()
-EIGEN_DEVICE_FUNC constexpr inline ConjugateReturnType conjugate() const { return ConjugateReturnType(derived()); }
+EIGEN_DEVICE_FUNC constexpr ConjugateReturnType conjugate() const { return ConjugateReturnType(derived()); }
 
 /// \returns an expression of the complex conjugate of \c *this if Cond==true, returns derived() otherwise.
 ///
@@ -79,7 +79,7 @@ EIGEN_DOC_UNARY_ADDONS(conjugate, complex conjugate)
 ///
 /// \sa conjugate()
 template <bool Cond>
-EIGEN_DEVICE_FUNC constexpr inline std::conditional_t<Cond, ConjugateReturnType, const Derived&> conjugateIf() const {
+EIGEN_DEVICE_FUNC constexpr std::conditional_t<Cond, ConjugateReturnType, const Derived&> conjugateIf() const {
   using ReturnType = std::conditional_t<Cond, ConjugateReturnType, const Derived&>;
   return ReturnType(derived());
 }
@@ -89,14 +89,14 @@ EIGEN_DEVICE_FUNC constexpr inline std::conditional_t<Cond, ConjugateReturnType,
 EIGEN_DOC_UNARY_ADDONS(real, real part function)
 ///
 /// \sa imag(), realView()
-EIGEN_DEVICE_FUNC constexpr inline RealReturnType real() const { return RealReturnType(derived()); }
+EIGEN_DEVICE_FUNC constexpr RealReturnType real() const { return RealReturnType(derived()); }
 
 /// \returns a read-only expression of the imaginary part of \c *this.
 ///
 EIGEN_DOC_UNARY_ADDONS(imag, imaginary part function)
 ///
 /// \sa real(), realView()
-EIGEN_DEVICE_FUNC constexpr inline const ImagReturnType imag() const { return ImagReturnType(derived()); }
+EIGEN_DEVICE_FUNC constexpr const ImagReturnType imag() const { return ImagReturnType(derived()); }
 
 /// \brief Apply a unary operator coefficient-wise
 /// \param[in]  func  Functor implementing the unary operator
@@ -120,7 +120,7 @@ EIGEN_DOC_UNARY_ADDONS(unaryExpr, unary function)
 /// \sa unaryViewExpr, binaryExpr, class CwiseUnaryOp
 ///
 template <typename CustomUnaryOp>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseUnaryOp<CustomUnaryOp, const Derived> unaryExpr(
+EIGEN_DEVICE_FUNC constexpr const CwiseUnaryOp<CustomUnaryOp, const Derived> unaryExpr(
     const CustomUnaryOp& func = CustomUnaryOp()) const {
   return CwiseUnaryOp<CustomUnaryOp, const Derived>(derived(), func);
 }
@@ -139,7 +139,7 @@ EIGEN_DOC_UNARY_ADDONS(unaryViewExpr, unary function)
 /// \sa unaryExpr, binaryExpr, class CwiseUnaryOp
 ///
 template <typename CustomViewOp>
-EIGEN_DEVICE_FUNC constexpr inline const CwiseUnaryView<CustomViewOp, const Derived> unaryViewExpr(
+EIGEN_DEVICE_FUNC constexpr const CwiseUnaryView<CustomViewOp, const Derived> unaryViewExpr(
     const CustomViewOp& func = CustomViewOp()) const {
   return CwiseUnaryView<CustomViewOp, const Derived>(derived(), func);
 }
@@ -154,7 +154,7 @@ EIGEN_DOC_UNARY_ADDONS(unaryViewExpr, unary function)
 /// \sa unaryExpr, binaryExpr, class CwiseUnaryOp
 ///
 template <typename CustomViewOp>
-EIGEN_DEVICE_FUNC constexpr inline CwiseUnaryView<CustomViewOp, Derived> unaryViewExpr(
+EIGEN_DEVICE_FUNC constexpr CwiseUnaryView<CustomViewOp, Derived> unaryViewExpr(
     const CustomViewOp& func = CustomViewOp()) {
   return CwiseUnaryView<CustomViewOp, Derived>(derived(), func);
 }
@@ -164,7 +164,7 @@ EIGEN_DEVICE_FUNC constexpr inline CwiseUnaryView<CustomViewOp, Derived> unaryVi
 EIGEN_DOC_UNARY_ADDONS(real, real part function)
 ///
 /// \sa imag(), realView()
-EIGEN_DEVICE_FUNC constexpr inline NonConstRealReturnType real() { return NonConstRealReturnType(derived()); }
+EIGEN_DEVICE_FUNC constexpr NonConstRealReturnType real() { return NonConstRealReturnType(derived()); }
 
 /// \returns a non const expression of the imaginary part of \c *this.
 /// For real-valued objects the imaginary part is identically zero and not writable; this then returns the
@@ -173,4 +173,4 @@ EIGEN_DEVICE_FUNC constexpr inline NonConstRealReturnType real() { return NonCon
 EIGEN_DOC_UNARY_ADDONS(imag, imaginary part function)
 ///
 /// \sa real(), realView()
-EIGEN_DEVICE_FUNC constexpr inline NonConstImagReturnType imag() { return NonConstImagReturnType(derived()); }
+EIGEN_DEVICE_FUNC constexpr NonConstImagReturnType imag() { return NonConstImagReturnType(derived()); }

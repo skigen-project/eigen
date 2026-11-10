@@ -50,21 +50,21 @@ class BandMatrixBase : public EigenBase<Derived> {
   using Base::rows;
 
   /** \returns the number of super diagonals */
-  inline Index supers() const { return derived().supers(); }
+  constexpr Index supers() const { return derived().supers(); }
 
   /** \returns the number of sub diagonals */
-  inline Index subs() const { return derived().subs(); }
+  constexpr Index subs() const { return derived().subs(); }
 
   /** \returns an expression of the underlying coefficient matrix */
-  inline const CoefficientsType& coeffs() const { return derived().coeffs(); }
+  constexpr const CoefficientsType& coeffs() const { return derived().coeffs(); }
 
   /** \returns an expression of the underlying coefficient matrix */
-  inline CoefficientsType& coeffs() { return derived().coeffs(); }
+  constexpr CoefficientsType& coeffs() { return derived().coeffs(); }
 
   /** \returns a vector expression of the \a i -th column,
    * only the meaningful part is returned.
    * \warning the internal storage must be column major. */
-  inline Block<CoefficientsType, Dynamic, 1> col(Index i) {
+  constexpr Block<CoefficientsType, Dynamic, 1> col(Index i) {
     EIGEN_STATIC_ASSERT((int(Options) & int(RowMajor)) == 0, THIS_METHOD_IS_ONLY_FOR_COLUMN_MAJOR_MATRICES);
     Index start = 0;
     Index len = coeffs().rows();
@@ -77,12 +77,12 @@ class BandMatrixBase : public EigenBase<Derived> {
   }
 
   /** \returns a vector expression of the main diagonal */
-  inline Block<CoefficientsType, 1, SizeAtCompileTime> diagonal() {
+  constexpr Block<CoefficientsType, 1, SizeAtCompileTime> diagonal() {
     return Block<CoefficientsType, 1, SizeAtCompileTime>(coeffs(), supers(), 0, 1, (std::min)(rows(), cols()));
   }
 
   /** \returns a vector expression of the main diagonal (const version) */
-  inline const Block<const CoefficientsType, 1, SizeAtCompileTime> diagonal() const {
+  constexpr const Block<const CoefficientsType, 1, SizeAtCompileTime> diagonal() const {
     return Block<const CoefficientsType, 1, SizeAtCompileTime>(coeffs(), supers(), 0, 1, (std::min)(rows(), cols()));
   }
 
@@ -110,7 +110,7 @@ class BandMatrixBase : public EigenBase<Derived> {
   /** \returns a vector expression of the \a N -th sub or super diagonal; for a self-adjoint matrix that stores
    * only the opposite diagonal, the conjugate of that one */
   template <int N>
-  inline typename DiagonalIntReturnType<N>::Type diagonal() {
+  constexpr typename DiagonalIntReturnType<N>::Type diagonal() {
     constexpr int ActualN = DiagonalIntReturnType<N>::ActualIndex;
     return typename DiagonalIntReturnType<N>::Type(typename DiagonalIntReturnType<N>::BuildType(
         coeffs(), supers() - ActualN, (std::max)(0, ActualN), 1, diagonalLength(ActualN)));
@@ -119,27 +119,27 @@ class BandMatrixBase : public EigenBase<Derived> {
   /** \returns a vector expression of the \a N -th sub or super diagonal; for a self-adjoint matrix that stores
    * only the opposite diagonal, the conjugate of that one */
   template <int N>
-  inline const typename DiagonalIntReturnType<N>::ConstType diagonal() const {
+  constexpr const typename DiagonalIntReturnType<N>::ConstType diagonal() const {
     constexpr int ActualN = DiagonalIntReturnType<N>::ActualIndex;
     return typename DiagonalIntReturnType<N>::ConstType(typename DiagonalIntReturnType<N>::ConstBuildType(
         coeffs(), supers() - ActualN, (std::max)(0, ActualN), 1, diagonalLength(ActualN)));
   }
 
   /** \returns a vector expression of the \a i -th sub or super diagonal */
-  inline Block<CoefficientsType, 1, Dynamic> diagonal(Index i) {
+  constexpr Block<CoefficientsType, 1, Dynamic> diagonal(Index i) {
     eigen_assert((i < 0 && -i <= subs()) || (i >= 0 && i <= supers()));
     return Block<CoefficientsType, 1, Dynamic>(coeffs(), supers() - i, std::max<Index>(0, i), 1, diagonalLength(i));
   }
 
   /** \returns a vector expression of the \a i -th sub or super diagonal */
-  inline const Block<const CoefficientsType, 1, Dynamic> diagonal(Index i) const {
+  constexpr const Block<const CoefficientsType, 1, Dynamic> diagonal(Index i) const {
     eigen_assert((i < 0 && -i <= subs()) || (i >= 0 && i <= supers()));
     return Block<const CoefficientsType, 1, Dynamic>(coeffs(), supers() - i, std::max<Index>(0, i), 1,
                                                      diagonalLength(i));
   }
 
   template <typename Dest>
-  inline void evalTo(Dest& dst) const {
+  constexpr void evalTo(Dest& dst) const {
     dst.resize(rows(), cols());
     dst.setZero();
     dst.diagonal() = diagonal();
@@ -147,14 +147,14 @@ class BandMatrixBase : public EigenBase<Derived> {
     for (Index i = 1; i <= subs(); ++i) dst.diagonal(-i) = diagonal(-i);
   }
 
-  DenseMatrixType toDenseMatrix() const {
+  constexpr DenseMatrixType toDenseMatrix() const {
     DenseMatrixType res(rows(), cols());
     evalTo(res);
     return res;
   }
 
  protected:
-  inline Index diagonalLength(Index i) const {
+  constexpr Index diagonalLength(Index i) const {
     return i < 0 ? (std::min)(cols(), rows() + i) : (std::min)(rows(), cols() - i);
   }
 };
@@ -206,7 +206,7 @@ class BandMatrix : public BandMatrixBase<BandMatrix<Scalar_, Rows, Cols, Supers,
   using StorageIndex = typename internal::traits<BandMatrix>::StorageIndex;
   using CoefficientsType = typename internal::traits<BandMatrix>::CoefficientsType;
 
-  explicit inline BandMatrix(Index rows = Rows, Index cols = Cols, Index supers = Supers, Index subs = Subs)
+  explicit constexpr BandMatrix(Index rows = Rows, Index cols = Cols, Index supers = Supers, Index subs = Subs)
       : m_coeffs(1 + supers + subs, cols), m_rows(rows), m_supers(supers), m_subs(subs) {}
 
   /** \returns the number of rows */
@@ -221,8 +221,8 @@ class BandMatrix : public BandMatrixBase<BandMatrix<Scalar_, Rows, Cols, Supers,
   /** \returns the number of sub diagonals */
   constexpr Index subs() const { return m_subs.value(); }
 
-  inline const CoefficientsType& coeffs() const { return m_coeffs; }
-  inline CoefficientsType& coeffs() { return m_coeffs; }
+  constexpr const CoefficientsType& coeffs() const { return m_coeffs; }
+  constexpr CoefficientsType& coeffs() { return m_coeffs; }
 
  protected:
   CoefficientsType m_coeffs;
@@ -262,8 +262,8 @@ class BandMatrixWrapper
   using CoefficientsType = typename internal::traits<BandMatrixWrapper>::CoefficientsType;
   using StorageIndex = typename internal::traits<BandMatrixWrapper>::StorageIndex;
 
-  explicit inline BandMatrixWrapper(const CoefficientsType& coeffs, Index rows = Rows_, Index cols = Cols_,
-                                    Index supers = Supers_, Index subs = Subs_)
+  explicit constexpr BandMatrixWrapper(const CoefficientsType& coeffs, Index rows = Rows_, Index cols = Cols_,
+                                       Index supers = Supers_, Index subs = Subs_)
       : m_coeffs(coeffs), m_rows(rows), m_supers(supers), m_subs(subs) {
     EIGEN_UNUSED_VARIABLE(cols);
     // eigen_assert(coeffs.cols()==cols() && (supers()+subs()+1)==coeffs.rows());
@@ -281,7 +281,7 @@ class BandMatrixWrapper
   /** \returns the number of sub diagonals */
   constexpr Index subs() const { return m_subs.value(); }
 
-  inline const CoefficientsType& coeffs() const { return m_coeffs; }
+  constexpr const CoefficientsType& coeffs() const { return m_coeffs; }
 
  protected:
   const CoefficientsType& m_coeffs;
@@ -308,14 +308,14 @@ class TridiagonalMatrix : public BandMatrix<Scalar, Size, Size, Options & SelfAd
   using StorageIndex = typename Base::StorageIndex;
 
  public:
-  explicit TridiagonalMatrix(Index size = Size) : Base(size, size, Options & SelfAdjoint ? 0 : 1, 1) {}
+  constexpr explicit TridiagonalMatrix(Index size = Size) : Base(size, size, Options & SelfAdjoint ? 0 : 1, 1) {}
 
-  inline typename Base::template DiagonalIntReturnType<1>::Type super() { return Base::template diagonal<1>(); }
-  inline const typename Base::template DiagonalIntReturnType<1>::ConstType super() const {
+  constexpr typename Base::template DiagonalIntReturnType<1>::Type super() { return Base::template diagonal<1>(); }
+  constexpr const typename Base::template DiagonalIntReturnType<1>::ConstType super() const {
     return Base::template diagonal<1>();
   }
-  inline typename Base::template DiagonalIntReturnType<-1>::Type sub() { return Base::template diagonal<-1>(); }
-  inline const typename Base::template DiagonalIntReturnType<-1>::ConstType sub() const {
+  constexpr typename Base::template DiagonalIntReturnType<-1>::Type sub() { return Base::template diagonal<-1>(); }
+  constexpr const typename Base::template DiagonalIntReturnType<-1>::ConstType sub() const {
     return Base::template diagonal<-1>();
   }
 };

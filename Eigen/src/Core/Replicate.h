@@ -72,7 +72,7 @@ class Replicate : public internal::dense_xpr_base<Replicate<MatrixType, RowFacto
   using NestedExpression = internal::remove_all_t<MatrixType>;
 
   template <typename OriginalMatrixType>
-  EIGEN_DEVICE_FUNC constexpr inline explicit Replicate(const OriginalMatrixType& matrix)
+  EIGEN_DEVICE_FUNC constexpr explicit Replicate(const OriginalMatrixType& matrix)
       : m_matrix(matrix), m_rowFactor(RowFactor), m_colFactor(ColFactor) {
     EIGEN_STATIC_ASSERT((std::is_same<std::remove_const_t<MatrixType>, OriginalMatrixType>::value),
                         THE_MATRIX_OR_EXPRESSION_THAT_YOU_PASSED_DOES_NOT_HAVE_THE_EXPECTED_TYPE)
@@ -80,7 +80,7 @@ class Replicate : public internal::dense_xpr_base<Replicate<MatrixType, RowFacto
   }
 
   template <typename OriginalMatrixType>
-  EIGEN_DEVICE_FUNC constexpr inline Replicate(const OriginalMatrixType& matrix, Index rowFactor, Index colFactor)
+  EIGEN_DEVICE_FUNC constexpr Replicate(const OriginalMatrixType& matrix, Index rowFactor, Index colFactor)
       : m_matrix(matrix), m_rowFactor(rowFactor), m_colFactor(colFactor) {
     EIGEN_STATIC_ASSERT((std::is_same<std::remove_const_t<MatrixType>, OriginalMatrixType>::value),
                         THE_MATRIX_OR_EXPRESSION_THAT_YOU_PASSED_DOES_NOT_HAVE_THE_EXPECTED_TYPE)
@@ -108,7 +108,7 @@ class Replicate : public internal::dense_xpr_base<Replicate<MatrixType, RowFacto
  */
 template <typename Derived>
 template <int RowFactor, int ColFactor>
-EIGEN_DEVICE_FUNC const Replicate<Derived, RowFactor, ColFactor> DenseBase<Derived>::replicate() const {
+EIGEN_DEVICE_FUNC constexpr const Replicate<Derived, RowFactor, ColFactor> DenseBase<Derived>::replicate() const {
   return Replicate<Derived, RowFactor, ColFactor>(derived());
 }
 
@@ -121,7 +121,7 @@ EIGEN_DEVICE_FUNC const Replicate<Derived, RowFactor, ColFactor> DenseBase<Deriv
  * \sa VectorwiseOp::replicate(), VectorwiseOp::replicate(NFactorType) const, DenseBase::replicate(), class Replicate
  */
 template <typename ExpressionType, int Direction>
-EIGEN_DEVICE_FUNC const typename VectorwiseOp<ExpressionType, Direction>::ReplicateReturnType
+EIGEN_DEVICE_FUNC constexpr const typename VectorwiseOp<ExpressionType, Direction>::ReplicateReturnType
 VectorwiseOp<ExpressionType, Direction>::replicate(Index factor) const {
   return typename VectorwiseOp<ExpressionType, Direction>::ReplicateReturnType(
       _expression(), Direction == Vertical ? factor : 1, Direction == Horizontal ? factor : 1);

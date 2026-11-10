@@ -154,13 +154,13 @@ class Block
   using ConstUnwindReturnType = Block<const typename BlockHelper::BaseType, BlockRows, BlockCols, UnwoundInnerPanel>;
   using UnwindReturnType = Block<typename BlockHelper::BaseType, BlockRows, BlockCols, UnwoundInnerPanel>;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE ConstUnwindReturnType unwind() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr ConstUnwindReturnType unwind() const {
     return ConstUnwindReturnType(BlockHelper::base(*this), BlockHelper::row(*this, 0), BlockHelper::col(*this, 0),
                                  this->rows(), this->cols());
   }
 
   template <typename T = Block, typename EnableIf = std::enable_if_t<!std::is_const<T>::value>>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE UnwindReturnType unwind() {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr UnwindReturnType unwind() {
     return UnwindReturnType(BlockHelper::base(*this), BlockHelper::row(*this, 0), BlockHelper::col(*this, 0),
                             this->rows(), this->cols());
   }
@@ -235,15 +235,16 @@ class BlockImpl_dense : public internal::dense_xpr_base<Block<XprType, BlockRows
 #ifdef EIGEN_PARSED_BY_DOXYGEN
   /** \sa MapBase::data() */
   EIGEN_DEVICE_FUNC constexpr const Scalar* data() const;
-  EIGEN_DEVICE_FUNC inline Index innerStride() const;
-  EIGEN_DEVICE_FUNC inline Index outerStride() const;
+  EIGEN_DEVICE_FUNC constexpr Index innerStride() const;
+  EIGEN_DEVICE_FUNC constexpr Index outerStride() const;
 #endif
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const internal::remove_all_t<XprTypeNested>& nestedExpression() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const internal::remove_all_t<XprTypeNested>& nestedExpression()
+      const {
     return m_xpr;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE XprType& nestedExpression() { return m_xpr; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr XprType& nestedExpression() { return m_xpr; }
 
   EIGEN_DEVICE_FUNC constexpr StorageIndex startRow() const noexcept { return m_startRow.value(); }
 
@@ -269,8 +270,8 @@ class BlockImpl_dense<XprType, BlockRows, BlockCols, InnerPanel, true>
 
   /** \internal An empty block gets a null pointer: its start can lie past the end of xpr's storage. So does a block of
    * a null xpr, since offsetting nullptr is undefined behavior. */
-  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE static auto block_data(XprType& xpr, Index startRow, Index startCol,
-                                                               Index blockRows, Index blockCols)
+  EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE static constexpr auto block_data(XprType& xpr, Index startRow, Index startCol,
+                                                                         Index blockRows, Index blockCols)
       -> decltype(xpr.data()) {
     if (blockRows == 0 || blockCols == 0 || xpr.data() == nullptr) {
       decltype(xpr.data()) data = nullptr;
@@ -290,7 +291,7 @@ class BlockImpl_dense<XprType, BlockRows, BlockCols, InnerPanel, true>
 
   /** Column or Row constructor
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE BlockImpl_dense(XprType& xpr, Index i)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr BlockImpl_dense(XprType& xpr, Index i)
       : Base(block_data(xpr, VectorStart::row(i), VectorStart::col(i), BlockRows == 1 ? 1 : xpr.rows(),
                         BlockCols == 1 ? 1 : xpr.cols()),
              BlockRows == 1 ? 1 : xpr.rows(), BlockCols == 1 ? 1 : xpr.cols()),
@@ -301,7 +302,7 @@ class BlockImpl_dense<XprType, BlockRows, BlockCols, InnerPanel, true>
 
   /** Fixed-size constructor
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE BlockImpl_dense(XprType& xpr, Index startRow, Index startCol)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr BlockImpl_dense(XprType& xpr, Index startRow, Index startCol)
       : Base(block_data(xpr, startRow, startCol, BlockRows, BlockCols)),
         m_xpr(xpr),
         m_startRow(startRow),
@@ -310,19 +311,20 @@ class BlockImpl_dense<XprType, BlockRows, BlockCols, InnerPanel, true>
 
   /** Dynamic-size constructor
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE BlockImpl_dense(XprType& xpr, Index startRow, Index startCol, Index blockRows,
-                                                        Index blockCols)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr BlockImpl_dense(XprType& xpr, Index startRow, Index startCol,
+                                                                  Index blockRows, Index blockCols)
       : Base(block_data(xpr, startRow, startCol, blockRows, blockCols), blockRows, blockCols),
         m_xpr(xpr),
         m_startRow(startRow),
         m_startCol(startCol),
         m_outerStride(outer_stride(xpr)) {}
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const internal::remove_all_t<XprTypeNested>& nestedExpression() const noexcept {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const internal::remove_all_t<XprTypeNested>& nestedExpression()
+      const noexcept {
     return m_xpr;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE XprType& nestedExpression() { return m_xpr; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr XprType& nestedExpression() { return m_xpr; }
 
   /** \sa MapBase::innerStride() */
   EIGEN_DEVICE_FUNC constexpr Index innerStride() const noexcept {
@@ -346,7 +348,7 @@ class BlockImpl_dense<XprType, BlockRows, BlockCols, InnerPanel, true>
       m_startRow;
   const internal::variable_if_dynamic<StorageIndex, (XprType::ColsAtCompileTime == 1 && BlockCols == 1) ? 0 : Dynamic>
       m_startCol;
-  Index m_outerStride;
+  Index m_outerStride = 0;
 };
 
 }  // end namespace internal

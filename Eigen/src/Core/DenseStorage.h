@@ -339,7 +339,9 @@ class DenseStorage_impl<T, Dynamic, Dynamic, Cols, Options> {
     other.m_data = nullptr;
     other.m_rows = 0;
   }
-  EIGEN_DEVICE_FUNC ~DenseStorage_impl() { conditional_aligned_delete_auto<T, Align>(m_data, size()); }
+  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR20 ~DenseStorage_impl() {
+    conditional_aligned_delete_auto<T, Align>(m_data, size());
+  }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage_impl& operator=(const DenseStorage_impl& other) {
     if (this == &other) return *this;
     resize(other.size(), other.rows(), other.cols());
@@ -399,7 +401,9 @@ class DenseStorage_impl<T, Dynamic, Rows, Dynamic, Options> {
     other.m_data = nullptr;
     other.m_cols = 0;
   }
-  EIGEN_DEVICE_FUNC ~DenseStorage_impl() { conditional_aligned_delete_auto<T, Align>(m_data, size()); }
+  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR20 ~DenseStorage_impl() {
+    conditional_aligned_delete_auto<T, Align>(m_data, size());
+  }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage_impl& operator=(const DenseStorage_impl& other) {
     if (this == &other) return *this;
     resize(other.size(), other.rows(), other.cols());
@@ -461,7 +465,9 @@ class DenseStorage_impl<T, Dynamic, Dynamic, Dynamic, Options> {
     other.m_rows = 0;
     other.m_cols = 0;
   }
-  EIGEN_DEVICE_FUNC ~DenseStorage_impl() { conditional_aligned_delete_auto<T, Align>(m_data, size()); }
+  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR20 ~DenseStorage_impl() {
+    conditional_aligned_delete_auto<T, Align>(m_data, size());
+  }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage_impl& operator=(const DenseStorage_impl& other) {
     if (this == &other) return *this;
     resize(other.size(), other.rows(), other.cols());

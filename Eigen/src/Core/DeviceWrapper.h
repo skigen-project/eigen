@@ -17,31 +17,31 @@ struct DeviceWrapper {
   using Base = EigenBase<internal::remove_all_t<Derived>>;
   using Scalar = typename Derived::Scalar;
 
-  EIGEN_DEVICE_FUNC DeviceWrapper(Base& xpr, Device& device) : m_xpr(xpr.derived()), m_device(device) {}
-  EIGEN_DEVICE_FUNC DeviceWrapper(const Base& xpr, Device& device) : m_xpr(xpr.derived()), m_device(device) {}
+  EIGEN_DEVICE_FUNC constexpr DeviceWrapper(Base& xpr, Device& device) : m_xpr(xpr.derived()), m_device(device) {}
+  EIGEN_DEVICE_FUNC constexpr DeviceWrapper(const Base& xpr, Device& device) : m_xpr(xpr.derived()), m_device(device) {}
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator=(const EigenBase<OtherDerived>& other) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator=(const EigenBase<OtherDerived>& other) {
     using AssignOp = internal::assign_op<Scalar, typename OtherDerived::Scalar>;
     internal::call_assignment(*this, other.derived(), AssignOp());
     return m_xpr;
   }
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator+=(const EigenBase<OtherDerived>& other) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator+=(const EigenBase<OtherDerived>& other) {
     using AddAssignOp = internal::add_assign_op<Scalar, typename OtherDerived::Scalar>;
     internal::call_assignment(*this, other.derived(), AddAssignOp());
     return m_xpr;
   }
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator-=(const EigenBase<OtherDerived>& other) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator-=(const EigenBase<OtherDerived>& other) {
     using SubAssignOp = internal::sub_assign_op<Scalar, typename OtherDerived::Scalar>;
     internal::call_assignment(*this, other.derived(), SubAssignOp());
     return m_xpr;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& derived() { return m_xpr; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Device& device() { return m_device; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE NoAlias<DeviceWrapper, EigenBase> noalias() {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& derived() { return m_xpr; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Device& device() { return m_device; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr NoAlias<DeviceWrapper, EigenBase> noalias() {
     return NoAlias<DeviceWrapper, EigenBase>(*this);
   }
 
@@ -64,8 +64,8 @@ template <typename DstXprType, typename Lhs, typename Rhs, int Options, typename
 struct AssignmentWithDevice<DstXprType, Product<Lhs, Rhs, Options>, Functor, Device, Dense2Dense, Weak> {
   using SrcXprType = Product<Lhs, Rhs, Options>;
   using Base = Assignment<DstXprType, SrcXprType, Functor>;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void run(DstXprType& dst, const SrcXprType& src, const Functor& func,
-                                                        Device&) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void run(DstXprType& dst, const SrcXprType& src,
+                                                                  const Functor& func, Device&) {
     Base::run(dst, src, func);
   }
 };
@@ -73,8 +73,8 @@ struct AssignmentWithDevice<DstXprType, Product<Lhs, Rhs, Options>, Functor, Dev
 // specialization for coefficient-wise assignment
 template <typename DstXprType, typename SrcXprType, typename Functor, typename Device, typename Weak>
 struct AssignmentWithDevice<DstXprType, SrcXprType, Functor, Device, Dense2Dense, Weak> {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void run(DstXprType& dst, const SrcXprType& src, const Functor& func,
-                                                        Device& device) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void run(DstXprType& dst, const SrcXprType& src,
+                                                                  const Functor& func, Device& device) {
 #ifndef EIGEN_NO_DEBUG
     internal::check_for_aliasing(dst, src);
 #endif
@@ -141,13 +141,14 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void call_dense_assignment_loop(
 
 template <typename Derived>
 template <typename Device>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DeviceWrapper<Derived, Device> EigenBase<Derived>::device(Device& device) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DeviceWrapper<Derived, Device> EigenBase<Derived>::device(
+    Device& device) {
   return DeviceWrapper<Derived, Device>(derived(), device);
 }
 
 template <typename Derived>
 template <typename Device>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DeviceWrapper<const Derived, Device> EigenBase<Derived>::device(
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DeviceWrapper<const Derived, Device> EigenBase<Derived>::device(
     Device& device) const {
   return DeviceWrapper<const Derived, Device>(derived(), device);
 }

@@ -97,8 +97,7 @@ class Concat : public internal::dense_xpr_base<Concat<Direction, LhsType, RhsTyp
   using RhsNestedExpression = internal::remove_all_t<RhsType>;
 
   template <typename OriginalLhsType, typename OriginalRhsType>
-  EIGEN_DEVICE_FUNC constexpr inline Concat(const OriginalLhsType& lhs, const OriginalRhsType& rhs)
-      : m_lhs(lhs), m_rhs(rhs) {
+  EIGEN_DEVICE_FUNC constexpr Concat(const OriginalLhsType& lhs, const OriginalRhsType& rhs) : m_lhs(lhs), m_rhs(rhs) {
     EIGEN_STATIC_ASSERT((std::is_same<std::remove_const_t<LhsType>, OriginalLhsType>::value),
                         THE_MATRIX_OR_EXPRESSION_THAT_YOU_PASSED_DOES_NOT_HAVE_THE_EXPECTED_TYPE)
     EIGEN_STATIC_ASSERT((std::is_same<std::remove_const_t<RhsType>, OriginalRhsType>::value),
@@ -323,7 +322,8 @@ struct evaluator<Concat<Direction, LhsType, RhsType>> : evaluator_base<Concat<Di
  * \sa vcat(), Concat
  */
 template <typename Lhs, typename Rhs>
-EIGEN_DEVICE_FUNC inline const Concat<Horizontal, Lhs, Rhs> hcat(const DenseBase<Lhs>& lhs, const DenseBase<Rhs>& rhs) {
+EIGEN_DEVICE_FUNC constexpr const Concat<Horizontal, Lhs, Rhs> hcat(const DenseBase<Lhs>& lhs,
+                                                                    const DenseBase<Rhs>& rhs) {
   return Concat<Horizontal, Lhs, Rhs>(lhs.derived(), rhs.derived());
 }
 
@@ -342,7 +342,8 @@ EIGEN_DEVICE_FUNC inline const Concat<Horizontal, Lhs, Rhs> hcat(const DenseBase
  * \sa hcat(), Concat
  */
 template <typename Lhs, typename Rhs>
-EIGEN_DEVICE_FUNC inline const Concat<Vertical, Lhs, Rhs> vcat(const DenseBase<Lhs>& lhs, const DenseBase<Rhs>& rhs) {
+EIGEN_DEVICE_FUNC constexpr const Concat<Vertical, Lhs, Rhs> vcat(const DenseBase<Lhs>& lhs,
+                                                                  const DenseBase<Rhs>& rhs) {
   return Concat<Vertical, Lhs, Rhs>(lhs.derived(), rhs.derived());
 }
 

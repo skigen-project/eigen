@@ -38,7 +38,7 @@ constexpr Index kTriangularInverseMinBlockSize = 24;
 constexpr Index kAdjointSquareMinBlocked = 128;
 constexpr Index kAdjointSquareMinBlockSize = 48;
 
-EIGEN_DEVICE_FUNC inline Index triangular_in_place_block_size(Index size, Index min_block_size) {
+EIGEN_DEVICE_FUNC constexpr Index triangular_in_place_block_size(Index size, Index min_block_size) {
   const Index block_size = ((size / 8) / 8) * 8;
   return numext::mini(numext::maxi(block_size, min_block_size), Index(128));
 }
@@ -54,7 +54,7 @@ struct triangular_in_place_workspace {
 // column rather than the chain of AXPYs a forward substitution per column would run. \a tmp is
 // scratch of at least n - 1 entries, since the TRMV's destination is its own operand.
 template <unsigned int Mode, typename MatrixType, typename VectorType>
-EIGEN_DEVICE_FUNC void triangular_inverse_unblocked(MatrixType& mat, VectorType& tmp) {
+EIGEN_DEVICE_FUNC constexpr void triangular_inverse_unblocked(MatrixType& mat, VectorType& tmp) {
   using Scalar = typename MatrixType::Scalar;
   constexpr bool kUnitDiag = (Mode & UnitDiag) != 0;
   const Index n = mat.rows();
@@ -75,15 +75,14 @@ EIGEN_DEVICE_FUNC void triangular_inverse_unblocked(MatrixType& mat, VectorType&
 // With a zero-sized fixed dimension there is nothing to invert, and col() is not a vector, so the kernels' column
 // tails would not compile.
 template <unsigned int Mode, typename MatrixType, std::enable_if_t<MatrixType::SizeAtCompileTime == 0, int> = 0>
-EIGEN_DEVICE_FUNC void triangular_inverse_lower(MatrixType&) {}
+EIGEN_DEVICE_FUNC constexpr void triangular_inverse_lower(MatrixType&) {}
 
 // Blocked lower triangular inverse, block columns bottom-up as in LAPACK xTRTRI. With
 // L = [[L11, 0], [L21, L22]] the inverse is [[L11^-1, 0], [-L22^-1 L21 L11^-1, L22^-1]]; walking upwards
 // makes X22 = L22^-1 available first, so the large operation is the TRMM X22 L21 rather than a solve
 // against L22, and Eigen's TRMM runs closer to GEMM rate than its TRSM does on a 128-column operand.
-template <unsigned int Mode, typename MatrixType, std::enable_if_t<MatrixType::SizeAtCompileTime != 0, int> = 0>
-EIGEN_DEVICE_FUNC void triangular_inverse_lower(MatrixType& mat) {
-  EIGEN_INTERNAL_ASSERT_SQUARE(mat);
+template <unsigned int Mode, typename MatrixType>
+EIGEN_DEVICE_FUNC void triangular_inverse_lower_runtime(MatrixType& mat) {
   const Index n = mat.rows();
   if (n < kTriangularInverseMinBlocked) {
     using Scalar = typename MatrixType::Scalar;
@@ -121,11 +120,24 @@ EIGEN_DEVICE_FUNC void triangular_inverse_lower(MatrixType& mat) {
   }
 }
 
+// The blocked form and the stack workspace of the unblocked one are unavailable in constant evaluation, which takes
+// the unblocked form with an owned workspace.
+template <unsigned int Mode, typename MatrixType, std::enable_if_t<MatrixType::SizeAtCompileTime != 0, int> = 0>
+EIGEN_DEVICE_FUNC constexpr void triangular_inverse_lower(MatrixType& mat) {
+  EIGEN_INTERNAL_ASSERT_SQUARE(mat);
+  if (is_constant_evaluated()) {
+    Matrix<typename MatrixType::Scalar, Dynamic, 1, ColMajor, MatrixType::MaxRowsAtCompileTime, 1> tmp(mat.rows());
+    triangular_inverse_unblocked<Mode>(mat, tmp);
+  } else {
+    triangular_inverse_lower_runtime<Mode>(mat);
+  }
+}
+
 // Unblocked upper triangular inverse, columns left to right as in xTRTI2 so that the leading block already holds
 // X11 = U11^-1 when column j is reached: X(0:j, j) = -X11 U(0:j, j) / U(j, j), one TRMV per column. \a tmp is
 // scratch of at least n - 1 entries.
 template <unsigned int Mode, typename MatrixType, typename VectorType>
-EIGEN_DEVICE_FUNC void triangular_inverse_upper_unblocked(MatrixType& mat, VectorType& tmp) {
+EIGEN_DEVICE_FUNC constexpr void triangular_inverse_upper_unblocked(MatrixType& mat, VectorType& tmp) {
   using Scalar = typename MatrixType::Scalar;
   constexpr bool kUnitDiag = (Mode & UnitDiag) != 0;
   const Index n = mat.rows();
@@ -143,14 +155,13 @@ EIGEN_DEVICE_FUNC void triangular_inverse_upper_unblocked(MatrixType& mat, Vecto
 }
 
 template <unsigned int Mode, typename MatrixType, std::enable_if_t<MatrixType::SizeAtCompileTime == 0, int> = 0>
-EIGEN_DEVICE_FUNC void triangular_inverse_upper(MatrixType&) {}
+EIGEN_DEVICE_FUNC constexpr void triangular_inverse_upper(MatrixType&) {}
 
 // Blocked upper triangular inverse, block columns left to right as in LAPACK xTRTRI. With
 // U = [[U11, U12], [0, U22]] the inverse is [[U11^-1, -U11^-1 U12 U22^-1], [0, U22^-1]]; walking rightwards
 // makes X11 = U11^-1 available first, so as for the lower kernel the large operation is the TRMM X11 U12.
-template <unsigned int Mode, typename MatrixType, std::enable_if_t<MatrixType::SizeAtCompileTime != 0, int> = 0>
-EIGEN_DEVICE_FUNC void triangular_inverse_upper(MatrixType& mat) {
-  EIGEN_INTERNAL_ASSERT_SQUARE(mat);
+template <unsigned int Mode, typename MatrixType>
+EIGEN_DEVICE_FUNC void triangular_inverse_upper_runtime(MatrixType& mat) {
   const Index n = mat.rows();
   if (n < kTriangularInverseMinBlocked) {
     using Scalar = typename MatrixType::Scalar;
@@ -185,10 +196,21 @@ EIGEN_DEVICE_FUNC void triangular_inverse_upper(MatrixType& mat) {
   }
 }
 
+template <unsigned int Mode, typename MatrixType, std::enable_if_t<MatrixType::SizeAtCompileTime != 0, int> = 0>
+EIGEN_DEVICE_FUNC constexpr void triangular_inverse_upper(MatrixType& mat) {
+  EIGEN_INTERNAL_ASSERT_SQUARE(mat);
+  if (is_constant_evaluated()) {
+    Matrix<typename MatrixType::Scalar, Dynamic, 1, ColMajor, MatrixType::MaxRowsAtCompileTime, 1> tmp(mat.rows());
+    triangular_inverse_upper_unblocked<Mode>(mat, tmp);
+  } else {
+    triangular_inverse_upper_runtime<Mode>(mat);
+  }
+}
+
 template <unsigned int Mode, bool IsLower = (int(Mode) & int(Lower)) != 0>
 struct triangular_inverse_selector {
   template <typename MatrixType>
-  EIGEN_DEVICE_FUNC static void run(MatrixType& mat) {
+  EIGEN_DEVICE_FUNC static constexpr void run(MatrixType& mat) {
     triangular_inverse_lower<Mode>(mat);
   }
 };
@@ -196,7 +218,7 @@ struct triangular_inverse_selector {
 template <unsigned int Mode>
 struct triangular_inverse_selector<Mode, false> {
   template <typename MatrixType>
-  EIGEN_DEVICE_FUNC static void run(MatrixType& mat) {
+  EIGEN_DEVICE_FUNC static constexpr void run(MatrixType& mat) {
     triangular_inverse_upper<Mode>(mat);
   }
 };
@@ -204,7 +226,7 @@ struct triangular_inverse_selector<Mode, false> {
 // Unblocked lower self-adjoint square: mat <- lower(L^* L). Row i of the result reads column i of L
 // below the diagonal and rows > i of the columns left of it, none of which row i's own update writes.
 template <typename MatrixType>
-void triangular_adjoint_square_unblocked(MatrixType& mat) {
+constexpr void triangular_adjoint_square_unblocked(MatrixType& mat) {
   using Scalar = typename MatrixType::Scalar;
   const Index n = mat.rows();
   for (Index i = 0; i < n; ++i) {
@@ -221,10 +243,11 @@ void triangular_adjoint_square_unblocked(MatrixType& mat) {
 // Blocked lower self-adjoint square, left-looking as in LAPACK xLAUUM: block row k of the result is
 // completed against the columns to its left before the trailing block rows consume the factor.
 template <typename MatrixType>
-void triangular_adjoint_square_lower(MatrixType& mat) {
+constexpr void triangular_adjoint_square_lower(MatrixType& mat) {
   EIGEN_INTERNAL_ASSERT_SQUARE(mat);
   const Index n = mat.rows();
-  if (n < kAdjointSquareMinBlocked) {
+  // The blocked form's products are unavailable in constant evaluation.
+  if (is_constant_evaluated() || n < kAdjointSquareMinBlocked) {
     triangular_adjoint_square_unblocked(mat);
     return;
   }
@@ -259,7 +282,7 @@ void triangular_adjoint_square_lower(MatrixType& mat) {
 template <int UpLo, bool IsLower = (int(UpLo) & int(Lower)) != 0>
 struct triangular_adjoint_square_selector {
   template <typename MatrixType>
-  static void run(MatrixType& mat) {
+  static constexpr void run(MatrixType& mat) {
     triangular_adjoint_square_lower(mat);
   }
 };
@@ -267,7 +290,7 @@ struct triangular_adjoint_square_selector {
 template <int UpLo>
 struct triangular_adjoint_square_selector<UpLo, false> {
   template <typename MatrixType>
-  static void run(MatrixType& mat) {
+  static constexpr void run(MatrixType& mat) {
     Transpose<MatrixType> matt(mat);
     triangular_adjoint_square_lower(matt);
   }
@@ -277,7 +300,7 @@ struct triangular_adjoint_square_selector<UpLo, false> {
  * triangle of the self-adjoint product T^* T (\c Lower) or T T^* (\c Upper). The opposite triangle is
  * neither read nor written. This is LAPACK's xLAUUM. */
 template <int UpLo, typename MatrixType>
-void triangular_adjoint_square_in_place(MatrixType& mat) {
+constexpr void triangular_adjoint_square_in_place(MatrixType& mat) {
   triangular_adjoint_square_selector<UpLo>::run(mat);
 }
 
@@ -285,7 +308,7 @@ void triangular_adjoint_square_in_place(MatrixType& mat) {
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
 template <typename MatrixType, unsigned int Mode>
-EIGEN_DEVICE_FUNC void TriangularViewImpl<MatrixType, Mode, Dense>::inverseInPlace() {
+EIGEN_DEVICE_FUNC constexpr void TriangularViewImpl<MatrixType, Mode, Dense>::inverseInPlace() {
   EIGEN_STATIC_ASSERT_LVALUE(MatrixType)
   EIGEN_STATIC_ASSERT((int(Mode) & int(Upper | Lower)) != 0 && (int(Mode) & int(ZeroDiag)) == 0, PROGRAMMING_ERROR)
   EIGEN_INTERNAL_ASSERT_SQUARE(derived());

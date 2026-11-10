@@ -115,7 +115,7 @@ class Reshaped : public ReshapedImpl<XprType, Rows, Cols, Order, typename intern
 
   /** Fixed-size constructor
    */
-  EIGEN_DEVICE_FUNC constexpr inline Reshaped(XprType& xpr) : Impl(xpr) {
+  EIGEN_DEVICE_FUNC constexpr Reshaped(XprType& xpr) : Impl(xpr) {
     EIGEN_STATIC_ASSERT(RowsAtCompileTime != Dynamic && ColsAtCompileTime != Dynamic,
                         THIS_METHOD_IS_ONLY_FOR_FIXED_SIZE)
     EIGEN_INTERNAL_ASSERT_RESHAPE_SIZE(xpr, Rows, Cols);
@@ -123,7 +123,7 @@ class Reshaped : public ReshapedImpl<XprType, Rows, Cols, Order, typename intern
 
   /** Dynamic-size constructor
    */
-  EIGEN_DEVICE_FUNC constexpr inline Reshaped(XprType& xpr, Index reshapeRows, Index reshapeCols)
+  EIGEN_DEVICE_FUNC constexpr Reshaped(XprType& xpr, Index reshapeRows, Index reshapeCols)
       : Impl(xpr, reshapeRows, reshapeCols) {
     EIGEN_STATIC_ASSERT((internal::reshape_dimensions<XprType, Rows, Cols>::Compatible),
                         YOU_MIXED_MATRICES_OF_DIFFERENT_SIZES)
@@ -145,8 +145,8 @@ class ReshapedImpl<XprType, Rows, Cols, Order, Dense>
  public:
   using Base = Impl;
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(ReshapedImpl)
-  EIGEN_DEVICE_FUNC constexpr inline ReshapedImpl(XprType& xpr) : Impl(xpr) {}
-  EIGEN_DEVICE_FUNC constexpr inline ReshapedImpl(XprType& xpr, Index reshapeRows, Index reshapeCols)
+  EIGEN_DEVICE_FUNC constexpr ReshapedImpl(XprType& xpr) : Impl(xpr) {}
+  EIGEN_DEVICE_FUNC constexpr ReshapedImpl(XprType& xpr, Index reshapeRows, Index reshapeCols)
       : Impl(xpr, reshapeRows, reshapeCols) {}
 };
 
@@ -168,11 +168,11 @@ class ReshapedImpl_dense<XprType, Rows, Cols, Order, false>
 
   /** Fixed-size constructor
    */
-  EIGEN_DEVICE_FUNC constexpr inline ReshapedImpl_dense(XprType& xpr) : m_xpr(xpr), m_rows(Rows), m_cols(Cols) {}
+  EIGEN_DEVICE_FUNC constexpr ReshapedImpl_dense(XprType& xpr) : m_xpr(xpr), m_rows(Rows), m_cols(Cols) {}
 
   /** Dynamic-size constructor
    */
-  EIGEN_DEVICE_FUNC constexpr inline ReshapedImpl_dense(XprType& xpr, Index nRows, Index nCols)
+  EIGEN_DEVICE_FUNC constexpr ReshapedImpl_dense(XprType& xpr, Index nRows, Index nCols)
       : m_xpr(xpr), m_rows(nRows), m_cols(nCols) {}
 
   EIGEN_DEVICE_FUNC constexpr Index rows() const { return m_rows; }
@@ -181,8 +181,8 @@ class ReshapedImpl_dense<XprType, Rows, Cols, Order, false>
 #ifdef EIGEN_PARSED_BY_DOXYGEN
   /** \sa MapBase::data() */
   EIGEN_DEVICE_FUNC constexpr const Scalar* data() const;
-  EIGEN_DEVICE_FUNC inline Index innerStride() const;
-  EIGEN_DEVICE_FUNC inline Index outerStride() const;
+  EIGEN_DEVICE_FUNC constexpr Index innerStride() const;
+  EIGEN_DEVICE_FUNC constexpr Index outerStride() const;
 #endif
 
   /** \returns the nested expression */
@@ -210,11 +210,11 @@ class ReshapedImpl_dense<XprType, Rows, Cols, Order, true> : public MapBase<Resh
 
   /** Fixed-size constructor
    */
-  EIGEN_DEVICE_FUNC constexpr inline ReshapedImpl_dense(XprType& xpr) : Base(xpr.data()), m_xpr(xpr) {}
+  EIGEN_DEVICE_FUNC constexpr ReshapedImpl_dense(XprType& xpr) : Base(xpr.data()), m_xpr(xpr) {}
 
   /** Dynamic-size constructor
    */
-  EIGEN_DEVICE_FUNC constexpr inline ReshapedImpl_dense(XprType& xpr, Index nRows, Index nCols)
+  EIGEN_DEVICE_FUNC constexpr ReshapedImpl_dense(XprType& xpr, Index nRows, Index nCols)
       : Base(xpr.data(), nRows, nCols), m_xpr(xpr) {}
 
   EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<XprTypeNested>& nestedExpression() const { return m_xpr; }
@@ -331,7 +331,7 @@ struct reshaped_evaluator<ArgType, Rows, Cols, Order, /* HasDirectAccess */ fals
     }
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline RowCol index_remap(Index rowId, Index colId) const {
+  EIGEN_DEVICE_FUNC constexpr RowCol index_remap(Index rowId, Index colId) const {
     const Index nth_elem_idx = linear_index(rowId, colId);
     EIGEN_IF_CONSTEXPR (Order == ColMajor) {
       return RowCol(nth_elem_idx % m_nestedInnerSize.value(), nth_elem_idx / m_nestedInnerSize.value());
@@ -340,12 +340,12 @@ struct reshaped_evaluator<ArgType, Rows, Cols, Order, /* HasDirectAccess */ fals
     }
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline Scalar& coeffRef(Index rowId, Index colId) {
+  EIGEN_DEVICE_FUNC constexpr Scalar& coeffRef(Index rowId, Index colId) {
     EIGEN_STATIC_ASSERT_LVALUE(XprType)
     return coeffRef_impl(rowId, colId, bool_constant<ForwardLinearAccess>());
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline const Scalar& coeffRef(Index rowId, Index colId) const {
+  EIGEN_DEVICE_FUNC constexpr const Scalar& coeffRef(Index rowId, Index colId) const {
     return coeffRef_impl(rowId, colId, bool_constant<ForwardLinearAccess>());
   }
 
@@ -353,16 +353,16 @@ struct reshaped_evaluator<ArgType, Rows, Cols, Order, /* HasDirectAccess */ fals
     return coeff_impl(rowId, colId, bool_constant<ForwardLinearAccess>());
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline Scalar& coeffRef(Index index) {
+  EIGEN_DEVICE_FUNC constexpr Scalar& coeffRef(Index index) {
     EIGEN_STATIC_ASSERT_LVALUE(XprType)
     return coeffRef_impl(index, bool_constant<ForwardLinearAccess>());
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline const Scalar& coeffRef(Index index) const {
+  EIGEN_DEVICE_FUNC constexpr const Scalar& coeffRef(Index index) const {
     return coeffRef_impl(index, bool_constant<ForwardLinearAccess>());
   }
 
-  EIGEN_DEVICE_FUNC constexpr inline const CoeffReturnType coeff(Index index) const {
+  EIGEN_DEVICE_FUNC constexpr const CoeffReturnType coeff(Index index) const {
     return coeff_impl(index, bool_constant<ForwardLinearAccess>());
   }
 
@@ -500,7 +500,8 @@ struct reshaped_evaluator<ArgType, Rows, Cols, Order, /* HasDirectAccess */ true
 
   EIGEN_DEVICE_FUNC constexpr explicit reshaped_evaluator(const XprType& xpr)
       : mapbase_evaluator<XprType, typename XprType::PlainObject>(xpr) {
-    eigen_assert(((std::uintptr_t(xpr.data()) % plain_enum_max(1, evaluator<XprType>::Alignment)) == 0) &&
+    eigen_assert((is_constant_evaluated() ||
+                  (std::uintptr_t(xpr.data()) % plain_enum_max(1, evaluator<XprType>::Alignment)) == 0) &&
                  "data is not aligned");
   }
 };

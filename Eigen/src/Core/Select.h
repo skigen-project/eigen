@@ -46,7 +46,7 @@ using Select = CwiseTernaryOp<internal::scalar_boolean_select_op<typename DenseB
  */
 template <typename Derived>
 template <typename ThenDerived, typename ElseDerived>
-inline EIGEN_DEVICE_FUNC constexpr CwiseTernaryOp<
+EIGEN_DEVICE_FUNC constexpr CwiseTernaryOp<
     internal::scalar_boolean_select_op<typename DenseBase<ThenDerived>::Scalar, typename DenseBase<ElseDerived>::Scalar,
                                        typename DenseBase<Derived>::Scalar>,
     ThenDerived, ElseDerived, Derived>
@@ -60,7 +60,7 @@ DenseBase<Derived>::select(const DenseBase<ThenDerived>& thenMatrix, const Dense
  */
 template <typename Derived>
 template <typename ThenDerived>
-inline EIGEN_DEVICE_FUNC constexpr CwiseTernaryOp<
+EIGEN_DEVICE_FUNC constexpr CwiseTernaryOp<
     internal::scalar_boolean_select_op<typename DenseBase<ThenDerived>::Scalar, typename DenseBase<ThenDerived>::Scalar,
                                        typename DenseBase<Derived>::Scalar>,
     ThenDerived, typename DenseBase<ThenDerived>::ConstantReturnType, Derived>
@@ -77,7 +77,7 @@ DenseBase<Derived>::select(const DenseBase<ThenDerived>& thenMatrix,
  */
 template <typename Derived>
 template <typename ElseDerived>
-inline EIGEN_DEVICE_FUNC constexpr CwiseTernaryOp<
+EIGEN_DEVICE_FUNC constexpr CwiseTernaryOp<
     internal::scalar_boolean_select_op<typename DenseBase<ElseDerived>::Scalar, typename DenseBase<ElseDerived>::Scalar,
                                        typename DenseBase<Derived>::Scalar>,
     typename DenseBase<ElseDerived>::ConstantReturnType, ElseDerived, Derived>

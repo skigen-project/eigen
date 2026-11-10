@@ -214,7 +214,18 @@ struct general_product_to_triangular_selector;
 
 template <typename MatrixType, typename ProductType, int UpLo>
 struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, true> {
-  static void run(MatrixType& mat, const ProductType& prod, const typename MatrixType::Scalar& alpha, bool beta) {
+  static constexpr void run(MatrixType& mat, const ProductType& prod, const typename MatrixType::Scalar& alpha,
+                            bool beta) {
+    if (!beta) mat.template triangularView<UpLo>().setZero();
+    // The rank-1 kernel addresses mat with a unit inner stride, and is unavailable in constant evaluation.
+    if (internal::is_constant_evaluated() || (MatrixType::InnerStrideAtCompileTime != 1 && mat.innerStride() != 1))
+      mat.template triangularView<UpLo>() += typename ProductType::PlainObject(alpha * prod);
+    else
+      run_kernel(mat, prod, alpha);
+  }
+
+ private:
+  static void run_kernel(MatrixType& mat, const ProductType& prod, const typename MatrixType::Scalar& alpha) {
     using Scalar = typename MatrixType::Scalar;
 
     using Lhs = internal::remove_all_t<typename ProductType::LhsNested>;
@@ -231,14 +242,6 @@ struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, tru
 
     Scalar actualAlpha = alpha * LhsBlasTraits::extractScalarFactor(prod.lhs().derived()) *
                          RhsBlasTraits::extractScalarFactor(prod.rhs().derived());
-
-    if (!beta) mat.template triangularView<UpLo>().setZero();
-
-    // The rank-1 kernel below addresses mat with a unit inner stride.
-    if (MatrixType::InnerStrideAtCompileTime != 1 && mat.innerStride() != 1) {
-      mat.template triangularView<UpLo>() += typename ProductType::PlainObject(alpha * prod);
-      return;
-    }
 
     enum {
       StorageOrder = (internal::traits<MatrixType>::Flags & RowMajorBit) ? RowMajor : ColMajor,
@@ -280,7 +283,18 @@ struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, tru
 
 template <typename MatrixType, typename ProductType, int UpLo>
 struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, false> {
-  static void run(MatrixType& mat, const ProductType& prod, const typename MatrixType::Scalar& alpha, bool beta) {
+  static constexpr void run(MatrixType& mat, const ProductType& prod, const typename MatrixType::Scalar& alpha,
+                            bool beta) {
+    if (!beta) mat.template triangularView<UpLo>().setZero();
+    // The packed GEMM kernel is unavailable in constant evaluation.
+    if (internal::is_constant_evaluated())
+      mat.template triangularView<UpLo>() += typename ProductType::PlainObject(alpha * prod);
+    else
+      run_kernel(mat, prod, alpha);
+  }
+
+ private:
+  static void run_kernel(MatrixType& mat, const ProductType& prod, const typename MatrixType::Scalar& alpha) {
     using Lhs = internal::remove_all_t<typename ProductType::LhsNested>;
     using LhsBlasTraits = internal::blas_traits<Lhs>;
     using ActualLhs = typename LhsBlasTraits::DirectLinearAccessType;
@@ -295,8 +309,6 @@ struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, fal
 
     typename ProductType::Scalar actualAlpha = alpha * LhsBlasTraits::extractScalarFactor(prod.lhs().derived()) *
                                                RhsBlasTraits::extractScalarFactor(prod.rhs().derived());
-
-    if (!beta) mat.template triangularView<UpLo>().setZero();
 
     enum {
       IsRowMajor = (internal::traits<MatrixType>::Flags & RowMajorBit) ? 1 : 0,
@@ -338,9 +350,11 @@ struct general_product_to_triangular_selector<MatrixType, ProductType, UpLo, fal
 
 template <typename MatrixType_, unsigned int Mode_>
 template <typename ProductType>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE typename TriangularViewImpl<MatrixType_, Mode_, Dense>::TriangularViewType&
-TriangularViewImpl<MatrixType_, Mode_, Dense>::_assignProduct(
-    const ProductType& prod, const typename TriangularViewImpl<MatrixType_, Mode_, Dense>::Scalar& alpha, bool beta) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr
+    typename TriangularViewImpl<MatrixType_, Mode_, Dense>::TriangularViewType&
+    TriangularViewImpl<MatrixType_, Mode_, Dense>::_assignProduct(
+        const ProductType& prod, const typename TriangularViewImpl<MatrixType_, Mode_, Dense>::Scalar& alpha,
+        bool beta) {
   EIGEN_STATIC_ASSERT((Mode_ & UnitDiag) == 0, WRITING_TO_TRIANGULAR_PART_WITH_UNIT_DIAGONAL_IS_NOT_SUPPORTED);
   EIGEN_INTERNAL_ASSERT_SAME_SHAPE(derived(), prod);
 

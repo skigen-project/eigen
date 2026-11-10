@@ -82,7 +82,7 @@ struct evaluator<RealView<Xpr>> : private evaluator<Xpr> {
   using ComplexCoeffReturnType = std::conditional_t<CoeffByReference, const ComplexScalar&, ComplexScalar>;
   using CoeffReturnType = std::conditional_t<CoeffByReference, const Scalar&, Scalar>;
 
-  EIGEN_DEVICE_FUNC explicit evaluator(XprType realView) : BaseEvaluator(realView.m_xpr) {}
+  EIGEN_DEVICE_FUNC constexpr explicit evaluator(XprType realView) : BaseEvaluator(realView.m_xpr) {}
 
   template <bool Enable = CoeffByReference, std::enable_if_t<!Enable, bool> = true>
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(Index row, Index col) const {
@@ -98,7 +98,7 @@ struct evaluator<RealView<Xpr>> : private evaluator<Xpr> {
     Index c = IsRowMajor ? col / 2 : col;
     Index p = (IsRowMajor ? col : row) & 1;
     ComplexCoeffReturnType ccoeff = BaseEvaluator::coeff(r, c);
-    return reinterpret_cast<const Scalar(&)[2]>(ccoeff)[p];
+    return complex_component(ccoeff, p);
   }
   template <bool Enable = CoeffByReference, std::enable_if_t<!Enable, bool> = true>
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(Index index) const {
@@ -110,19 +110,19 @@ struct evaluator<RealView<Xpr>> : private evaluator<Xpr> {
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType coeff(Index index) const {
     ComplexCoeffReturnType ccoeff = BaseEvaluator::coeff(index / 2);
     Index p = index & 1;
-    return reinterpret_cast<const Scalar(&)[2]>(ccoeff)[p];
+    return complex_component(ccoeff, p);
   }
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRef(Index row, Index col) {
     Index r = IsRowMajor ? row : row / 2;
     Index c = IsRowMajor ? col / 2 : col;
     Index p = (IsRowMajor ? col : row) & 1;
     ComplexScalar& ccoeffRef = BaseEvaluator::coeffRef(r, c);
-    return reinterpret_cast<Scalar(&)[2]>(ccoeffRef)[p];
+    return complex_component(ccoeffRef, p);
   }
   constexpr EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRef(Index index) {
     ComplexScalar& ccoeffRef = BaseEvaluator::coeffRef(index / 2);
     Index p = index & 1;
-    return reinterpret_cast<Scalar(&)[2]>(ccoeffRef)[p];
+    return complex_component(ccoeffRef, p);
   }
 
   // If the first index is odd (imaginary), discard the first scalar
@@ -306,31 +306,31 @@ class RealView : public internal::dense_xpr_base<RealView<Xpr>>::type {
   using Scalar = typename ExpressionTraits::Scalar;
   using Nested = RealView;
 
-  EIGEN_DEVICE_FUNC explicit RealView(Xpr& xpr) : m_xpr(xpr) {}
+  EIGEN_DEVICE_FUNC constexpr explicit RealView(Xpr& xpr) : m_xpr(xpr) {}
   EIGEN_DEVICE_FUNC constexpr Index rows() const noexcept { return Xpr::IsRowMajor ? m_xpr.rows() : 2 * m_xpr.rows(); }
   EIGEN_DEVICE_FUNC constexpr Index cols() const noexcept { return Xpr::IsRowMajor ? 2 * m_xpr.cols() : m_xpr.cols(); }
   EIGEN_DEVICE_FUNC constexpr Index size() const noexcept { return 2 * m_xpr.size(); }
   EIGEN_DEVICE_FUNC constexpr Index innerStride() const noexcept { return m_xpr.innerStride(); }
   EIGEN_DEVICE_FUNC constexpr Index outerStride() const noexcept { return 2 * m_xpr.outerStride(); }
-  EIGEN_DEVICE_FUNC void resize(Index rows, Index cols) {
+  EIGEN_DEVICE_FUNC constexpr void resize(Index rows, Index cols) {
     m_xpr.resize(Xpr::IsRowMajor ? rows : rows / 2, Xpr::IsRowMajor ? cols / 2 : cols);
   }
-  EIGEN_DEVICE_FUNC void resize(Index size) { m_xpr.resize(size / 2); }
+  EIGEN_DEVICE_FUNC constexpr void resize(Index size) { m_xpr.resize(size / 2); }
   using ScalarWithConstIfNotLvalue = std::conditional_t<internal::is_lvalue<Xpr>::value, Scalar, const Scalar>;
   EIGEN_DEVICE_FUNC ScalarWithConstIfNotLvalue* data() {
     return reinterpret_cast<ScalarWithConstIfNotLvalue*>(m_xpr.data());
   }
   EIGEN_DEVICE_FUNC const Scalar* data() const { return reinterpret_cast<const Scalar*>(m_xpr.data()); }
 
-  EIGEN_DEVICE_FUNC RealView(const RealView&) = default;
+  EIGEN_DEVICE_FUNC constexpr RealView(const RealView&) = default;
 
-  EIGEN_DEVICE_FUNC RealView& operator=(const RealView& other);
-
-  template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC RealView& operator=(const RealView<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC constexpr RealView& operator=(const RealView& other);
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC RealView& operator=(const DenseBase<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC constexpr RealView& operator=(const RealView<OtherDerived>& other);
+
+  template <typename OtherDerived>
+  EIGEN_DEVICE_FUNC constexpr RealView& operator=(const DenseBase<OtherDerived>& other);
 
  protected:
   friend struct internal::evaluator<RealView>;
@@ -338,32 +338,32 @@ class RealView : public internal::dense_xpr_base<RealView<Xpr>>::type {
 };
 
 template <typename Xpr>
-EIGEN_DEVICE_FUNC RealView<Xpr>& RealView<Xpr>::operator=(const RealView& other) {
+EIGEN_DEVICE_FUNC constexpr RealView<Xpr>& RealView<Xpr>::operator=(const RealView& other) {
   internal::call_assignment(*this, other);
   return *this;
 }
 
 template <typename Xpr>
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC RealView<Xpr>& RealView<Xpr>::operator=(const RealView<OtherDerived>& other) {
+EIGEN_DEVICE_FUNC constexpr RealView<Xpr>& RealView<Xpr>::operator=(const RealView<OtherDerived>& other) {
   internal::call_assignment(*this, other);
   return *this;
 }
 
 template <typename Xpr>
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC RealView<Xpr>& RealView<Xpr>::operator=(const DenseBase<OtherDerived>& other) {
+EIGEN_DEVICE_FUNC constexpr RealView<Xpr>& RealView<Xpr>::operator=(const DenseBase<OtherDerived>& other) {
   internal::call_assignment(*this, other.derived());
   return *this;
 }
 
 template <typename Derived>
-EIGEN_DEVICE_FUNC typename DenseBase<Derived>::RealViewReturnType DenseBase<Derived>::realView() {
+EIGEN_DEVICE_FUNC constexpr typename DenseBase<Derived>::RealViewReturnType DenseBase<Derived>::realView() {
   return RealViewReturnType(derived());
 }
 
 template <typename Derived>
-EIGEN_DEVICE_FUNC typename DenseBase<Derived>::ConstRealViewReturnType DenseBase<Derived>::realView() const {
+EIGEN_DEVICE_FUNC constexpr typename DenseBase<Derived>::ConstRealViewReturnType DenseBase<Derived>::realView() const {
   return ConstRealViewReturnType(derived());
 }
 

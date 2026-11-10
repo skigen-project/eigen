@@ -67,7 +67,7 @@ EIGEN_MAKE_CWISE_UNARY_OP(exp2, internal::scalar_exp2_op, Exp2ReturnType)
  *
  * \sa <a href="group__CoeffwiseMathFunctions.html#cwisetable_ldexp">Math functions</a>, exp2(), pow()
  */
-EIGEN_DEVICE_FUNC constexpr inline const LdexpReturnType ldexp(int exponent) const {
+EIGEN_DEVICE_FUNC constexpr const LdexpReturnType ldexp(int exponent) const {
   return LdexpReturnType(derived(), internal::scalar_ldexp_op<Scalar>(exponent));
 }
 
@@ -465,7 +465,7 @@ EIGEN_MAKE_CWISE_UNARY_OP(isInf, internal::scalar_isinf_op, IsInfReturnType)
  * \sa isnan(), isinf()
  */
 EIGEN_MAKE_CWISE_UNARY_OP(isFinite, internal::scalar_isfinite_op, IsFiniteReturnType)
-EIGEN_DEVICE_FUNC constexpr inline const IsFiniteTypedReturnType isFiniteTyped() const {
+EIGEN_DEVICE_FUNC constexpr const IsFiniteTypedReturnType isFiniteTyped() const {
   return IsFiniteTypedReturnType(derived());
 }
 
