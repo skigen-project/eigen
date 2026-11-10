@@ -167,10 +167,10 @@ class MatrixBase : public DenseBase<Derived> {
   EIGEN_DEVICE_FUNC constexpr Derived& operator*=(const EigenBase<OtherDerived>& other);
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC void applyOnTheLeft(const EigenBase<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC constexpr void applyOnTheLeft(const EigenBase<OtherDerived>& other);
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC void applyOnTheRight(const EigenBase<OtherDerived>& other);
+  EIGEN_DEVICE_FUNC constexpr void applyOnTheRight(const EigenBase<OtherDerived>& other);
 
   template <typename DiagonalDerived>
   EIGEN_DEVICE_FUNC constexpr const Product<Derived, DiagonalDerived, LazyProduct> operator*(
@@ -341,46 +341,47 @@ class MatrixBase : public DenseBase<Derived> {
   /////////// LU module ///////////
 
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline FullPivLU<PlainObject, PermutationIndex> fullPivLu() const;
+  constexpr FullPivLU<PlainObject, PermutationIndex> fullPivLu() const;
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline PartialPivLU<PlainObject, PermutationIndex> partialPivLu() const;
+  constexpr PartialPivLU<PlainObject, PermutationIndex> partialPivLu() const;
 
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline PartialPivLU<PlainObject, PermutationIndex> lu() const;
+  constexpr PartialPivLU<PlainObject, PermutationIndex> lu() const;
 
-  EIGEN_DEVICE_FUNC inline Inverse<Derived> inverse() const;
+  EIGEN_DEVICE_FUNC constexpr Inverse<Derived> inverse() const;
 
   template <typename ResultType>
-  inline void computeInverseAndDetWithCheck(
+  constexpr void computeInverseAndDetWithCheck(
       ResultType& inverse, typename ResultType::Scalar& determinant, bool& invertible,
       const RealScalar& absDeterminantThreshold = NumTraits<Scalar>::dummy_precision()) const;
 
   template <typename ResultType>
-  inline void computeInverseWithCheck(
+  constexpr void computeInverseWithCheck(
       ResultType& inverse, bool& invertible,
       const RealScalar& absDeterminantThreshold = NumTraits<Scalar>::dummy_precision()) const;
 
-  EIGEN_DEVICE_FUNC Scalar determinant() const;
+  EIGEN_DEVICE_FUNC constexpr Scalar determinant() const;
 
   /////////// Cholesky module ///////////
 
-  inline LLT<PlainObject> llt() const;
-  inline LDLT<PlainObject> ldlt() const;
-  inline BunchKaufman<PlainObject> bunchKaufman() const;
+  constexpr LLT<PlainObject> llt() const;
+  constexpr LDLT<PlainObject> ldlt() const;
+  constexpr BunchKaufman<PlainObject> bunchKaufman() const;
 
   /////////// QR module ///////////
 
-  inline HouseholderQR<PlainObject> householderQr() const;
+  constexpr HouseholderQR<PlainObject> householderQr() const;
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline ColPivHouseholderQR<PlainObject, PermutationIndex> colPivHouseholderQr() const;
+  constexpr ColPivHouseholderQR<PlainObject, PermutationIndex> colPivHouseholderQr() const;
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline FullPivHouseholderQR<PlainObject, PermutationIndex> fullPivHouseholderQr() const;
+  constexpr FullPivHouseholderQR<PlainObject, PermutationIndex> fullPivHouseholderQr() const;
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline RandColPivHouseholderQR<PlainObject, PermutationIndex> randColPivHouseholderQr() const;
+  constexpr RandColPivHouseholderQR<PlainObject, PermutationIndex> randColPivHouseholderQr() const;
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline CompleteOrthogonalDecomposition<PlainObject, PermutationIndex> completeOrthogonalDecomposition() const;
+  constexpr CompleteOrthogonalDecomposition<PlainObject, PermutationIndex> completeOrthogonalDecomposition() const;
   template <typename PermutationIndex = DefaultPermutationIndex>
-  inline RandCompleteOrthogonalDecomposition<PlainObject, PermutationIndex> randCompleteOrthogonalDecomposition() const;
+  constexpr RandCompleteOrthogonalDecomposition<PlainObject, PermutationIndex> randCompleteOrthogonalDecomposition()
+      const;
 
   /////////// Eigenvalues module ///////////
 
@@ -436,22 +437,22 @@ class MatrixBase : public DenseBase<Derived> {
 
   ////////// Householder module ///////////
 
-  EIGEN_DEVICE_FUNC void makeHouseholderInPlace(Scalar& tau, RealScalar& beta);
+  EIGEN_DEVICE_FUNC constexpr void makeHouseholderInPlace(Scalar& tau, RealScalar& beta);
   template <typename EssentialPart>
-  EIGEN_DEVICE_FUNC void makeHouseholder(EssentialPart& essential, Scalar& tau, RealScalar& beta) const;
+  EIGEN_DEVICE_FUNC constexpr void makeHouseholder(EssentialPart& essential, Scalar& tau, RealScalar& beta) const;
   template <typename EssentialPart>
-  EIGEN_DEVICE_FUNC void applyHouseholderOnTheLeft(const EssentialPart& essential, const Scalar& tau,
-                                                   Scalar* workspace);
+  EIGEN_DEVICE_FUNC constexpr void applyHouseholderOnTheLeft(const EssentialPart& essential, const Scalar& tau,
+                                                             Scalar* workspace);
   template <typename EssentialPart>
-  EIGEN_DEVICE_FUNC void applyHouseholderOnTheRight(const EssentialPart& essential, const Scalar& tau,
-                                                    Scalar* workspace);
+  EIGEN_DEVICE_FUNC constexpr void applyHouseholderOnTheRight(const EssentialPart& essential, const Scalar& tau,
+                                                              Scalar* workspace);
 
   ///////// Jacobi module /////////
 
   template <typename OtherScalar>
-  EIGEN_DEVICE_FUNC void applyOnTheLeft(Index p, Index q, const JacobiRotation<OtherScalar>& j);
+  EIGEN_DEVICE_FUNC constexpr void applyOnTheLeft(Index p, Index q, const JacobiRotation<OtherScalar>& j);
   template <typename OtherScalar>
-  EIGEN_DEVICE_FUNC void applyOnTheRight(Index p, Index q, const JacobiRotation<OtherScalar>& j);
+  EIGEN_DEVICE_FUNC constexpr void applyOnTheRight(Index p, Index q, const JacobiRotation<OtherScalar>& j);
 
   ///////// SparseCore module /////////
 
@@ -545,7 +546,7 @@ EIGEN_DEVICE_FUNC constexpr Derived& MatrixBase<Derived>::operator*=(const Eigen
  */
 template <typename Derived>
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC inline void MatrixBase<Derived>::applyOnTheRight(const EigenBase<OtherDerived>& other) {
+EIGEN_DEVICE_FUNC constexpr void MatrixBase<Derived>::applyOnTheRight(const EigenBase<OtherDerived>& other) {
   other.derived().applyThisOnTheRight(derived());
 }
 
@@ -556,7 +557,7 @@ EIGEN_DEVICE_FUNC inline void MatrixBase<Derived>::applyOnTheRight(const EigenBa
  */
 template <typename Derived>
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC inline void MatrixBase<Derived>::applyOnTheLeft(const EigenBase<OtherDerived>& other) {
+EIGEN_DEVICE_FUNC constexpr void MatrixBase<Derived>::applyOnTheLeft(const EigenBase<OtherDerived>& other) {
   other.derived().applyThisOnTheLeft(derived());
 }
 

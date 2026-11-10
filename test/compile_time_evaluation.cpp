@@ -160,6 +160,28 @@ constexpr bool scalar_mult_div() {
 
 static_assert(scalar_mult_div(), "");
 
+constexpr bool determinant() {
+  constexpr Map<const Matrix<double, 1, 1>> m1(static_data);
+  static_assert(m1.determinant() == 1, "");
+
+  constexpr Map<const Matrix<double, 2, 2>> m2(static_data);
+  static_assert(m2.determinant() == 1 * 4 - 2 * 3, "");
+
+  constexpr Map<const Matrix<double, 3, 3>> m3(static_data);
+  static_assert(m3.determinant() == 1 * (5 * 9 - 8 * 6) - 2 * (4 * 9 - 6 * 7) + 3 * (4 * 8 - 5 * 7), "");
+
+  static_assert(Matrix4d::Identity().determinant() == 1, "");
+
+#if EIGEN_COMP_CXXVER >= 20
+  constexpr Matrix4d M{{0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}, {1, 0, 0, 0}};
+  static_assert(M.determinant() == -1);
+#endif
+
+  return true;
+}
+
+static_assert(determinant(), "");
+
 constexpr bool constant_identity() {
 #if EIGEN_COMP_CXXVER >= 20
   static_assert(Matrix<float, 8, 7>::Constant(5).sum() == 5 * 7 * 8);
@@ -199,7 +221,47 @@ constexpr bool dynamic_basics() {
 }
 
 static_assert(dynamic_basics(), "");
+
+// Heap storage: allocation, copy, move, resize, conservative resize and the temporaries of products and
+// decompositions. C++20 allocations must be freed within the evaluation, so the objects are local.
 #if EIGEN_COMP_CXXVER >= 20 && defined(__cpp_lib_constexpr_dynamic_alloc)
+constexpr bool dynamic_allocation() {
+  MatrixXd m = MatrixXd::Identity(3, 3);
+  bool ok = m.rows() == 3 && m(1, 1) == 1 && m(0, 1) == 0;
+  VectorXd v(4);
+  v << 1, 2, 3, 4;
+  ok = ok && v.sum() == 10;
+  MatrixXd c = m;
+  c.conservativeResize(4, 2);
+  ok = ok && c.rows() == 4 && c.cols() == 2 && c(1, 1) == 1 && c(2, 1) == 0;
+  c.resize(2, 5);
+  c.setZero();
+  ok = ok && c.size() == 10 && c.sum() == 0;
+  MatrixXd p = m * m + MatrixXd::Ones(3, 3);
+  ok = ok && p(0, 0) == 2 && p(0, 1) == 1;
+  // GEMM operands with scalar factors: half, whose factors the GEMM combines in float, a cast operand, and a product
+  // of two constants.
+  using MatrixXh = Matrix<half, Dynamic, Dynamic>;
+  const MatrixXh h = MatrixXh::Constant(2, 2, half(1.5f));
+  const MatrixXh hh = (half(2) * h) * h;
+  ok = ok && hh(0, 1) == half(9);
+  const MatrixXf ones = MatrixXf::Ones(3, 3);
+  const MatrixXd pc = ones.cast<double>() * m;
+  ok = ok && pc(2, 1) == 1;
+  const MatrixXd pk = (2.0 * MatrixXd::Constant(3, 3, 1.5)) * m;
+  ok = ok && pk(1, 2) == 3;
+  const MatrixXd moved = std::move(p);
+  ok = ok && moved(2, 2) == 2;
+  const MatrixXd a{{4, 2, 0}, {2, 5, 1}, {0, 1, 3}};
+  const VectorXd x = a.llt().solve(VectorXd::Ones(3));
+  ok = ok && (a * x).isApprox(VectorXd::Ones(3));
+  // Storage only: Clang cannot constant-evaluate libstdc++'s std::complex arithmetic.
+  const VectorXcd z = VectorXcd::Constant(2, std::complex<double>(1, 2));
+  ok = ok && z.size() == 2 && z(1) == std::complex<double>(1, 2);
+  return ok;
+}
+
+static_assert(dynamic_allocation());
 
 constexpr bool selfadjoint_updates() {
   const Vector3d u(1, 2, 3);
@@ -286,6 +348,36 @@ constexpr bool construct_from_other() {
 }
 
 static_assert(construct_from_other(), "");
+
+constexpr bool construct_from_values() {
+#if EIGEN_COMP_CXXVER >= 20
+  constexpr Matrix<float, 1, 1> m11(55);
+  static_assert(m11.x() == 55);
+
+  constexpr Vector2i m21(3.1, 42e-2);
+  static_assert(m21.sum() == 3);
+
+  constexpr Vector3d m31(2.7, 18e-3, 1e-4);
+  static_assert(m31.sum() == 2.7 + 0.018 + 0.0001);
+
+  constexpr Vector4d m41(1, 2, 3, 4);
+  static_assert(m41.x() == 1 && m41.y() == 2 && m41.z() == 3 && m41.w() == 4);
+
+  constexpr Matrix<int, 1, 6> a(1, 2, 3, 4, 5, 6);
+  static_assert(a.sum() == 6 * 7 / 2);
+
+  constexpr Matrix3d m33{{0, 1, 0}, {0, 0, -1}, {-1, 0, 0}};
+  static_assert(m33.determinant() == 1);
+
+  constexpr double data[] = {1, 1, 2, 2};
+  constexpr Matrix2d md(data);
+  static_assert(md.sum() == 6);
+#endif
+
+  return true;
+}
+
+static_assert(construct_from_values(), "");
 
 constexpr bool triangular() {
   bool result = true;
@@ -630,6 +722,21 @@ constexpr bool triangular_solve() {
 }
 
 static_assert(triangular_solve());
+
+constexpr bool selfadjoint_ops() {
+  const Matrix3d a{{4, 2, 0}, {2, 5, 1}, {0, 1, 3}};
+  bool ok = (a.llt().inverse() * a).isIdentity(1e-12);
+  // P A P^T with P(i, indices(i)) = 1, read from the lower triangle only.
+  Matrix3d b = a;
+  PermutationMatrix<3> p;
+  p.indices() << 2, 0, 1;
+  b.selfadjointView<Lower>().applyPermutation(p);
+  const Matrix3d expected = p * a * p.transpose();
+  ok = ok && b.triangularView<Lower>().toDenseMatrix() == expected.triangularView<Lower>().toDenseMatrix();
+  return ok;
+}
+
+static_assert(selfadjoint_ops());
 
 struct NullDevice {};
 
