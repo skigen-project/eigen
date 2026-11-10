@@ -140,7 +140,7 @@ def test_gate_macros():
 
 def test_compile_args():
     args = compile_args("Eigen/src/Core/Block.h")
-    assert "-std=c++14" in args and "-I" + REPO_ROOT in args
+    assert "-std=c++17" in args and "-I" + REPO_ROOT in args
     # Test sources include main.h from test/.
     assert any(a.endswith("/test") for a in compile_args("test/block.cpp"))
     assert any(a.endswith("/test") for a in compile_args("contrib/test/tensor_block_access.cpp"))
