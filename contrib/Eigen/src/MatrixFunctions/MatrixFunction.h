@@ -102,17 +102,15 @@ MatrixType MatrixFunctionAtomic<MatrixType>::compute(const MatrixType& A) {
 
 /** \brief Find cluster in \p clusters containing some value
  * \param[in] key Value to find
- * \returns Iterator to cluster containing \p key, or \c clusters.end() if no cluster in \p clusters
- * contains \p key.
+ * \returns Index of the cluster in \p clusters containing \p key, or \c clusters.size() if no cluster contains
+ * \p key.
  */
-template <typename Index, typename ListOfClusters>
-typename ListOfClusters::iterator matrix_function_find_cluster(Index key, ListOfClusters& clusters) {
-  typename std::list<Index>::iterator j;
-  for (typename ListOfClusters::iterator i = clusters.begin(); i != clusters.end(); ++i) {
-    j = std::find(i->begin(), i->end(), key);
-    if (j != i->end()) return i;
+template <typename ListOfClusters>
+std::size_t matrix_function_find_cluster(Index key, const ListOfClusters& clusters) {
+  for (std::size_t i = 0; i < clusters.size(); ++i) {
+    if (std::find(clusters[i].begin(), clusters[i].end(), key) != clusters[i].end()) return i;
   }
-  return clusters.end();
+  return clusters.size();
 }
 
 /** \brief Partition eigenvalues in clusters of ei'vals close to each other
@@ -127,29 +125,25 @@ typename ListOfClusters::iterator matrix_function_find_cluster(Index key, ListOf
  * The implementation follows Algorithm 4.1 in the paper of Davies and Higham.
  */
 template <typename EivalsType, typename Cluster>
-void matrix_function_partition_eigenvalues(const EivalsType& eivals, std::list<Cluster>& clusters) {
+void matrix_function_partition_eigenvalues(const EivalsType& eivals, std::vector<Cluster>& clusters) {
   using RealScalar = typename EivalsType::RealScalar;
   for (Index i = 0; i < eivals.rows(); ++i) {
     // Find cluster containing i-th ei'val, adding a new cluster if necessary
-    typename std::list<Cluster>::iterator qi = matrix_function_find_cluster(i, clusters);
-    if (qi == clusters.end()) {
-      Cluster l;
-      l.push_back(i);
-      clusters.push_back(l);
-      qi = clusters.end();
-      --qi;
-    }
+    std::size_t qi = matrix_function_find_cluster(i, clusters);
+    if (qi == clusters.size()) clusters.push_back(Cluster{i});
 
     // Look for other element to add to the set
     for (Index j = i + 1; j < eivals.rows(); ++j) {
       if (abs(eivals(j) - eivals(i)) <= RealScalar(matrix_function_separation) &&
-          std::find(qi->begin(), qi->end(), j) == qi->end()) {
-        typename std::list<Cluster>::iterator qj = matrix_function_find_cluster(j, clusters);
-        if (qj == clusters.end()) {
-          qi->push_back(j);
+          std::find(clusters[qi].begin(), clusters[qi].end(), j) == clusters[qi].end()) {
+        const std::size_t qj = matrix_function_find_cluster(j, clusters);
+        if (qj == clusters.size()) {
+          clusters[qi].push_back(j);
         } else {
-          qi->insert(qi->end(), qj->begin(), qj->end());
-          clusters.erase(qj);
+          clusters[qi].insert(clusters[qi].end(), clusters[qj].begin(), clusters[qj].end());
+          clusters.erase(clusters.begin() + qj);
+          // Erasing an earlier cluster shifts the one being grown.
+          if (qj < qi) --qi;
         }
       }
     }
@@ -412,7 +406,7 @@ struct matrix_function_compute<MatrixType, 1> {
     MatrixType U = schurOfA.matrixU();
 
     // partition eigenvalues into clusters of ei'vals "close" to each other
-    std::list<std::list<Index> > clusters;
+    std::vector<std::vector<Index>> clusters;
     matrix_function_partition_eigenvalues(T.diagonal(), clusters);
 
     // compute size of each cluster
