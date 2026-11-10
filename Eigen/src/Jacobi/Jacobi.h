@@ -444,13 +444,12 @@ template <typename Scalar, typename OtherScalar, int SizeAtCompileTime, int MinA
 struct apply_rotation_in_the_plane_selector {
   static EIGEN_DEVICE_FUNC inline void run(Scalar* x, Index incrx, Scalar* y, Index incry, Index size, OtherScalar c,
                                            OtherScalar s) {
+    // Indexing, not advancing x and y past the last element, keeps every pointer within the arrays.
     for (Index i = 0; i < size; ++i) {
-      Scalar xi = *x;
-      Scalar yi = *y;
-      *x = c * xi + numext::conj(s) * yi;
-      *y = -s * xi + numext::conj(c) * yi;
-      x += incrx;
-      y += incry;
+      Scalar xi = x[i * incrx];
+      Scalar yi = y[i * incry];
+      x[i * incrx] = c * xi + numext::conj(s) * yi;
+      y[i * incry] = -s * xi + numext::conj(c) * yi;
     }
   }
 };
