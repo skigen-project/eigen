@@ -110,6 +110,30 @@ constexpr bool householder_qr() {
 
 static_assert(householder_qr());
 
+constexpr bool eigen_decompositions() {
+  const Matrix3d a{{4, 2, 0}, {2, 5, 1}, {0, 1, 3}};
+  const Matrix3d g{{1, 2, 0}, {3, -1, 4}, {0, 5, 2}};
+  const SelfAdjointEigenSolver<Matrix3d> es(a);
+  bool ok = (a * es.eigenvectors()).isApprox(es.eigenvectors() * es.eigenvalues().asDiagonal());
+  SelfAdjointEigenSolver<Matrix2d> direct;
+  direct.computeDirect(Matrix2d{{2, 1}, {1, 2}});
+  ok = ok && direct.eigenvalues().isApprox(Vector2d(1, 3));
+  const RealSchur<Matrix3d> schur(g);
+  ok = ok && (schur.matrixU() * schur.matrixT() * schur.matrixU().transpose()).isApprox(g);
+  const GeneralizedEigenSolver<Matrix3d> ges(a, Matrix3d::Identity());
+  ok = ok && ges.info() == Success;
+  const BunchKaufman<Matrix3d> bk(a);
+  ok = ok && (a * bk.solve(Vector3d::Ones())).isApprox(Vector3d::Ones());
+  // Bisection for the eigenvalues, inverse iteration for the eigenvectors.
+  const TridiagonalEigenSolver<double> tes(Vector3d(2, 2, 2), Vector2d(1, 1));
+  const Matrix3d tri{{2, 1, 0}, {1, 2, 1}, {0, 1, 2}};
+  ok = ok && tes.info() == Success &&
+       (tri * tes.eigenvectors()).isApprox(tes.eigenvectors() * tes.eigenvalues().asDiagonal());
+  return ok;
+}
+
+static_assert(eigen_decompositions());
+
 // The determinant accessors and the wrapper classes of the complete orthogonal decompositions. Constant evaluation
 // takes the unblocked path of RandColPivHouseholderQR regardless of the block size.
 constexpr bool decomposition_wrappers() {
@@ -186,11 +210,114 @@ constexpr bool householder_products() {
 }
 
 static_assert(householder_products());
+
+// The non-const lvalue constructors decompose in place; the SVDs take triangular and bidiagonal input.
+constexpr bool inplace_and_structured_inputs() {
+  const Matrix3d a{{4, 2, 0}, {2, 5, 1}, {0, 1, 3}};
+  const Matrix3d g{{1, 2, 0}, {3, -1, 4}, {0, 5, 2}};
+  Matrix3d work = g;
+  const HessenbergDecomposition<Matrix3d> hess(work);
+  bool ok = (hess.matrixQ() * hess.matrixH() * hess.matrixQ().adjoint()).isApprox(g);
+  work = a;
+  const Tridiagonalization<Matrix3d> tri(work);
+  ok = ok && (tri.matrixQ() * tri.matrixT() * tri.matrixQ().adjoint()).isApprox(a);
+  work = g;
+  const RealSchur<Ref<Matrix3d>> schur(work);
+  ok = ok && (schur.matrixU() * schur.matrixT() * schur.matrixU().transpose()).isApprox(g);
+  work = a;
+  const SelfAdjointEigenSolver<Ref<Matrix3d>> es(work);
+  ok = ok && (a * es.eigenvectors()).isApprox(es.eigenvectors() * es.eigenvalues().asDiagonal());
+  Matrix3d b = Matrix3d::Identity();
+  work = a;
+  const GeneralizedEigenSolver<Matrix3d> ges(work, b);
+  ok = ok && ges.info() == Success;
+
+  const Matrix3d u = g.triangularView<Upper>();
+  const JacobiSVD<Matrix3d> dense_svd(u);
+  JacobiSVD<Matrix3d> svd(g.triangularView<Upper>());
+  ok = ok && svd.singularValues().isApprox(dense_svd.singularValues());
+  svd.compute(g.triangularView<Upper>());
+  ok = ok && svd.singularValues().isApprox(dense_svd.singularValues());
+  const Matrix3d bidiagonal{{1, 2, 0}, {0, 3, 4}, {0, 0, 5}};
+  const BDCSVD<Matrix3d> bdc(Vector3d(1, 3, 5), Vector2d(2, 4));
+  ok = ok && bdc.singularValues().isApprox(JacobiSVD<Matrix3d>(bidiagonal).singularValues());
+
+  const Matrix3d singular{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+  const FullPivLU<Matrix3d> lu(singular);
+  const MatrixXd kernel = lu.kernel();
+  ok = ok && kernel.cols() == 1 && (singular * kernel).isZero(1e-12);
+  return ok;
+}
+
+static_assert(inplace_and_structured_inputs());
+
+// C++20 makes std::complex arithmetic constexpr, but Clang cannot constant-evaluate libstdc++'s, which is built on
+// GCC's __complex__ types.
 #if defined(__cpp_lib_constexpr_complex) && !(EIGEN_COMP_CLANG && defined(__GLIBCXX__))
 #define EIGEN_TEST_CONSTEXPR_COMPLEX_ARITHMETIC 1
 #else
 #define EIGEN_TEST_CONSTEXPR_COMPLEX_ARITHMETIC 0
 #endif
+
+// A V = V D holds for the real block-diagonal D of a real nonsymmetric matrix, including 2x2 blocks for complex pairs.
+constexpr bool nonsymmetric_eigen_solver() {
+  const Matrix3d g{{1, 2, 0}, {3, -1, 4}, {0, 5, 2}};
+  const EigenSolver<Matrix3d> es(g);
+  const Matrix3d v = es.pseudoEigenvectors();
+  bool ok = es.info() == Success && (g * v).isApprox(v * es.pseudoEigenvalueMatrix());
+  // The eigenvalues of an upper triangular matrix are its diagonal.
+  const Matrix3d t{{2, 1, 7}, {0, 5, 1}, {0, 0, 3}};
+  const EigenSolver<Matrix3d> triangular(t, false);
+  const Matrix3d d = triangular.pseudoEigenvalueMatrix();
+  ok = ok && d.isDiagonal() && numext::abs(d.trace() - 10) < 1e-12 && numext::abs(d.diagonal().prod() - 30) < 1e-12;
+  // [[1, -2], [2, 1]] has the eigenvalues 1 +- 2i.
+  const Matrix2d r{{1, -2}, {2, 1}};
+  const EigenSolver<Matrix2d> pair(r, false);
+  const auto lambda = pair.eigenvalues();
+  ok = ok && numext::abs(lambda(0).real() - 1) < 1e-12 && numext::abs(numext::abs(lambda(0).imag()) - 2) < 1e-12;
+  ok = ok && lambda(0).imag() == -lambda(1).imag();
+#if EIGEN_TEST_CONSTEXPR_COMPLEX_ARITHMETIC
+  // The eigenvectors of a complex pair divide complex numbers.
+  const EigenSolver<Matrix2d> pair_vectors(r);
+  const Matrix2d rv = pair_vectors.pseudoEigenvectors();
+  ok = ok && (r * rv).isApprox(rv * pair_vectors.pseudoEigenvalueMatrix());
+#endif
+  return ok;
+}
+
+static_assert(nonsymmetric_eigen_solver());
+
+constexpr bool generalized_selfadjoint_eigen_solver() {
+  const Matrix3d a{{4, 2, 0}, {2, 5, 1}, {0, 1, 3}};
+  const Matrix3d b{{2, 1, 0}, {1, 2, 0}, {0, 0, 1}};
+  const GeneralizedSelfAdjointEigenSolver<Matrix3d> ges(a, b);
+  const Matrix3d v = ges.eigenvectors();
+  // A v = lambda B v, with B-orthonormal eigenvectors.
+  bool ok = ges.info() == Success && (a * v).isApprox(b * v * ges.eigenvalues().asDiagonal());
+  ok = ok && (v.transpose() * b * v).isIdentity(1e-12);
+  // A B v = lambda v.
+  const GeneralizedSelfAdjointEigenSolver<Matrix3d> abx(a, b, ComputeEigenvectors | ABx_lx);
+  const Matrix3d w = abx.eigenvectors();
+  return ok && (a * b * w).isApprox(w * abx.eigenvalues().asDiagonal());
+}
+
+static_assert(generalized_selfadjoint_eigen_solver());
+
+constexpr bool eigenvalue_helpers() {
+  const Matrix3d a{{4, 2, 0}, {2, 5, 1}, {0, 1, 3}};
+  const Matrix3d g{{1, 2, 0}, {3, -1, 4}, {0, 5, 2}};
+  const Vector3d lambda = a.selfadjointView<Lower>().eigenvalues();
+  bool ok = lambda(0) <= lambda(1) && lambda(1) <= lambda(2) && numext::abs(lambda.sum() - a.trace()) < 1e-12;
+  ok = ok && numext::abs(lambda.prod() - 44) < 1e-11;
+  // The 2-norm of a symmetric matrix is its largest absolute eigenvalue, and of any matrix its largest singular value.
+  ok = ok && numext::abs(a.selfadjointView<Upper>().operatorNorm() - lambda(2)) < 1e-12;
+  const double sigma = JacobiSVD<Matrix3d>(g).singularValues()(0);
+  ok = ok && numext::abs(g.operatorNorm() - sigma) < 1e-12;
+  const auto mu = g.eigenvalues();
+  return ok && numext::abs(mu(0).real() + mu(1).real() + mu(2).real() - g.trace()) < 1e-12;
+}
+
+static_assert(eigenvalue_helpers());
 
 // The estimators bound ||A^-1||_1 from below, so they never underestimate rcond = 1 / (||A||_1 ||A^-1||_1); for these
 // small matrices they are within a small factor of it.
@@ -243,6 +370,17 @@ constexpr bool svd_and_lu_solves() {
 }
 
 static_assert(svd_and_lu_solves());
+
+#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202306L
+// std::exp is constexpr from C++26 (P1383R2).
+constexpr bool selfadjoint_operator_exp() {
+  const Matrix2d a{{0, 0}, {0, 0}};
+  const SelfAdjointEigenSolver<Matrix2d> es(a);
+  return es.operatorExp().isApprox(Matrix2d::Identity());
+}
+
+static_assert(selfadjoint_operator_exp());
+#endif
 #endif
 
 #if EIGEN_COMP_CXXVER >= 20
@@ -253,7 +391,28 @@ constexpr bool rank_revealing() {
 }
 
 static_assert(rank_revealing());
+
+constexpr bool selfadjoint_eigensolver() {
+  const Matrix2d a{{2, 1}, {1, 2}};
+  const SelfAdjointEigenSolver<Matrix2d> es(a);
+  return es.eigenvalues().isApprox(Vector2d(1, 3)) &&
+         (a * es.eigenvectors()).isApprox(es.eigenvectors() * es.eigenvalues().asDiagonal());
+}
+
+static_assert(selfadjoint_eigensolver());
+
+// Before C++26, constant evaluation cannot form realView() of std::complex coefficients, which the complex
+// decompositions use.
 #if defined(__cpp_lib_tuple_like) && __cpp_lib_tuple_like >= 202311L
+constexpr bool complex_eigen_solver() {
+  // The non-const lvalue selects the in-place constructor.
+  using C = std::complex<double>;
+  Matrix2cd c{{C(2, 0), C(1, 0)}, {C(1, 0), C(2, 0)}};
+  const ComplexEigenSolver<Matrix2cd> ces(c);
+  return (c * ces.eigenvectors()).isApprox(ces.eigenvectors() * ces.eigenvalues().asDiagonal());
+}
+
+static_assert(complex_eigen_solver());
 
 constexpr bool complex_jacobi_svd() {
   using C = std::complex<double>;
@@ -264,6 +423,23 @@ constexpr bool complex_jacobi_svd() {
 }
 
 static_assert(complex_jacobi_svd());
+
+// A = U T U^* with T upper triangular, and the generalized form A = Q S Z, B = Q T Z.
+constexpr bool complex_schur_and_qz() {
+  using C = std::complex<double>;
+  const Matrix2cd a{{C(1, 1), C(2, 0)}, {C(0, 1), C(3, -1)}};
+  const Matrix2cd b{{C(2, 0), C(0, 1)}, {C(0, -1), C(3, 0)}};
+  const ComplexSchur<Matrix2cd> schur(a);
+  const Matrix2cd t = schur.matrixT();
+  bool ok =
+      schur.info() == Success && t(1, 0) == C(0, 0) && (schur.matrixU() * t * schur.matrixU().adjoint()).isApprox(a);
+  const ComplexQZ<Matrix2cd> qz(a, b);
+  ok = ok && qz.info() == Success && qz.matrixS().isUpperTriangular() && qz.matrixT().isUpperTriangular();
+  return ok && (qz.matrixQ() * qz.matrixS() * qz.matrixZ()).isApprox(a) &&
+         (qz.matrixQ() * qz.matrixT() * qz.matrixZ()).isApprox(b);
+}
+
+static_assert(complex_schur_and_qz());
 #endif
 #endif
 

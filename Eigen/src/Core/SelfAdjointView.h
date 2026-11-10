@@ -333,8 +333,8 @@ class SelfAdjointView : public TriangularBase<SelfAdjointView<MatrixType_, UpLo>
   /** Return type of eigenvalues() */
   using EigenvaluesReturnType = Matrix<RealScalar, internal::traits<MatrixType>::ColsAtCompileTime, 1>;
 
-  EIGEN_DEVICE_FUNC EigenvaluesReturnType eigenvalues() const;
-  EIGEN_DEVICE_FUNC RealScalar operatorNorm() const;
+  EIGEN_DEVICE_FUNC constexpr EigenvaluesReturnType eigenvalues() const;
+  EIGEN_DEVICE_FUNC constexpr RealScalar operatorNorm() const;
 
  private:
   template <typename PermutationType>

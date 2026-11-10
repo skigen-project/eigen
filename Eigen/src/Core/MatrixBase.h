@@ -385,8 +385,8 @@ class MatrixBase : public DenseBase<Derived> {
 
   /////////// Eigenvalues module ///////////
 
-  inline EigenvaluesReturnType eigenvalues() const;
-  inline RealScalar operatorNorm() const;
+  constexpr EigenvaluesReturnType eigenvalues() const;
+  constexpr RealScalar operatorNorm() const;
 
   /////////// SVD module ///////////
 

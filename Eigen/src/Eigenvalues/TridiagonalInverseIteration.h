@@ -34,10 +34,10 @@ namespace internal {
 struct inverse_iteration_rng {
   numext::uint64_t state;
 
-  explicit inverse_iteration_rng(numext::uint64_t seed) : state(seed) {}
+  explicit constexpr inverse_iteration_rng(numext::uint64_t seed) : state(seed) {}
 
   template <typename RealScalar>
-  RealScalar next() {
+  constexpr RealScalar next() {
     // SplitMix64: a strong avalanche so that consecutive per-column seeds yield well-separated
     // (uncorrelated) start vectors -- consecutive LCG seeds would produce near-parallel starts that
     // collapse under the cluster reorthogonalization.
@@ -81,8 +81,8 @@ struct inverse_iteration_rng {
  * \param[in]     n      dimension of T.
  */
 template <typename RealScalar>
-void tridiagonal_lagtf(RealScalar* d, RealScalar* du, RealScalar* dl, RealScalar* du2, Index* piv, RealScalar lambda,
-                       Index n) {
+constexpr void tridiagonal_lagtf(RealScalar* d, RealScalar* du, RealScalar* dl, RealScalar* du2, Index* piv,
+                                 RealScalar lambda, Index n) {
   d[0] -= lambda;
   piv[n - 1] = 0;
   if (n == 1) return;
@@ -147,8 +147,8 @@ void tridiagonal_lagtf(RealScalar* d, RealScalar* du, RealScalar* dl, RealScalar
  * \param[in]     n   dimension of T.
  */
 template <typename RealScalar>
-void tridiagonal_lagts(const RealScalar* d, const RealScalar* rcp, const RealScalar* du, const RealScalar* dl,
-                       const RealScalar* du2, const Index* piv, RealScalar* b, Index n) {
+constexpr void tridiagonal_lagts(const RealScalar* d, const RealScalar* rcp, const RealScalar* du, const RealScalar* dl,
+                                 const RealScalar* du2, const Index* piv, RealScalar* b, Index n) {
   const RealScalar eps = NumTraits<RealScalar>::epsilon();
   const RealScalar sfmin = (std::numeric_limits<RealScalar>::min)();
   const RealScalar bignum = RealScalar(1) / sfmin;
@@ -244,9 +244,10 @@ void tridiagonal_lagts(const RealScalar* d, const RealScalar* rcp, const RealSca
  * \returns the number of columns in the block that did not converge within \a maxits iterations.
  */
 template <typename RealScalar, typename EivecType>
-Index tridiagonal_inverse_iteration_block(const RealScalar* sdiag, const RealScalar* ssub, const RealScalar* xj_scaled,
-                                          const Index* clstart, Index n, RealScalar onenrm, RealScalar dtpcrt,
-                                          int maxits, int extra, EivecType& eivecs, Index j_lo, Index j_hi) {
+EIGEN_CONSTEXPR20 Index tridiagonal_inverse_iteration_block(const RealScalar* sdiag, const RealScalar* ssub,
+                                                            const RealScalar* xj_scaled, const Index* clstart, Index n,
+                                                            RealScalar onenrm, RealScalar dtpcrt, int maxits, int extra,
+                                                            EivecType& eivecs, Index j_lo, Index j_hi) {
   using RealVectorType = Matrix<RealScalar, Dynamic, 1>;
   const RealScalar eps = NumTraits<RealScalar>::epsilon();
 
@@ -267,8 +268,14 @@ Index tridiagonal_inverse_iteration_block(const RealScalar* sdiag, const RealSca
     lu_dl.head(n - 1) = Map<const RealVectorType>(ssub, n - 1);
     tridiagonal_lagtf<RealScalar>(lu_d.data(), lu_du.data(), lu_dl.data(), lu_du2.data(), piv.data(), xj, n);
     // Exact reciprocals of the U diagonal (pdiv, not the approximate preciprocal of cwiseInverse());
-    // a vanishing pivot yields inf, which the back-solve fast path never consumes.
-    lu_rcp.array() = RealScalar(1) / lu_d.array();
+    // a vanishing pivot yields inf, which the back-solve fast path never consumes. Constant evaluation rejects the
+    // division by zero, so it stores the inf directly.
+    if (is_constant_evaluated()) {
+      for (Index i = 0; i < n; ++i)
+        lu_rcp[i] = numext::is_exactly_zero(lu_d[i]) ? NumTraits<RealScalar>::infinity() : RealScalar(1) / lu_d[i];
+    } else {
+      lu_rcp.array() = RealScalar(1) / lu_d.array();
+    }
 
     // Deterministic pseudo-random start vector (seeded per column for thread independence).
     inverse_iteration_rng rng(numext::uint64_t(j) + 1);
@@ -321,6 +328,56 @@ Index tridiagonal_inverse_iteration_block(const RealScalar* sdiag, const RealSca
   return nonconv;
 }
 
+#if defined(EIGEN_HAS_OPENMP)
+/** \internal
+ *
+ * Runs tridiagonal_inverse_iteration_block() over the \a m columns on several OpenMP threads when
+ * there is enough work, and returns whether it did; \a nonconv then holds the number of columns that
+ * did not converge. The other parameters are those of tridiagonal_inverse_iteration_block().
+ */
+template <typename RealScalar, typename EivecType>
+bool tridiagonal_inverse_iteration_parallel(const RealScalar* sdiag_p, const RealScalar* ssub_p, const RealScalar* xj_p,
+                                            const Index* cl_p, Index n, Index m, RealScalar onenrm, RealScalar dtpcrt,
+                                            int maxits, int extra, EivecType& eivecs, Index& nonconv) {
+  // Distinct clusters are independent, so the columns split across threads with a single fork/join:
+  // thread t owns a contiguous slice of columns snapped to cluster boundaries (so no cluster straddles
+  // two threads) and writes only those columns of eivecs. No communication until the join, and the
+  // result is bit-identical to the serial path for any thread count. Each thread tallies its own
+  // non-converged columns; the reduction sums them into the value returned to the caller.
+  int nthreads = 1;
+  // Don't nest inside an existing parallel region, and only fork when there is enough work to amortize
+  // the thread overhead. Each column costs ~one O(n) factorization plus a few O(n) back-solves.
+  if (omp_get_num_threads() == 1) {
+    // Work ~ m columns * n rows (a factorization plus a few O(n) back-solves each). kMinTaskSize is the
+    // minimum such work to give each thread before adding one: m*n / kMinTaskSize threads, capped at
+    // the pool size. The value is measured -- at m*n = 2*kMinTaskSize (the two-thread point) inverse
+    // iteration is already ~2x faster than serial, with the gain growing to the core count for larger n.
+    const double work = double(m) * double(n);
+    const double kMinTaskSize = 2048.0;
+    const Index work_threads = Index(work / kMinTaskSize);
+    nthreads = int(numext::maxi(Index(1), numext::mini(work_threads, Index(Eigen::nbThreads()))));
+  }
+  if (nthreads <= 1) return false;
+  Index total = 0;
+#pragma omp parallel num_threads(nthreads) reduction(+ : total)
+  {
+    const Index nt = omp_get_num_threads();
+    const Index tid = omp_get_thread_num();
+    // Balanced split snapped up to the next cluster boundary (clstart[j]==j marks a cluster start).
+    // Adjacent threads snap the same raw index to the same boundary, so the blocks tile [0, m)
+    // exactly; a thread whose whole share falls inside one cluster simply gets an empty block.
+    Index lo = tid * m / nt;
+    Index hi = (tid + 1) * m / nt;
+    while (lo < m && cl_p[lo] != lo) ++lo;
+    while (hi < m && cl_p[hi] != hi) ++hi;
+    total += tridiagonal_inverse_iteration_block<RealScalar>(sdiag_p, ssub_p, xj_p, cl_p, n, onenrm, dtpcrt, maxits,
+                                                             extra, eivecs, lo, hi);
+  }
+  nonconv = total;
+  return true;
+}
+#endif
+
 /** \internal
  *
  * Inverse-iteration driver for a numerically \e connected symmetric tridiagonal matrix T -- one
@@ -343,8 +400,8 @@ Index tridiagonal_inverse_iteration_block(const RealScalar* sdiag, const RealSca
  *          (0 on full success); the caller maps a non-zero count to ComputationInfo::NoConvergence.
  */
 template <typename DiagType, typename SubdiagType, typename EivalType, typename EivecType>
-Index tridiagonal_inverse_iteration_connected(const DiagType& diag, const SubdiagType& subdiag, const EivalType& eivals,
-                                              EivecType& eivecs) {
+EIGEN_CONSTEXPR20 Index tridiagonal_inverse_iteration_connected(const DiagType& diag, const SubdiagType& subdiag,
+                                                                const EivalType& eivals, EivecType& eivecs) {
   using RealScalar = typename DiagType::Scalar;
   EIGEN_STATIC_ASSERT(NumTraits<RealScalar>::IsInteger == 0 && NumTraits<RealScalar>::IsComplex == 0,
                       THIS_FUNCTION_IS_NOT_FOR_INTEGER_OR_COMPLEX_TYPES)
@@ -427,48 +484,15 @@ Index tridiagonal_inverse_iteration_connected(const DiagType& diag, const Subdia
   const RealScalar* xj_p = xj_scaled.data();
   const Index* cl_p = clstart.data();
 
-  // Distinct clusters are independent, so the columns split across threads with a single fork/join:
-  // thread t owns a contiguous slice of columns snapped to cluster boundaries (so no cluster straddles
-  // two threads) and writes only those columns of eivecs. No communication until the join, and the
-  // result is bit-identical to the serial path for any thread count. Each thread tallies its own
-  // non-converged columns; the reduction sums them into the value returned to the caller.
-  Index nonconv = 0;
 #if defined(EIGEN_HAS_OPENMP)
-  int nthreads = 1;
-  // Don't nest inside an existing parallel region, and only fork when there is enough work to amortize
-  // the thread overhead. Each column costs ~one O(n) factorization plus a few O(n) back-solves.
-  if (omp_get_num_threads() == 1) {
-    // Work ~ m columns * n rows (a factorization plus a few O(n) back-solves each). kMinTaskSize is the
-    // minimum such work to give each thread before adding one: m*n / kMinTaskSize threads, capped at
-    // the pool size. The value is measured -- at m*n = 2*kMinTaskSize (the two-thread point) inverse
-    // iteration is already ~2x faster than serial, with the gain growing to the core count for larger n.
-    const double work = double(m) * double(n);
-    const double kMinTaskSize = 2048.0;
-    const Index work_threads = Index(work / kMinTaskSize);
-    nthreads = int(numext::maxi(Index(1), numext::mini(work_threads, Index(Eigen::nbThreads()))));
-  }
-  if (nthreads > 1) {
-#pragma omp parallel num_threads(nthreads) reduction(+ : nonconv)
-    {
-      const Index nt = omp_get_num_threads();
-      const Index tid = omp_get_thread_num();
-      // Balanced split snapped up to the next cluster boundary (clstart[j]==j marks a cluster start).
-      // Adjacent threads snap the same raw index to the same boundary, so the blocks tile [0, m)
-      // exactly; a thread whose whole share falls inside one cluster simply gets an empty block.
-      Index lo = tid * m / nt;
-      Index hi = (tid + 1) * m / nt;
-      while (lo < m && cl_p[lo] != lo) ++lo;
-      while (hi < m && cl_p[hi] != hi) ++hi;
-      nonconv += tridiagonal_inverse_iteration_block<RealScalar>(sdiag_p, ssub_p, xj_p, cl_p, n, onenrm, dtpcrt, maxits,
-                                                                 extra, eivecs, lo, hi);
-    }
-  } else
+  Index nonconv = 0;
+  if (!is_constant_evaluated() &&
+      tridiagonal_inverse_iteration_parallel<RealScalar>(sdiag_p, ssub_p, xj_p, cl_p, n, m, onenrm, dtpcrt, maxits,
+                                                         extra, eivecs, nonconv))
+    return nonconv;
 #endif
-  {
-    nonconv = tridiagonal_inverse_iteration_block<RealScalar>(sdiag_p, ssub_p, xj_p, cl_p, n, onenrm, dtpcrt, maxits,
-                                                              extra, eivecs, 0, m);
-  }
-  return nonconv;
+  return tridiagonal_inverse_iteration_block<RealScalar>(sdiag_p, ssub_p, xj_p, cl_p, n, onenrm, dtpcrt, maxits, extra,
+                                                         eivecs, 0, m);
 }
 
 /** \internal
@@ -515,9 +539,9 @@ Index tridiagonal_inverse_iteration_connected(const DiagType& diag, const Subdia
  *          (0 on full success); the caller maps a non-zero count to ComputationInfo::NoConvergence.
  */
 template <typename DiagType, typename SubdiagType, typename EivalType, typename EivecType>
-Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& subdiag, const EivalType& eivals,
-                                    EivecType& eivecs,
-                                    typename DiagType::Scalar shift_tol = typename DiagType::Scalar(0)) {
+EIGEN_CONSTEXPR20 Index
+tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& subdiag, const EivalType& eivals,
+                              EivecType& eivecs, typename DiagType::Scalar shift_tol = typename DiagType::Scalar(0)) {
   using RealScalar = typename DiagType::Scalar;
   using VectorType = Matrix<RealScalar, Dynamic, 1>;
   const Index n = diag.size();
@@ -839,8 +863,8 @@ Index tridiagonal_inverse_iteration(const DiagType& diag, const SubdiagType& sub
  * \param[in,out] eivecs  the \c n x \c m eigenvectors, refined in place.
  */
 template <typename DiagType, typename SubdiagType, typename EivalType, typename EivecType>
-void tridiagonal_rayleigh_ritz_refine(const DiagType& diag, const SubdiagType& subdiag, const EivalType& eivals,
-                                      EivecType& eivecs) {
+EIGEN_CONSTEXPR20 void tridiagonal_rayleigh_ritz_refine(const DiagType& diag, const SubdiagType& subdiag,
+                                                        const EivalType& eivals, EivecType& eivecs) {
   using RealScalar = typename DiagType::Scalar;
   using DenseType = Matrix<RealScalar, Dynamic, Dynamic>;
   const Index n = diag.size();
