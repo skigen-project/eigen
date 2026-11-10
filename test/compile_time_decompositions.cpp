@@ -16,6 +16,25 @@ using namespace Eigen;
 #if EIGEN_COMP_CXXVER >= 20 && defined(__cpp_lib_constexpr_dynamic_alloc)
 // Dynamic outer products evaluate their operands into a local buffer, and the divide-and-conquer SVD applies plane
 // rotations to strided columns.
+constexpr bool dynamic_decompositions() {
+  VectorXd u(3);
+  u << 1, 2, 3;
+  const MatrixXd outer = u * u.transpose();
+  bool ok = outer(1, 2) == 6 && outer(2, 2) == 9;
+
+  Matrix<double, 6, 6> a;
+  for (int i = 0; i < 6; ++i)
+    for (int j = 0; j < 6; ++j) a(i, j) = 1.0 / (i + j + 1) + (i == j ? 2 : 0);
+  BDCSVD<Matrix<double, 6, 6>, ComputeFullU | ComputeFullV> bdc;
+  bdc.setSwitchSize(3);
+  bdc.compute(a);
+  ok = ok && (bdc.matrixU() * bdc.singularValues().asDiagonal() * bdc.matrixV().transpose()).isApprox(a);
+  const JacobiSVD<Matrix<double, 6, 6>> jacobi(a);
+  ok = ok && jacobi.singularValues().isApprox(bdc.singularValues());
+  return ok;
+}
+
+static_assert(dynamic_decompositions());
 
 // A nonsingular test matrix with a_ij = 1/(i+j+1) + 2 delta_ij.
 template <typename MatrixType>
@@ -193,6 +212,37 @@ constexpr bool condition_estimates() {
 }
 
 static_assert(condition_estimates());
+
+constexpr bool svd_and_lu_solves() {
+  const Matrix3d g{{1, 2, 0}, {3, -1, 4}, {0, 5, 2}};
+  const Vector3d b(1, 2, 3);
+  const JacobiSVD<Matrix3d, ComputeFullU | ComputeFullV> svd(g);
+  bool ok = (g * svd.solve(b)).isApprox(b) && svd.rank() == 3;
+  // An overdetermined system: the least-squares solution satisfies the normal equations A^T (A x - b) = 0.
+  MatrixXd tall(4, 2);
+  tall << 1, 0, 1, 1, 1, 2, 1, 3;
+  VectorXd y(4);
+  y << 1, 2, 2, 4;
+  const VectorXd x = JacobiSVD<MatrixXd, ComputeThinU | ComputeThinV>(tall).solve(y);
+  ok = ok && (tall.transpose() * (tall * x - y)).isZero(1e-12);
+  const VectorXd z = BDCSVD<MatrixXd, ComputeThinU | ComputeThinV>(tall).solve(y);
+  ok = ok && z.isApprox(x) && numext::abs(x(1) - 0.9) < 1e-12;
+
+  const FullPivLU<Matrix3d> lu(g);
+  ok = ok && lu.isInvertible() && lu.isInjective() && lu.isSurjective() && (g * lu.solve(b)).isApprox(b);
+  ok = ok && (lu.inverse() * g).isIdentity(1e-12) && (lu.reconstructedMatrix()).isApprox(g);
+  // The image of a rank-2 matrix: two columns of it that span its column space.
+  const Matrix3d singular{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+  const FullPivLU<Matrix3d> slu(singular);
+  const MatrixXd image = slu.image(singular);
+  Matrix<double, 3, 5> joined;
+  joined << singular, image;
+  ok = ok && !slu.isInvertible() && image.cols() == 2 && FullPivLU<Matrix<double, 3, 5>>(joined).rank() == 2;
+  const Vector3d consistent = singular * Vector3d(1, -1, 2);
+  return ok && (singular * slu.solve(consistent)).isApprox(consistent);
+}
+
+static_assert(svd_and_lu_solves());
 #endif
 
 #if EIGEN_COMP_CXXVER >= 20
@@ -203,6 +253,18 @@ constexpr bool rank_revealing() {
 }
 
 static_assert(rank_revealing());
+#if defined(__cpp_lib_tuple_like) && __cpp_lib_tuple_like >= 202311L
+
+constexpr bool complex_jacobi_svd() {
+  using C = std::complex<double>;
+  const Matrix2cd c{{C(1, 1), C(2, 0)}, {C(0, 1), C(3, -1)}};
+  const Vector2d s = JacobiSVD<Matrix2cd>(c).singularValues();
+  // s0^2 + s1^2 = ||c||_F^2 = 17 and s0 s1 = |det c| = |(1 + i)(3 - i) - 2i| = 4.
+  return numext::abs(s.squaredNorm() - 17) < 1e-12 && numext::abs(s.prod() - 4) < 1e-12;
+}
+
+static_assert(complex_jacobi_svd());
+#endif
 #endif
 
 int main() { return 0; }

@@ -118,7 +118,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * The default constructor is useful in cases in which the user intends to
    * perform decompositions via BDCSVD::compute(const MatrixType&).
    */
-  BDCSVD() : m_isTranspose(false), m_numIters(0) {}
+  constexpr BDCSVD() : m_isTranspose(false), m_numIters(0) {}
 
   /** \brief Default Constructor with memory preallocation
    *
@@ -126,7 +126,9 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * according to the specified problem size and \a Options template parameter.
    * \sa BDCSVD()
    */
-  BDCSVD(Index rows, Index cols) : m_numIters(0) { allocate(rows, cols, internal::get_computation_options(Options)); }
+  constexpr BDCSVD(Index rows, Index cols) : m_numIters(0) {
+    allocate(rows, cols, internal::get_computation_options(Options));
+  }
 
   /** \brief Default Constructor with memory preallocation
    *
@@ -145,7 +147,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * be specified in the \a Options template parameter.
    */
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using the class template parameter.")
-  BDCSVD(Index rows, Index cols, unsigned int computationOptions) : m_numIters(0) {
+  constexpr BDCSVD(Index rows, Index cols, unsigned int computationOptions) : m_numIters(0) {
     internal::check_svd_options_assertions<MatrixType, Options>(computationOptions, rows, cols);
     allocate(rows, cols, computationOptions);
   }
@@ -156,7 +158,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * \param matrix the matrix to decompose
    */
   template <typename Derived>
-  BDCSVD(const MatrixBase<Derived>& matrix) : m_numIters(0) {
+  constexpr BDCSVD(const MatrixBase<Derived>& matrix) : m_numIters(0) {
     compute_impl(matrix, internal::get_computation_options(Options));
   }
 
@@ -170,7 +172,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * \param superdiagonal the superdiagonal entries of the bidiagonal matrix
    */
   template <typename DerivedD, typename DerivedE>
-  BDCSVD(const MatrixBase<DerivedD>& diagonal, const MatrixBase<DerivedE>& superdiagonal) : m_numIters(0) {
+  constexpr BDCSVD(const MatrixBase<DerivedD>& diagonal, const MatrixBase<DerivedE>& superdiagonal) : m_numIters(0) {
     compute_bidiagonal_impl(diagonal, superdiagonal, internal::get_computation_options(Options));
   }
 
@@ -188,7 +190,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    */
   template <typename Derived>
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using the class template parameter.")
-  BDCSVD(const MatrixBase<Derived>& matrix, unsigned int computationOptions) : m_numIters(0) {
+  constexpr BDCSVD(const MatrixBase<Derived>& matrix, unsigned int computationOptions) : m_numIters(0) {
     internal::check_svd_options_assertions<MatrixType, Options>(computationOptions, matrix.rows(), matrix.cols());
     compute_impl(matrix, computationOptions);
   }
@@ -199,7 +201,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * \param matrix the matrix to decompose
    */
   template <typename Derived>
-  BDCSVD& compute(const MatrixBase<Derived>& matrix) {
+  constexpr BDCSVD& compute(const MatrixBase<Derived>& matrix) {
     return compute_impl(matrix, m_computationOptions);
   }
 
@@ -214,7 +216,7 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    */
   template <typename Derived>
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using the class template parameter.")
-  BDCSVD& compute(const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
+  constexpr BDCSVD& compute(const MatrixBase<Derived>& matrix, unsigned int computationOptions) {
     internal::check_svd_options_assertions<MatrixType, Options>(computationOptions, matrix.rows(), matrix.cols());
     return compute_impl(matrix, computationOptions);
   }
@@ -229,11 +231,11 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
    * \param superdiagonal the superdiagonal entries of the bidiagonal matrix
    */
   template <typename DerivedD, typename DerivedE>
-  BDCSVD& compute(const MatrixBase<DerivedD>& diagonal, const MatrixBase<DerivedE>& superdiagonal) {
+  constexpr BDCSVD& compute(const MatrixBase<DerivedD>& diagonal, const MatrixBase<DerivedE>& superdiagonal) {
     return compute_bidiagonal_impl(diagonal, superdiagonal, m_computationOptions);
   }
 
-  void setSwitchSize(int s) {
+  constexpr void setSwitchSize(int s) {
     eigen_assert(s >= 3 && "BDCSVD the size of the algo switch has to be at least 3.");
     if (s == m_impl.algoSwap()) return;
     m_impl.setAlgoSwap(s);
@@ -243,21 +245,23 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
 
  private:
   template <typename Derived>
-  BDCSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions);
+  constexpr BDCSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions);
   template <typename Derived>
-  BDCSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions, internal::true_type);
+  constexpr BDCSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions,
+                                 internal::true_type);
   template <typename Derived>
-  BDCSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions, internal::false_type);
+  constexpr BDCSVD& compute_impl(const MatrixBase<Derived>& matrix, unsigned int computationOptions,
+                                 internal::false_type);
   template <typename DerivedD, typename DerivedE>
-  BDCSVD& compute_bidiagonal_impl(const MatrixBase<DerivedD>& diagonal, const MatrixBase<DerivedE>& superdiagonal,
-                                  unsigned int computationOptions);
+  constexpr BDCSVD& compute_bidiagonal_impl(const MatrixBase<DerivedD>& diagonal,
+                                            const MatrixBase<DerivedE>& superdiagonal, unsigned int computationOptions);
   template <typename HouseholderU, typename HouseholderV, typename NaiveU, typename NaiveV>
-  void copyUV(const HouseholderU& householderU, const HouseholderV& householderV, const NaiveU& naiveU,
-              const NaiveV& naivev);
+  constexpr void copyUV(const HouseholderU& householderU, const HouseholderV& householderV, const NaiveU& naiveU,
+                        const NaiveV& naivev);
 
  protected:
-  void allocate(Index rows, Index cols, unsigned int computationOptions);
-  void allocate_small(Index rows, Index cols, unsigned int computationOptions);
+  constexpr void allocate(Index rows, Index cols, unsigned int computationOptions);
+  constexpr void allocate_small(Index rows, Index cols, unsigned int computationOptions);
   internal::bdcsvd_impl<RealScalar> m_impl;
   bool m_isTranspose, m_useQrDecomp;
   // Only PreconditionSquareMatrix is forwarded: BDCSVD's QR bits configure its own R-bidiagonalization, and smallSvd
@@ -283,12 +287,12 @@ class BDCSVD : public SVDBase<BDCSVD<MatrixType_, Options_> > {
   using Base::m_singularValues;
 
  public:
-  int m_numIters;
+  int m_numIters = 0;
 };  // end class BDCSVD
 
 // Method to allocate and initialize matrix and attributes
 template <typename MatrixType, int Options>
-void BDCSVD<MatrixType, Options>::allocate(Index rows, Index cols, unsigned int computationOptions) {
+constexpr void BDCSVD<MatrixType, Options>::allocate(Index rows, Index cols, unsigned int computationOptions) {
   if (Base::allocate(rows, cols, computationOptions)) return;
 
   if (cols < m_impl.algoSwap())
@@ -320,7 +324,7 @@ void BDCSVD<MatrixType, Options>::allocate(Index rows, Index cols, unsigned int 
 }  // end allocate
 
 template <typename MatrixType, int Options>
-void BDCSVD<MatrixType, Options>::allocate_small(Index rows, Index cols, unsigned int computationOptions) {
+constexpr void BDCSVD<MatrixType, Options>::allocate_small(Index rows, Index cols, unsigned int computationOptions) {
   if (Base::allocate(rows, cols, computationOptions)) return;
 
   smallSvd.allocate(rows, cols, internal::get_computation_options(Options | computationOptions));
@@ -329,8 +333,8 @@ void BDCSVD<MatrixType, Options>::allocate_small(Index rows, Index cols, unsigne
 
 template <typename MatrixType, int Options>
 template <typename Derived>
-BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(const MatrixBase<Derived>& matrix,
-                                                                       unsigned int computationOptions) {
+constexpr BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(const MatrixBase<Derived>& matrix,
+                                                                                 unsigned int computationOptions) {
   EIGEN_STATIC_ASSERT_SAME_MATRIX_SIZE(Derived, MatrixType);
   EIGEN_STATIC_ASSERT((std::is_same<typename Derived::Scalar, typename MatrixType::Scalar>::value),
                       Input matrix must have the same Scalar type as the BDCSVD object.);
@@ -342,32 +346,12 @@ BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(const Mat
 
 template <typename MatrixType, int Options>
 template <typename Derived>
-EIGEN_DONT_INLINE BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(
-    const MatrixBase<Derived>& matrix, unsigned int computationOptions, internal::true_type) {
-  allocate_small(matrix.rows(), matrix.cols(), computationOptions);
+constexpr BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(const MatrixBase<Derived>& matrix,
+                                                                                 unsigned int computationOptions,
+                                                                                 internal::true_type) {
+  return internal::noinline_invoke([&]() -> BDCSVD& {
+    allocate_small(matrix.rows(), matrix.cols(), computationOptions);
 
-  smallSvd.compute(matrix);
-  m_isInitialized = true;
-  m_info = smallSvd.info();
-  if (m_info == Success || m_info == NoConvergence) {
-    if (computeU()) m_matrixU = smallSvd.matrixU();
-    if (computeV()) m_matrixV = smallSvd.matrixV();
-    m_singularValues = smallSvd.singularValues();
-    m_nonzeroSingularValues = smallSvd.nonzeroSingularValues();
-  }
-  return *this;
-}
-
-template <typename MatrixType, int Options>
-template <typename Derived>
-EIGEN_DONT_INLINE BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(
-    const MatrixBase<Derived>& matrix, unsigned int computationOptions, internal::false_type) {
-  allocate(matrix.rows(), matrix.cols(), computationOptions);
-
-  const RealScalar considerZero = (std::numeric_limits<RealScalar>::min)();
-
-  //**** step -1 - If the problem is too small, directly falls back to JacobiSVD and return
-  if (matrix.cols() < m_impl.algoSwap()) {
     smallSvd.compute(matrix);
     m_isInitialized = true;
     m_info = smallSvd.info();
@@ -378,246 +362,275 @@ EIGEN_DONT_INLINE BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::comp
       m_nonzeroSingularValues = smallSvd.nonzeroSingularValues();
     }
     return *this;
-  }
+  });
+}
 
-  //**** step 0 - Copy the input matrix and apply scaling to reduce over/under-flows
-  // A SIMD unit that flushes subnormal inputs reads an all-subnormal matrix as zero; recover its maximum from the
-  // representation so that the scaling still brings it into the normal range.
-  const RealScalar maxCoeff = internal::safe_scaling<RealScalar>::max_abs_component(matrix.derived());
-  if (!(numext::isfinite)(maxCoeff)) {
-    m_isInitialized = true;
-    m_info = InvalidInput;
-    return *this;
-  }
+template <typename MatrixType, int Options>
+template <typename Derived>
+constexpr BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_impl(const MatrixBase<Derived>& matrix,
+                                                                                 unsigned int computationOptions,
+                                                                                 internal::false_type) {
+  return internal::noinline_invoke([&]() -> BDCSVD& {
+    allocate(matrix.rows(), matrix.cols(), computationOptions);
 
-  const auto factors = m_isTranspose
-                           ? internal::safe_scaling<RealScalar>::scale_to(copyWorkspace, matrix.adjoint(), maxCoeff)
-                           : internal::safe_scaling<RealScalar>::scale_to(copyWorkspace, matrix, maxCoeff);
+    const RealScalar considerZero = (std::numeric_limits<RealScalar>::min)();
 
-  //**** step 1 - Bidiagonalization.
-  // If the problem is sufficiently rectangular, we perform R-Bidiagonalization: compute A = Q(R/0)
-  // and then bidiagonalize R. Otherwise, if the problem is relatively square, we
-  // bidiagonalize the input matrix directly.
-  if (m_useQrDecomp) {
-    qrDecomp.compute(copyWorkspace);
-    reducedTriangle = qrDecomp.matrixQR().topRows(diagSize());
-    reducedTriangle.template triangularView<StrictlyLower>().setZero();
-    bid.compute(reducedTriangle);
-  } else {
-    bid.compute(copyWorkspace);
-  }
-
-  //**** step 2 - Divide & Conquer
-  m_impl.naiveU().setZero();
-  m_impl.naiveV().setZero();
-  // The transposed bidiagonal has only the main diagonal and one sub-diagonal;
-  // fill those directly instead of materializing a dense temporary.
-  // Note: BandMatrix::diagonal<N>() const has a latent type bug (returns
-  // Block<CoefficientsType, ...> instead of Block<const CoefficientsType, ...>),
-  // so use the index-based overload which is correctly const-qualified.
-  m_impl.computed().setZero();
-  m_impl.computed().topRows(diagSize()).diagonal() = bid.bidiagonal().diagonal();
-  m_impl.computed().topRows(diagSize()).template diagonal<-1>() = bid.bidiagonal().diagonal(1);
-  m_impl.splitNegligibleSuperdiagonal(diagSize());
-  m_impl.divide(0, diagSize() - 1, 0, 0, 0);
-  m_info = m_impl.info();
-  m_numIters = m_impl.numIters();
-  if (m_info != Success && m_info != NoConvergence) {
-    m_isInitialized = true;
-    return *this;
-  }
-
-  //**** step 3 - Copy singular values and vectors
-  for (int i = 0; i < diagSize(); i++) {
-    RealScalar a = numext::abs(m_impl.computed().coeff(i, i));
-    m_singularValues.coeffRef(i) = a;
-    if (a < considerZero) {
-      m_nonzeroSingularValues = i;
-      m_singularValues.tail(diagSize() - i - 1).setZero();
-      break;
-    } else if (i == diagSize() - 1) {
-      m_nonzeroSingularValues = i + 1;
-      break;
+    //**** step -1 - If the problem is too small, directly falls back to JacobiSVD and return
+    if (matrix.cols() < m_impl.algoSwap()) {
+      smallSvd.compute(matrix);
+      m_isInitialized = true;
+      m_info = smallSvd.info();
+      if (m_info == Success || m_info == NoConvergence) {
+        if (computeU()) m_matrixU = smallSvd.matrixU();
+        if (computeV()) m_matrixV = smallSvd.matrixV();
+        m_singularValues = smallSvd.singularValues();
+        m_nonzeroSingularValues = smallSvd.nonzeroSingularValues();
+      }
+      return *this;
     }
-  }
-  // Unscaling with maxCoeff keeps singular values that land in the subnormal range under FTZ.
-  internal::safe_scaling<RealScalar>::unscale_in_place(m_singularValues, maxCoeff, factors);
 
-  //**** step 4 - Finalize unitaries U and V
-  if (m_isTranspose)
-    copyUV(bid.householderV(), bid.householderU(), m_impl.naiveV(), m_impl.naiveU());
-  else
-    copyUV(bid.householderU(), bid.householderV(), m_impl.naiveU(), m_impl.naiveV());
+    //**** step 0 - Copy the input matrix and apply scaling to reduce over/under-flows
+    // A SIMD unit that flushes subnormal inputs reads an all-subnormal matrix as zero; recover its maximum from the
+    // representation so that the scaling still brings it into the normal range.
+    const RealScalar maxCoeff = internal::safe_scaling<RealScalar>::max_abs_component(matrix.derived());
+    if (!(numext::isfinite)(maxCoeff)) {
+      m_isInitialized = true;
+      m_info = InvalidInput;
+      return *this;
+    }
 
-  if (m_useQrDecomp) {
-    if (m_isTranspose && computeV())
-      m_matrixV.applyOnTheLeft(qrDecomp.householderQ());
-    else if (!m_isTranspose && computeU())
-      m_matrixU.applyOnTheLeft(qrDecomp.householderQ());
-  }
+    const auto factors = m_isTranspose
+                             ? internal::safe_scaling<RealScalar>::scale_to(copyWorkspace, matrix.adjoint(), maxCoeff)
+                             : internal::safe_scaling<RealScalar>::scale_to(copyWorkspace, matrix, maxCoeff);
 
-  m_isInitialized = true;
-  return *this;
+    //**** step 1 - Bidiagonalization.
+    // If the problem is sufficiently rectangular, we perform R-Bidiagonalization: compute A = Q(R/0)
+    // and then bidiagonalize R. Otherwise, if the problem is relatively square, we
+    // bidiagonalize the input matrix directly.
+    if (m_useQrDecomp) {
+      qrDecomp.compute(copyWorkspace);
+      reducedTriangle = qrDecomp.matrixQR().topRows(diagSize());
+      reducedTriangle.template triangularView<StrictlyLower>().setZero();
+      bid.compute(reducedTriangle);
+    } else {
+      bid.compute(copyWorkspace);
+    }
+
+    //**** step 2 - Divide & Conquer
+    m_impl.naiveU().setZero();
+    m_impl.naiveV().setZero();
+    // The transposed bidiagonal has only the main diagonal and one sub-diagonal;
+    // fill those directly instead of materializing a dense temporary.
+    // Note: BandMatrix::diagonal<N>() const has a latent type bug (returns
+    // Block<CoefficientsType, ...> instead of Block<const CoefficientsType, ...>),
+    // so use the index-based overload which is correctly const-qualified.
+    m_impl.computed().setZero();
+    m_impl.computed().topRows(diagSize()).diagonal() = bid.bidiagonal().diagonal();
+    m_impl.computed().topRows(diagSize()).template diagonal<-1>() = bid.bidiagonal().diagonal(1);
+    m_impl.splitNegligibleSuperdiagonal(diagSize());
+    m_impl.divide(0, diagSize() - 1, 0, 0, 0);
+    m_info = m_impl.info();
+    m_numIters = m_impl.numIters();
+    if (m_info != Success && m_info != NoConvergence) {
+      m_isInitialized = true;
+      return *this;
+    }
+
+    //**** step 3 - Copy singular values and vectors
+    for (int i = 0; i < diagSize(); i++) {
+      RealScalar a = numext::abs(m_impl.computed().coeff(i, i));
+      m_singularValues.coeffRef(i) = a;
+      if (a < considerZero) {
+        m_nonzeroSingularValues = i;
+        m_singularValues.tail(diagSize() - i - 1).setZero();
+        break;
+      } else if (i == diagSize() - 1) {
+        m_nonzeroSingularValues = i + 1;
+        break;
+      }
+    }
+    // Unscaling with maxCoeff keeps singular values that land in the subnormal range under FTZ.
+    internal::safe_scaling<RealScalar>::unscale_in_place(m_singularValues, maxCoeff, factors);
+
+    //**** step 4 - Finalize unitaries U and V
+    if (m_isTranspose)
+      copyUV(bid.householderV(), bid.householderU(), m_impl.naiveV(), m_impl.naiveU());
+    else
+      copyUV(bid.householderU(), bid.householderV(), m_impl.naiveU(), m_impl.naiveV());
+
+    if (m_useQrDecomp) {
+      if (m_isTranspose && computeV())
+        m_matrixV.applyOnTheLeft(qrDecomp.householderQ());
+      else if (!m_isTranspose && computeU())
+        m_matrixU.applyOnTheLeft(qrDecomp.householderQ());
+    }
+
+    m_isInitialized = true;
+    return *this;
+  });
 }  // end compute
 
 template <typename MatrixType, int Options>
 template <typename HouseholderU, typename HouseholderV, typename NaiveU, typename NaiveV>
-EIGEN_DONT_INLINE void BDCSVD<MatrixType, Options>::copyUV(const HouseholderU& householderU,
-                                                           const HouseholderV& householderV, const NaiveU& naiveU,
-                                                           const NaiveV& naiveV) {
-  // Note exchange of U and V: m_matrixU is set from m_naiveV and vice versa.
-  // Cast the diagSize x diagSize block (rather than the full naive matrix) to avoid materializing
-  // a full-size temporary when Scalar != RealScalar; reuse m_householderWorkspace across the two
-  // applyThisOnTheLeft calls so each does not allocate a fresh row vector.
-  if (computeU()) {
-    Index Ucols = m_computeThinU ? diagSize() : rows();
-    m_matrixU = MatrixX::Identity(rows(), Ucols);
-    m_matrixU.topLeftCorner(diagSize(), diagSize()) =
-        naiveV.topLeftCorner(diagSize(), diagSize()).template cast<Scalar>();
-    if (m_useQrDecomp) {
-      auto sub = m_matrixU.topLeftCorner(householderU.cols(), diagSize());
-      householderU.applyThisOnTheLeft(sub, m_householderWorkspace);
-    } else {
-      householderU.applyThisOnTheLeft(m_matrixU, m_householderWorkspace);
+constexpr void BDCSVD<MatrixType, Options>::copyUV(const HouseholderU& householderU, const HouseholderV& householderV,
+                                                   const NaiveU& naiveU, const NaiveV& naiveV) {
+  internal::noinline_invoke([&] {
+    // Note exchange of U and V: m_matrixU is set from m_naiveV and vice versa.
+    // Cast the diagSize x diagSize block (rather than the full naive matrix) to avoid materializing
+    // a full-size temporary when Scalar != RealScalar; reuse m_householderWorkspace across the two
+    // applyThisOnTheLeft calls so each does not allocate a fresh row vector.
+    if (computeU()) {
+      Index Ucols = m_computeThinU ? diagSize() : rows();
+      m_matrixU = MatrixX::Identity(rows(), Ucols);
+      m_matrixU.topLeftCorner(diagSize(), diagSize()) =
+          naiveV.topLeftCorner(diagSize(), diagSize()).template cast<Scalar>();
+      if (m_useQrDecomp) {
+        auto sub = m_matrixU.topLeftCorner(householderU.cols(), diagSize());
+        householderU.applyThisOnTheLeft(sub, m_householderWorkspace);
+      } else {
+        householderU.applyThisOnTheLeft(m_matrixU, m_householderWorkspace);
+      }
     }
-  }
-  if (computeV()) {
-    Index Vcols = m_computeThinV ? diagSize() : cols();
-    m_matrixV = MatrixX::Identity(cols(), Vcols);
-    m_matrixV.topLeftCorner(diagSize(), diagSize()) =
-        naiveU.topLeftCorner(diagSize(), diagSize()).template cast<Scalar>();
-    if (m_useQrDecomp) {
-      auto sub = m_matrixV.topLeftCorner(householderV.cols(), diagSize());
-      householderV.applyThisOnTheLeft(sub, m_householderWorkspace);
-    } else {
-      householderV.applyThisOnTheLeft(m_matrixV, m_householderWorkspace);
+    if (computeV()) {
+      Index Vcols = m_computeThinV ? diagSize() : cols();
+      m_matrixV = MatrixX::Identity(cols(), Vcols);
+      m_matrixV.topLeftCorner(diagSize(), diagSize()) =
+          naiveU.topLeftCorner(diagSize(), diagSize()).template cast<Scalar>();
+      if (m_useQrDecomp) {
+        auto sub = m_matrixV.topLeftCorner(householderV.cols(), diagSize());
+        householderV.applyThisOnTheLeft(sub, m_householderWorkspace);
+      } else {
+        householderV.applyThisOnTheLeft(m_matrixV, m_householderWorkspace);
+      }
     }
-  }
+  });
 }
 
 template <typename MatrixType, int Options>
 template <typename DerivedD, typename DerivedE>
-EIGEN_DONT_INLINE BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_bidiagonal_impl(
+constexpr BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::compute_bidiagonal_impl(
     const MatrixBase<DerivedD>& diagonal, const MatrixBase<DerivedE>& superdiagonal, unsigned int computationOptions) {
-  EIGEN_STATIC_ASSERT(DerivedD::IsVectorAtCompileTime, THIS_METHOD_IS_ONLY_FOR_VECTORS);
-  EIGEN_STATIC_ASSERT(DerivedE::IsVectorAtCompileTime, THIS_METHOD_IS_ONLY_FOR_VECTORS);
-  EIGEN_STATIC_ASSERT((NumTraits<typename DerivedD::Scalar>::IsComplex == 0),
-                      THIS_FUNCTION_IS_NOT_FOR_COMPLEX_VALUED_MATRICES);
-  EIGEN_STATIC_ASSERT((NumTraits<typename DerivedE::Scalar>::IsComplex == 0),
-                      THIS_FUNCTION_IS_NOT_FOR_COMPLEX_VALUED_MATRICES);
+  return internal::noinline_invoke([&]() -> BDCSVD& {
+    EIGEN_STATIC_ASSERT(DerivedD::IsVectorAtCompileTime, THIS_METHOD_IS_ONLY_FOR_VECTORS);
+    EIGEN_STATIC_ASSERT(DerivedE::IsVectorAtCompileTime, THIS_METHOD_IS_ONLY_FOR_VECTORS);
+    EIGEN_STATIC_ASSERT((NumTraits<typename DerivedD::Scalar>::IsComplex == 0),
+                        THIS_FUNCTION_IS_NOT_FOR_COMPLEX_VALUED_MATRICES);
+    EIGEN_STATIC_ASSERT((NumTraits<typename DerivedE::Scalar>::IsComplex == 0),
+                        THIS_FUNCTION_IS_NOT_FOR_COMPLEX_VALUED_MATRICES);
 
-  const Index n = diagonal.size();
-  eigen_assert((n == 0 || superdiagonal.size() == n - 1) && "superdiagonal must have size diagonal.size() - 1");
+    const Index n = diagonal.size();
+    eigen_assert((n == 0 || superdiagonal.size() == n - 1) && "superdiagonal must have size diagonal.size() - 1");
 
-  // For a bidiagonal matrix, rows == cols == n.
-  allocate(n, n, computationOptions);
+    // For a bidiagonal matrix, rows == cols == n.
+    allocate(n, n, computationOptions);
 
-  if (n == 0) {
-    m_isInitialized = true;
-    m_info = Success;
-    m_nonzeroSingularValues = 0;
-    return *this;
-  }
+    if (n == 0) {
+      m_isInitialized = true;
+      m_info = Success;
+      m_nonzeroSingularValues = 0;
+      return *this;
+    }
 
-  // Check for non-finite inputs. The rescan recovers an all-subnormal input that a flushing SIMD unit reads as zero.
-  const RealScalar diagScale = internal::safe_scaling<RealScalar>::recover_flushed_max_coeff(
-      diagonal.derived(), diagonal.cwiseAbs().template maxCoeff<PropagateNaN>());
-  const RealScalar superdiagScale =
-      n > 1 ? internal::safe_scaling<RealScalar>::recover_flushed_max_coeff(
-                  superdiagonal.derived(), superdiagonal.cwiseAbs().template maxCoeff<PropagateNaN>())
-            : RealScalar(0);
-  const RealScalar maxCoeff = internal::max_preserving_subnormals(diagScale, superdiagScale);
-  if (!(numext::isfinite)(maxCoeff)) {
-    m_isInitialized = true;
-    m_info = InvalidInput;
-    return *this;
-  }
+    // Check for non-finite inputs. The rescan recovers an all-subnormal input that a flushing SIMD unit reads as zero.
+    const RealScalar diagScale = internal::safe_scaling<RealScalar>::recover_flushed_max_coeff(
+        diagonal.derived(), diagonal.cwiseAbs().template maxCoeff<PropagateNaN>());
+    const RealScalar superdiagScale =
+        n > 1 ? internal::safe_scaling<RealScalar>::recover_flushed_max_coeff(
+                    superdiagonal.derived(), superdiagonal.cwiseAbs().template maxCoeff<PropagateNaN>())
+              : RealScalar(0);
+    const RealScalar maxCoeff = internal::max_preserving_subnormals(diagScale, superdiagScale);
+    if (!(numext::isfinite)(maxCoeff)) {
+      m_isInitialized = true;
+      m_info = InvalidInput;
+      return *this;
+    }
 
-  const RealScalar considerZero = (std::numeric_limits<RealScalar>::min)();
-  //**** Small problem: build dense bidiagonal and delegate to JacobiSVD.
-  if (n < m_impl.algoSwap()) {
-    // Build the dense upper bidiagonal matrix.
-    MatrixX B = MatrixX::Zero(n, n);
-    auto diagonalDest = B.diagonal();
+    const RealScalar considerZero = (std::numeric_limits<RealScalar>::min)();
+    //**** Small problem: build dense bidiagonal and delegate to JacobiSVD.
+    if (n < m_impl.algoSwap()) {
+      // Build the dense upper bidiagonal matrix.
+      MatrixX B = MatrixX::Zero(n, n);
+      auto diagonalDest = B.diagonal();
+      const auto factors =
+          internal::safe_scaling<RealScalar>::scale_to(diagonalDest, diagonal.template cast<Scalar>(), maxCoeff);
+      if (n > 1) {
+        auto superdiagonalDest = B.diagonal(1);
+        internal::safe_scaling<RealScalar>::scale_to(superdiagonalDest, superdiagonal.template cast<Scalar>(), maxCoeff,
+                                                     factors);
+      }
+      smallSvd.compute(B);
+      m_isInitialized = true;
+      m_info = smallSvd.info();
+      if (m_info == Success || m_info == NoConvergence) {
+        internal::safe_scaling<RealScalar>::unscale_to(m_singularValues, smallSvd.singularValues(), maxCoeff, factors);
+        m_nonzeroSingularValues = smallSvd.nonzeroSingularValues();
+        if (computeU()) m_matrixU = smallSvd.matrixU();
+        if (computeV()) m_matrixV = smallSvd.matrixV();
+      }
+      return *this;
+    }
+
+    //**** Fill m_computed with transposed bidiagonal format.
+    // D&C operates on B^T: m_computed(i,i) = d_i, m_computed(i+1,i) = e_i.
+    m_impl.naiveU().setZero();
+    m_impl.naiveV().setZero();
+    m_impl.computed().setZero();
+    auto diagonalDest = m_impl.computed().diagonal();
     const auto factors =
-        internal::safe_scaling<RealScalar>::scale_to(diagonalDest, diagonal.template cast<Scalar>(), maxCoeff);
+        internal::safe_scaling<RealScalar>::scale_to(diagonalDest, diagonal.template cast<RealScalar>(), maxCoeff);
     if (n > 1) {
-      auto superdiagonalDest = B.diagonal(1);
-      internal::safe_scaling<RealScalar>::scale_to(superdiagonalDest, superdiagonal.template cast<Scalar>(), maxCoeff,
-                                                   factors);
+      auto superdiagonalDest = m_impl.computed().template diagonal<-1>().head(n - 1);
+      internal::safe_scaling<RealScalar>::scale_to(superdiagonalDest, superdiagonal.template cast<RealScalar>(),
+                                                   maxCoeff, factors);
     }
-    smallSvd.compute(B);
+
+    m_isTranspose = false;
+
+    //**** Run D&C.
+    m_impl.splitNegligibleSuperdiagonal(n);
+    m_impl.divide(0, n - 1, 0, 0, 0);
+    m_info = m_impl.info();
+    m_numIters = m_impl.numIters();
+    if (m_info != Success && m_info != NoConvergence) {
+      m_isInitialized = true;
+      return *this;
+    }
+
+    //**** Extract singular values.
+    for (int i = 0; i < diagSize(); i++) {
+      RealScalar a = numext::abs(m_impl.computed().coeff(i, i));
+      m_singularValues.coeffRef(i) = a;
+      if (a < considerZero) {
+        m_nonzeroSingularValues = i;
+        m_singularValues.tail(diagSize() - i - 1).setZero();
+        break;
+      } else if (i == diagSize() - 1) {
+        m_nonzeroSingularValues = i + 1;
+        break;
+      }
+    }
+    // Unscaling with maxCoeff keeps singular values that land in the subnormal range under FTZ.
+    internal::safe_scaling<RealScalar>::unscale_in_place(m_singularValues, maxCoeff, factors);
+
+    //**** Copy U and V directly (no Householder to apply).
+    // D&C computes B^T = naiveU * S * naiveV^T, so B = naiveV * S * naiveU^T.
+    // Thus U_of_B = naiveV, V_of_B = naiveU.
+    if (computeU()) {
+      Index Ucols = m_computeThinU ? diagSize() : rows();
+      m_matrixU = MatrixX::Identity(rows(), Ucols);
+      m_matrixU.topLeftCorner(diagSize(), diagSize()) =
+          m_impl.naiveV().template cast<Scalar>().topLeftCorner(diagSize(), diagSize());
+    }
+    if (computeV()) {
+      Index Vcols = m_computeThinV ? diagSize() : cols();
+      m_matrixV = MatrixX::Identity(cols(), Vcols);
+      m_matrixV.topLeftCorner(diagSize(), diagSize()) =
+          m_impl.naiveU().template cast<Scalar>().topLeftCorner(diagSize(), diagSize());
+    }
+
     m_isInitialized = true;
-    m_info = smallSvd.info();
-    if (m_info == Success || m_info == NoConvergence) {
-      internal::safe_scaling<RealScalar>::unscale_to(m_singularValues, smallSvd.singularValues(), maxCoeff, factors);
-      m_nonzeroSingularValues = smallSvd.nonzeroSingularValues();
-      if (computeU()) m_matrixU = smallSvd.matrixU();
-      if (computeV()) m_matrixV = smallSvd.matrixV();
-    }
     return *this;
-  }
-
-  //**** Fill m_computed with transposed bidiagonal format.
-  // D&C operates on B^T: m_computed(i,i) = d_i, m_computed(i+1,i) = e_i.
-  m_impl.naiveU().setZero();
-  m_impl.naiveV().setZero();
-  m_impl.computed().setZero();
-  auto diagonalDest = m_impl.computed().diagonal();
-  const auto factors =
-      internal::safe_scaling<RealScalar>::scale_to(diagonalDest, diagonal.template cast<RealScalar>(), maxCoeff);
-  if (n > 1) {
-    auto superdiagonalDest = m_impl.computed().template diagonal<-1>().head(n - 1);
-    internal::safe_scaling<RealScalar>::scale_to(superdiagonalDest, superdiagonal.template cast<RealScalar>(), maxCoeff,
-                                                 factors);
-  }
-
-  m_isTranspose = false;
-
-  //**** Run D&C.
-  m_impl.splitNegligibleSuperdiagonal(n);
-  m_impl.divide(0, n - 1, 0, 0, 0);
-  m_info = m_impl.info();
-  m_numIters = m_impl.numIters();
-  if (m_info != Success && m_info != NoConvergence) {
-    m_isInitialized = true;
-    return *this;
-  }
-
-  //**** Extract singular values.
-  for (int i = 0; i < diagSize(); i++) {
-    RealScalar a = numext::abs(m_impl.computed().coeff(i, i));
-    m_singularValues.coeffRef(i) = a;
-    if (a < considerZero) {
-      m_nonzeroSingularValues = i;
-      m_singularValues.tail(diagSize() - i - 1).setZero();
-      break;
-    } else if (i == diagSize() - 1) {
-      m_nonzeroSingularValues = i + 1;
-      break;
-    }
-  }
-  // Unscaling with maxCoeff keeps singular values that land in the subnormal range under FTZ.
-  internal::safe_scaling<RealScalar>::unscale_in_place(m_singularValues, maxCoeff, factors);
-
-  //**** Copy U and V directly (no Householder to apply).
-  // D&C computes B^T = naiveU * S * naiveV^T, so B = naiveV * S * naiveU^T.
-  // Thus U_of_B = naiveV, V_of_B = naiveU.
-  if (computeU()) {
-    Index Ucols = m_computeThinU ? diagSize() : rows();
-    m_matrixU = MatrixX::Identity(rows(), Ucols);
-    m_matrixU.topLeftCorner(diagSize(), diagSize()) =
-        m_impl.naiveV().template cast<Scalar>().topLeftCorner(diagSize(), diagSize());
-  }
-  if (computeV()) {
-    Index Vcols = m_computeThinV ? diagSize() : cols();
-    m_matrixV = MatrixX::Identity(cols(), Vcols);
-    m_matrixV.topLeftCorner(diagSize(), diagSize()) =
-        m_impl.naiveU().template cast<Scalar>().topLeftCorner(diagSize(), diagSize());
-  }
-
-  m_isInitialized = true;
-  return *this;
+  });
 }
 
 /** \svd_module
@@ -628,7 +641,7 @@ EIGEN_DONT_INLINE BDCSVD<MatrixType, Options>& BDCSVD<MatrixType, Options>::comp
  */
 template <typename Derived>
 template <int Options>
-BDCSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::bdcSvd() const {
+constexpr BDCSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::bdcSvd() const {
   return BDCSVD<PlainObject, Options>(*this);
 }
 
@@ -640,7 +653,7 @@ BDCSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::
  */
 template <typename Derived>
 template <int Options>
-BDCSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::bdcSvd(
+constexpr BDCSVD<typename MatrixBase<Derived>::PlainObject, Options> MatrixBase<Derived>::bdcSvd(
     unsigned int computationOptions) const {
   return BDCSVD<PlainObject, Options>(*this, computationOptions);
 }

@@ -391,16 +391,16 @@ class MatrixBase : public DenseBase<Derived> {
   /////////// SVD module ///////////
 
   template <int Options = 0>
-  inline JacobiSVD<PlainObject, Options> jacobiSvd() const;
+  constexpr JacobiSVD<PlainObject, Options> jacobiSvd() const;
   template <int Options = 0>
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using method's template parameter.")
-  inline JacobiSVD<PlainObject, Options> jacobiSvd(unsigned int computationOptions) const;
+  constexpr JacobiSVD<PlainObject, Options> jacobiSvd(unsigned int computationOptions) const;
 
   template <int Options = 0>
-  inline BDCSVD<PlainObject, Options> bdcSvd() const;
+  constexpr BDCSVD<PlainObject, Options> bdcSvd() const;
   template <int Options = 0>
   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using method's template parameter.")
-  inline BDCSVD<PlainObject, Options> bdcSvd(unsigned int computationOptions) const;
+  constexpr BDCSVD<PlainObject, Options> bdcSvd(unsigned int computationOptions) const;
 
   /////////// Geometry module ///////////
 
