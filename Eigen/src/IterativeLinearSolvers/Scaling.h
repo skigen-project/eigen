@@ -70,8 +70,8 @@ class IterScaling {
    * \sa LeftScaling() RightScaling()
    */
   void compute(const MatrixType& mat) {
-    int m = mat.rows();
-    int n = mat.cols();
+    Index m = mat.rows();
+    Index n = mat.cols();
     eigen_assert((m > 0 && m == n) && "Please give a non - empty matrix");
     m_left.resize(m);
     m_right.resize(n);

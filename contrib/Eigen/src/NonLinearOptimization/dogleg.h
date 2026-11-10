@@ -66,37 +66,36 @@ void dogleg(const Matrix<Scalar, Dynamic, Dynamic> &qrfac, const Matrix<Scalar, 
   gnorm = wa1.stableNorm();
   sgnorm = 0.;
   alpha = delta / qnorm;
-  if (gnorm == 0.) goto algo_end;
-
-  /* calculate the point along the scaled gradient */
-  /* at which the quadratic is minimized. */
-  wa1.array() /= (diag * gnorm).array();
-  // TODO : once unit tests cover this part:
-  // wa2 = qrfac.template triangularView<Upper>() * wa1;
-  for (j = 0; j < n; ++j) {
-    sum = 0.;
-    for (i = j; i < n; ++i) {
-      sum += qrfac(j, i) * wa1[i];
+  if (gnorm != 0.) {
+    /* calculate the point along the scaled gradient */
+    /* at which the quadratic is minimized. */
+    wa1.array() /= (diag * gnorm).array();
+    // TODO : once unit tests cover this part:
+    // wa2 = qrfac.template triangularView<Upper>() * wa1;
+    for (j = 0; j < n; ++j) {
+      sum = 0.;
+      for (i = j; i < n; ++i) {
+        sum += qrfac(j, i) * wa1[i];
+      }
+      wa2[j] = sum;
     }
-    wa2[j] = sum;
+    temp = wa2.stableNorm();
+    sgnorm = gnorm / temp / temp;
+
+    /* test whether the scaled gradient direction is acceptable. */
+    alpha = 0.;
+    if (sgnorm < delta) {
+      /* the scaled gradient direction is not acceptable. */
+      /* finally, calculate the point along the dogleg */
+      /* at which the quadratic is minimized. */
+      bnorm = qtb.stableNorm();
+      temp = bnorm / gnorm * (bnorm / qnorm) * (sgnorm / delta);
+      temp = temp - delta / qnorm * numext::abs2(sgnorm / delta) +
+             sqrt(numext::abs2(temp - delta / qnorm) +
+                  (1. - numext::abs2(delta / qnorm)) * (1. - numext::abs2(sgnorm / delta)));
+      alpha = delta / qnorm * (1. - numext::abs2(sgnorm / delta)) / temp;
+    }
   }
-  temp = wa2.stableNorm();
-  sgnorm = gnorm / temp / temp;
-
-  /* test whether the scaled gradient direction is acceptable. */
-  alpha = 0.;
-  if (sgnorm >= delta) goto algo_end;
-
-  /* the scaled gradient direction is not acceptable. */
-  /* finally, calculate the point along the dogleg */
-  /* at which the quadratic is minimized. */
-  bnorm = qtb.stableNorm();
-  temp = bnorm / gnorm * (bnorm / qnorm) * (sgnorm / delta);
-  temp = temp - delta / qnorm * numext::abs2(sgnorm / delta) +
-         sqrt(numext::abs2(temp - delta / qnorm) +
-              (1. - numext::abs2(delta / qnorm)) * (1. - numext::abs2(sgnorm / delta)));
-  alpha = delta / qnorm * (1. - numext::abs2(sgnorm / delta)) / temp;
-algo_end:
 
   /* form appropriate convex combination of the gauss-newton */
   /* direction and the scaled gradient direction. */

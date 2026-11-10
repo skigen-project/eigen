@@ -82,11 +82,11 @@ class companion {
   DenseCompanionMatrixType denseMatrix() const {
     const Index deg = m_monic.size();
     const Index deg_1 = deg - 1;
-    DenseCompanionMatrixType companMat(deg, deg);
-    companMat << (LeftBlock(deg, deg_1) << LeftBlockFirstRow::Zero(1, deg_1),
-                  BottomLeftBlock::Identity(deg - 1, deg - 1) * m_bl_diag.asDiagonal())
-                     .finished(),
-        m_monic;
+    // A nested comma initializer here would reference its temporary block after that block's lifetime, which Clang
+    // rejects in constant evaluation.
+    DenseCompanionMatrixType companMat = DenseCompanionMatrixType::Zero(deg, deg);
+    if (deg_1 > 0) companMat.diagonal(-1) = m_bl_diag;
+    companMat.col(deg_1) = m_monic;
     return companMat;
   }
 

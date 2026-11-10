@@ -228,6 +228,7 @@ class SparseCompressedBase<Derived>::InnerIterator {
         m_end(other.m_end) {}
 
   InnerIterator& operator=(const InnerIterator& other) {
+    if (this == &other) return *this;
     m_values = other.m_values;
     m_indices = other.m_indices;
     const_cast<OuterType&>(m_outer).setValue(other.m_outer.value());
@@ -418,6 +419,7 @@ class StorageRef {
   StorageRef(StorageRef&& other) = default;
 
   inline StorageRef& operator=(const StorageRef& other) {
+    if (this == &other) return *this;
     key() = other.key();
     value() = other.value();
     return *this;
