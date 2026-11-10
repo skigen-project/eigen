@@ -559,6 +559,25 @@ struct bitwise_helper<
     T, std::enable_if_t<is_scalar<T>::value && (NumTraits<T>::IsInteger || NumTraits<T>::RequireInitialization)>>
     : public operator_bitwise_helper<T> {};
 
+// For float and double, operate on the integer of the same size: the same bits as the byte-wise helper, and bit_cast,
+// unlike reinterpret_cast, works in constant evaluation.
+template <typename T>
+struct bitwise_helper<T, std::enable_if_t<std::is_floating_point<T>::value && (sizeof(T) == 4 || sizeof(T) == 8)>> {
+  using Bits = typename numext::get_integer_by_size<sizeof(T)>::unsigned_type;
+  EIGEN_DEVICE_FUNC static inline T bitwise_and(const T& a, const T& b) {
+    return numext::bit_cast<T>(Bits(numext::bit_cast<Bits>(a) & numext::bit_cast<Bits>(b)));
+  }
+  EIGEN_DEVICE_FUNC static inline T bitwise_or(const T& a, const T& b) {
+    return numext::bit_cast<T>(Bits(numext::bit_cast<Bits>(a) | numext::bit_cast<Bits>(b)));
+  }
+  EIGEN_DEVICE_FUNC static inline T bitwise_xor(const T& a, const T& b) {
+    return numext::bit_cast<T>(Bits(numext::bit_cast<Bits>(a) ^ numext::bit_cast<Bits>(b)));
+  }
+  EIGEN_DEVICE_FUNC static inline T bitwise_not(const T& a) {
+    return numext::bit_cast<T>(Bits(~numext::bit_cast<Bits>(a)));
+  }
+};
+
 /** \internal \returns the bitwise and of \a a and \a b */
 template <typename Packet>
 EIGEN_DEVICE_FUNC inline Packet pand(const Packet& a, const Packet& b) {
