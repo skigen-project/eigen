@@ -201,7 +201,7 @@ class Ref<const SparseMatrix<MatScalar, MatOptions, MatIndex>, Options, StrideTy
 
   ~Ref() {
     if (m_hasCopy) {
-      internal::destroy_at(reinterpret_cast<TPlainObjectType*>(&m_storage));
+      internal::destroy_at(&m_storage.object);
     }
   }
 
@@ -210,7 +210,7 @@ class Ref<const SparseMatrix<MatScalar, MatOptions, MatIndex>, Options, StrideTy
   void construct(const Expression& expr, std::true_type) {
     EIGEN_IF_CONSTEXPR (Options & int(StandardCompressedFormat)) {
       if (!expr.isCompressed()) {
-        TPlainObjectType* obj = internal::construct_at(reinterpret_cast<TPlainObjectType*>(&m_storage), expr);
+        TPlainObjectType* obj = internal::construct_at(&m_storage.object, expr);
         m_hasCopy = true;
         Base::construct(*obj);
         return;
@@ -221,12 +221,19 @@ class Ref<const SparseMatrix<MatScalar, MatOptions, MatIndex>, Options, StrideTy
 
   template <typename Expression>
   void construct(const Expression& expr, std::false_type) {
-    TPlainObjectType* obj = internal::construct_at(reinterpret_cast<TPlainObjectType*>(&m_storage), expr);
+    TPlainObjectType* obj = internal::construct_at(&m_storage.object, expr);
     m_hasCopy = true;
     Base::construct(*obj);
   }
 
-  typename internal::aligned_storage<sizeof(TPlainObjectType), EIGEN_ALIGNOF(TPlainObjectType)>::type m_storage;
+  // A union member rather than raw storage, so constant evaluation can construct the copy in place.
+  union Storage {
+    char unused;
+    TPlainObjectType object;
+    Storage() : unused() {}
+    ~Storage() {}
+  };
+  Storage m_storage;
   bool m_hasCopy;
 };
 
@@ -310,7 +317,7 @@ class Ref<const SparseVector<MatScalar, MatOptions, MatIndex>, Options, StrideTy
 
   ~Ref() {
     if (m_hasCopy) {
-      internal::destroy_at(reinterpret_cast<TPlainObjectType*>(&m_storage));
+      internal::destroy_at(&m_storage.object);
     }
   }
 
@@ -322,12 +329,19 @@ class Ref<const SparseVector<MatScalar, MatOptions, MatIndex>, Options, StrideTy
 
   template <typename Expression>
   void construct(const Expression& expr, std::false_type) {
-    TPlainObjectType* obj = internal::construct_at(reinterpret_cast<TPlainObjectType*>(&m_storage), expr);
+    TPlainObjectType* obj = internal::construct_at(&m_storage.object, expr);
     m_hasCopy = true;
     Base::construct(*obj);
   }
 
-  typename internal::aligned_storage<sizeof(TPlainObjectType), EIGEN_ALIGNOF(TPlainObjectType)>::type m_storage;
+  // A union member rather than raw storage, so constant evaluation can construct the copy in place.
+  union Storage {
+    char unused;
+    TPlainObjectType object;
+    Storage() : unused() {}
+    ~Storage() {}
+  };
+  Storage m_storage;
   bool m_hasCopy;
 };
 
