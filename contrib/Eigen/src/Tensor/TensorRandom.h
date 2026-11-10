@@ -85,37 +85,26 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Eigen::bfloat16 RandomToTypeUniform<Eigen:
 
 template <>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE float RandomToTypeUniform<float>(uint64_t* state, uint64_t stream) {
-  typedef union {
-    uint32_t raw;
-    float fp;
-  } internal;
-  internal result;
   // Generate 23 random bits for the mantissa.
   const unsigned rnd = PCG_XSH_RS_generator(state, stream);
-  result.raw = rnd & 0x7fffffu;
+  uint32_t raw = rnd & 0x7fffffu;
   // Set the exponent.
-  result.raw |= (static_cast<uint32_t>(127) << 23);
-  return result.fp - 1.0f;
+  raw |= (static_cast<uint32_t>(127) << 23);
+  return numext::bit_cast<float>(raw) - 1.0f;
 }
 
 template <>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE double RandomToTypeUniform<double>(uint64_t* state, uint64_t stream) {
-  typedef union {
-    uint64_t raw;
-    double dp;
-  } internal;
-  internal result;
-  result.raw = 0;
   // Generate 52 random bits for the mantissa
   // First generate the upper 20 bits
   unsigned rnd1 = PCG_XSH_RS_generator(state, stream) & 0xfffffu;
   // Then generate the lower 32 bits.
   unsigned rnd2 = PCG_XSH_RS_generator(state, stream);
-  result.raw = (static_cast<uint64_t>(rnd1) << 32) | rnd2;
+  uint64_t raw = (static_cast<uint64_t>(rnd1) << 32) | rnd2;
   // Set the exponent
-  result.raw |= (static_cast<uint64_t>(1023) << 52);
+  raw |= (static_cast<uint64_t>(1023) << 52);
   // Return the final result
-  return result.dp - 1.0;
+  return numext::bit_cast<double>(raw) - 1.0;
 }
 
 template <>
