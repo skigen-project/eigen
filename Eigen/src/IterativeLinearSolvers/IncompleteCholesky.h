@@ -13,7 +13,6 @@
 #define EIGEN_INCOMPLETE_CHOlESKY_H
 
 #include <vector>
-#include <list>
 
 // IWYU pragma: private
 #include "./InternalHeaderCheck.h"
@@ -63,7 +62,7 @@ class IncompleteCholesky : public SparseSolverBase<IncompleteCholesky<Scalar, Up
   using VectorSx = Matrix<Scalar, Dynamic, 1>;
   using VectorRx = Matrix<RealScalar, Dynamic, 1>;
   using VectorIx = Matrix<StorageIndex, Dynamic, 1>;
-  using VectorList = std::vector<std::list<StorageIndex>>;
+  using VectorList = std::vector<std::vector<StorageIndex>>;
   enum { UpLo = UpLo_ };
   enum { ColsAtCompileTime = Dynamic, MaxColsAtCompileTime = Dynamic };
 
@@ -303,7 +302,7 @@ void IncompleteCholesky<Scalar, UpLo_, OrderingType>::factorize(const MatrixType
         col_nnz++;
       }
       {
-        typename std::list<StorageIndex>::iterator k;
+        typename std::vector<StorageIndex>::iterator k;
         // Browse all previous columns that will update column j
         for (k = listCol[j].begin(); k != listCol[j].end(); k++) {
           Index jk = firstElt(*k);  // First element to use in the column
