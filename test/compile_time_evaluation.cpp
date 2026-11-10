@@ -756,12 +756,26 @@ static_assert(device_wrapper());
 
 constexpr bool nc_construct_from_values() {
   bool result = true;
+
 #if EIGEN_COMP_CXXVER >= 20
   Matrix<float, 1, 1> m11(55);
   result = result && (m11.x() == 55);
+
   Matrix<float, 1, 1> maa(22);
   m11.swap(maa);
   result = result && (m11.x() == 22 && maa.x() == 55);
+#endif
+  return result;
+}
+
+constexpr bool nc_crossproduct() {
+  bool result = true;
+#if EIGEN_COMP_CXXVER >= 20
+  Vector3d X(Vector3d::UnitX());
+  Vector3d Y(Vector3d::UnitY());
+  Vector3d Z(Vector3d::UnitZ());
+
+  result = result && X.cross(Y) == Z;
 #endif
   return result;
 }
@@ -783,20 +797,113 @@ constexpr bool nc_product() {
   constexpr Matrix2i a{{0, -1}, {1, 0}};
   constexpr Matrix2i b{{0, 1}, {-1, 0}};
   Vector2d v{{2, -2}};
+
   result = result && a * b == Matrix2i::Identity();
   result = result && (a.cast<double>() * v == Vector2d::Constant(2));
   result = result && (2 * a * b) == 2 * Matrix2i::Identity();
   result = result && 2 * a * b == a * 2 * b;
+
   constexpr Matrix3i c{{-2, 0, 0}, {0, -2, 0}, {0, 0, 2}};
   result = result && (c.block(0, 0, 2, 2) * a == 2 * b);
   result = result && (2 * a == c.block(0, 0, 2, 2) * b);
   result = result && (c.block<2, 2>(1, 1) * a == Matrix2i{{0, 2}, {2, 0}});
+
   constexpr Map<const Matrix<double, 2, 2, RowMajor>> m(static_data);
   result = result && (m * a.cast<double>() == Matrix2d{{2, -1}, {4, -3}});
+
   result = result && (a * a.transpose() == Matrix2i::Identity());
   result = result && (a.transpose() * a == Matrix2i::Identity());
   result = result && (a * b).transpose() == Matrix2i::Identity();
   result = result && (a.transpose() * b.transpose()).transpose() == Matrix2i::Identity();
+#endif
+  return result;
+}
+
+static constexpr double static_data_quat[] = {0, 1, 1, 0};
+
+constexpr bool nc_quat_mult() {
+  bool result = static_data_quat[3] == 0;  // Silence warning about unused with C++14
+
+#if EIGEN_COMP_CXXVER >= 20
+  constexpr Map<const Quaterniond> mqyz(static_data_quat);
+  result = result && mqyz.coeffs() == Vector4d::UnitY() + Vector4d::UnitZ();
+
+  Quaterniond q1{1, 0, 0, 0};
+  Quaterniond q2{0, 1, 0, 0};
+
+  result = result && q1 * q2 == q2;
+  result = result && q1 == Quaternionf::Identity().cast<double>();
+
+  Quaterniond q3{1, -1, 1, -1};
+  result = result && q3.squaredNorm() == 4;
+  result = result && q3.dot(q1) == 1 && q2.dot(q3) == -1;
+
+  Vector3d vy = Vector3d::UnitY();
+  result = result && q2 * vy == -vy;
+  result = result && q2.toRotationMatrix() * vy == -vy;
+
+  constexpr double d[] = {0, 0, 1, 0};
+  Quaterniond qz(d);
+  result = result && qz.z() == 1 && qz * Vector3d::UnitZ() == Vector3d::UnitZ();
+  result = result && qz * qz.conjugate() == decltype(qz)::Identity();
+  result = result && q3 * qz * qz.conjugate() * q3.inverse() == decltype(qz)::Identity();
+
+  Quaternionf qf{.5, .5, .5, .5};
+  Quaterniond qd(qf);
+  result = result && qd * Vector3d::UnitX() == Vector3d::UnitY();
+#endif
+  return result;
+}
+
+constexpr bool nc_geometry() {
+  bool result = true;
+#if EIGEN_COMP_CXXVER >= 20
+  Quaterniond q{1, 2, 3, 4};
+  const QuaternionBase<Quaterniond>& qb = q;
+  result = result && qb.coeffsScalarFirst() == Vector4d(1, 2, 3, 4);
+  result = result && qb.coeffsScalarLast() == Vector4d(2, 3, 4, 1);
+
+  Vector4f a(1, 0, 0, 7);
+  Vector4f b(0, 1, 0, -3);
+  result = result && a.cross3(b) == Vector4f(0, 0, 1, 0);
+
+  Vector3d v(1, 2, 3);
+  result = result && v.homogeneous().sum() == 7;
+  result = result && v.homogeneous().maxCoeff() == 3;
+
+  // 90 degrees about z.
+  const Matrix3d rz{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
+  // 180 degrees about z.
+  const Quaterniond qz{0, 0, 0, 1};
+  Affine3d t = Affine3d::Identity();
+  t.translate(Vector3d(1, 0, 0));
+  t.rotate(rz);
+  result = result && t * Vector3d::UnitX() == Vector3d(1, 1, 0);
+  t.rotate(rz.cast<float>());
+  t.prerotate(qz);
+  result = result && t.linear() == Matrix3d::Identity() && t.translation() == -Vector3d::UnitX();
+  t.prerotate(rz);
+  result = result && t.linear() == rz && t.translation() == -Vector3d::UnitY();
+
+  Hyperplane<double, 3> h1(Vector3d::UnitZ(), 2);
+  Hyperplane<double, 3> h2(Vector3d(0, 0, -4), -8);
+  result = result && h1.isCoincident(h2);
+  result = result && !h1.isCoincident(Hyperplane<double, 3>(Vector3d::UnitZ(), 3));
+
+#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202306L
+  // std::sin and std::cos are constexpr from C++26 (P1383R2).
+  AngleAxisd aa(0, Vector3d::UnitZ());
+  result = result && aa * Vector3d::UnitX() == Vector3d::UnitX();
+  Affine2d t2 = Affine2d::Identity();
+  t2.rotate(0.0);
+  t2.prerotate(0.0);
+  result = result && t2.isApprox(Affine2d::Identity());
+  // A negative w flips the axis; a pure-real quaternion has no axis and gives the zero rotation about x.
+  const AngleAxisd from_q(Quaterniond(-0.6, 0, 0, 0.8));
+  result = result && from_q.axis() == -Vector3d::UnitZ() && Quaterniond(from_q).isApprox(Quaterniond(0.6, 0, 0, -0.8));
+  const AngleAxisd from_real(Quaterniond(-1, 0, 0, 0));
+  result = result && from_real.angle() == 0 && from_real.axis() == Vector3d::UnitX();
+#endif
 #endif
   return result;
 }
@@ -1039,14 +1146,104 @@ constexpr bool structural_predicates() {
 }
 
 static_assert(structural_predicates());
+
+constexpr bool lines_and_boxes() {
+  // The line through (1, 0, 0) along y.
+  const ParametrizedLine<double, 3> line(Vector3d(1, 0, 0), Vector3d::UnitY());
+  bool ok = line.distance(Vector3d(4, 7, 4)) == 5 && line.squaredDistance(Vector3d(1, 2, 3)) == 9;
+  ok = ok && line.projection(Vector3d(4, 7, 4)) == Vector3d(1, 7, 0) && line.pointAt(2) == Vector3d(1, 2, 0);
+  const auto through = ParametrizedLine<double, 3>::Through(Vector3d(0, 0, 0), Vector3d(0, 0, 4));
+  ok = ok && through.direction() == Vector3d::UnitZ();
+  // The plane y = 3, which the line meets at parameter 3.
+  const Hyperplane<double, 3> plane(Vector3d::UnitY(), -3);
+  ok = ok && line.intersectionParameter(plane) == 3 && line.intersectionPoint(plane) == Vector3d(1, 3, 0);
+  const Hyperplane<double, 2> h = Hyperplane<double, 2>::Through(Vector2d(0, 1), Vector2d(2, 1));
+  ok = ok && numext::abs(h.absDistance(Vector2d(5, 4)) - 3) < 1e-14 &&
+       h.projection(Vector2d(5, 4)).isApprox(Vector2d(5, 1));
+
+  AlignedBox3d box(Vector3d(0, 0, 0), Vector3d(1, 2, 3));
+  ok = ok && box.volume() == 6 && box.center() == Vector3d(0.5, 1, 1.5) && box.sizes() == Vector3d(1, 2, 3);
+  ok = ok && box.contains(Vector3d(1, 1, 1)) && !box.contains(Vector3d(1, 3, 1)) && !box.isEmpty();
+  // (2, 3, -1) is 1, 1 and 1 outside the faces x = 1, y = 2 and z = 0.
+  ok = ok && box.squaredExteriorDistance(Vector3d(2, 3, -1)) == 3 && box.exteriorDistance(Vector3d(0.5, 1, 7)) == 4;
+  const AlignedBox3d other(Vector3d(0.5, -1, 1), Vector3d(4, 1, 2));
+  const AlignedBox3d meet = box.intersection(other);
+  ok = ok && meet.min() == Vector3d(0.5, 0, 1) && meet.max() == Vector3d(1, 1, 2) && box.intersects(other);
+  ok = ok && box.merged(other).volume() == 4 * 3 * 3;
+  box.extend(Vector3d(-1, 0, 0));
+  ok = ok && box.volume() == 12 && box.corner(AlignedBox3d::TopRightCeil) == Vector3d(1, 2, 3);
+  AlignedBox2i empty;
+  ok = ok && empty.isEmpty();
+  empty.extend(Vector2i(3, 4));
+  return ok && !empty.isEmpty() && empty.volume() == 0;
+}
+
+static_assert(lines_and_boxes());
+
+constexpr bool transform_factors() {
+  const Vector3d p(1, 1, 1);
+  const Affine3d t = Translation3d(1, 2, 3) * Scaling(2.0, 3.0, 4.0);
+  bool ok = t * p == Vector3d(3, 5, 7);
+  const Affine3d u = Scaling(2.0) * Translation3d(1, 2, 3);
+  ok = ok && u * p == Vector3d(4, 6, 8) && (t.inverse() * Vector3d(3, 5, 7)).isApprox(p);
+  const Translation3d move(Vector3d(1, -1, 0));
+  ok = ok && (move * move.inverse()).translation() == Vector3d::Zero() && move * p == Vector3d(2, 0, 1);
+  const DiagonalMatrix<double, 3> stretch = Scaling(Vector3d(1, 2, 3));
+  ok = ok && Matrix3d(stretch).diagonal() == Vector3d(1, 2, 3);
+  ok = ok && Vector4d(2, 4, 6, 2).hnormalized() == Vector3d(1, 2, 3) && (Vector3d(1, 2, 3).homogeneous()).w() == 1;
+  const Matrix<double, 3, 2> columns{{2, 4}, {4, 8}, {2, 2}};
+  ok = ok && Matrix<double, 2, 2>(columns.colwise().hnormalized()) == Matrix2d{{1, 2}, {2, 4}};
+  const Vector3d a(1, 2, 3);
+  const Vector3d n = a.unitOrthogonal();
+  ok = ok && numext::abs(n.dot(a)) < 1e-14 && numext::abs(n.norm() - 1) < 1e-14;
+  const Vector2d n2 = Vector2d(3, 4).unitOrthogonal();
+  return ok && n2.isApprox(Vector2d(-0.8, 0.6));
+}
+
+static_assert(transform_factors());
+
+constexpr bool quaternion_from_two_vectors() {
+  Quaterniond q;
+  q.setFromTwoVectors(Vector3d(2, 0, 0), Vector3d(0, 3, 0));
+  bool ok = (q * Vector3d::UnitX()).isApprox(Vector3d::UnitY()) && numext::abs(q.norm() - 1) < 1e-14;
+  const Quaterniond r = Quaterniond::FromTwoVectors(Vector3d(1, 1, 0), Vector3d(0, 0, 1));
+  ok = ok && (r * Vector3d(1, 1, 0).normalized()).isApprox(Vector3d::UnitZ());
+  // Opposite vectors have no unique rotation; the result is a half turn about an axis orthogonal to both.
+  q.setFromTwoVectors(Vector3d::UnitX(), -Vector3d::UnitX());
+  ok = ok && (q * Vector3d::UnitX()).isApprox(-Vector3d::UnitX()) && numext::abs(q.w()) < 1e-12;
+  return ok && q.vec().dot(Vector3d::UnitX()) == 0;
+}
+
+static_assert(quaternion_from_two_vectors());
+
+// Points mapped by x -> 2 R x + t with R the quarter turn about z.
+constexpr bool umeyama_similarity() {
+  const Matrix<double, 3, 4> src{{0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+  const Matrix3d rotation{{0, -1, 0}, {1, 0, 0}, {0, 0, 1}};
+  const Vector3d translation(1, 2, 3);
+  const Matrix<double, 3, 4> dst = (2 * rotation * src).colwise() + translation;
+  const Matrix4d transform = umeyama(src, dst);
+  bool ok =
+      transform.topLeftCorner<3, 3>().isApprox(2 * rotation) && transform.topRightCorner<3, 1>().isApprox(translation);
+  const Matrix4d rigid = umeyama(src, dst, false);
+  return ok && rigid.topLeftCorner<3, 3>().isApprox(rotation) && transform.row(3) == RowVector4d(0, 0, 0, 1);
+}
+
+static_assert(umeyama_similarity());
 #endif
+
+static_assert(numext::copysign(true, false));
+static_assert(numext::sign(std::complex<double>(3, 4)) == std::complex<double>(0.6, 0.8));
 
 // Run tests that aren't explicitly constexpr.
 constexpr bool test_nc() {
   assert_constexpr(nc_cast());
   assert_constexpr(nc_construct_from_values());
+  assert_constexpr(nc_crossproduct());
+  assert_constexpr(nc_geometry());
   assert_constexpr(nc_maps());
   assert_constexpr(nc_product());
+  assert_constexpr(nc_quat_mult());
   return true;
 }
 

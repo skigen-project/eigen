@@ -405,18 +405,18 @@ class MatrixBase : public DenseBase<Derived> {
   /////////// Geometry module ///////////
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC inline typename internal::cross_impl<Derived, OtherDerived>::return_type cross(
+  EIGEN_DEVICE_FUNC constexpr typename internal::cross_impl<Derived, OtherDerived>::return_type cross(
       const MatrixBase<OtherDerived>& other) const;
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC inline PlainObject cross3(const MatrixBase<OtherDerived>& other) const;
+  EIGEN_DEVICE_FUNC constexpr PlainObject cross3(const MatrixBase<OtherDerived>& other) const;
 
-  EIGEN_DEVICE_FUNC inline PlainObject unitOrthogonal(void) const;
+  EIGEN_DEVICE_FUNC constexpr PlainObject unitOrthogonal(void) const;
 
   EIGEN_DEPRECATED_WITH_REASON("Use .canonicalEulerAngles() instead.")
-  EIGEN_DEVICE_FUNC inline Matrix<Scalar, 3, 1> eulerAngles(Index a0, Index a1, Index a2) const;
+  EIGEN_DEVICE_FUNC constexpr Matrix<Scalar, 3, 1> eulerAngles(Index a0, Index a1, Index a2) const;
 
-  EIGEN_DEVICE_FUNC inline Matrix<Scalar, 3, 1> canonicalEulerAngles(Index a0, Index a1, Index a2) const;
+  EIGEN_DEVICE_FUNC constexpr Matrix<Scalar, 3, 1> canonicalEulerAngles(Index a0, Index a1, Index a2) const;
 
   enum {
     HomogeneousReturnTypeDirection =
@@ -426,14 +426,14 @@ class MatrixBase : public DenseBase<Derived> {
                                  : Horizontal
   };
   using HomogeneousReturnType = Homogeneous<Derived, HomogeneousReturnTypeDirection>;
-  EIGEN_DEVICE_FUNC inline HomogeneousReturnType homogeneous() const;
+  EIGEN_DEVICE_FUNC constexpr HomogeneousReturnType homogeneous() const;
 
   enum { SizeMinusOne = SizeAtCompileTime == Dynamic ? Dynamic : SizeAtCompileTime - 1 };
   using ConstStartMinusOne = Block<const Derived, internal::traits<Derived>::ColsAtCompileTime == 1 ? SizeMinusOne : 1,
                                    internal::traits<Derived>::ColsAtCompileTime == 1 ? 1 : SizeMinusOne>;
   using HNormalizedReturnType = EIGEN_EXPR_BINARYOP_SCALAR_RETURN_TYPE(ConstStartMinusOne, Scalar,
                                                                        internal::scalar_quotient_op);
-  EIGEN_DEVICE_FUNC inline const HNormalizedReturnType hnormalized() const;
+  EIGEN_DEVICE_FUNC constexpr const HNormalizedReturnType hnormalized() const;
 
   ////////// Householder module ///////////
 

@@ -409,9 +409,9 @@ class Matrix : public PlainObjectBase<Matrix<Scalar_, Rows_, Cols_, Options_, Ma
   /////////// Geometry module ///////////
 
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC explicit Matrix(const RotationBase<OtherDerived, ColsAtCompileTime>& r);
+  EIGEN_DEVICE_FUNC constexpr explicit Matrix(const RotationBase<OtherDerived, ColsAtCompileTime>& r);
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC Matrix& operator=(const RotationBase<OtherDerived, ColsAtCompileTime>& r);
+  EIGEN_DEVICE_FUNC constexpr Matrix& operator=(const RotationBase<OtherDerived, ColsAtCompileTime>& r);
 
 // allow to extend Matrix outside Eigen
 #ifdef EIGEN_MATRIX_PLUGIN

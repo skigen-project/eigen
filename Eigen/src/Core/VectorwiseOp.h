@@ -853,11 +853,11 @@ class VectorwiseOp {
   /////////// Geometry module ///////////
 
   using HomogeneousReturnType = Homogeneous<ExpressionType, Direction>;
-  EIGEN_DEVICE_FUNC HomogeneousReturnType homogeneous() const;
+  EIGEN_DEVICE_FUNC constexpr HomogeneousReturnType homogeneous() const;
 
   using CrossReturnType = typename ExpressionType::PlainObject;
   template <typename OtherDerived>
-  EIGEN_DEVICE_FUNC const CrossReturnType cross(const MatrixBase<OtherDerived>& other) const;
+  EIGEN_DEVICE_FUNC constexpr const CrossReturnType cross(const MatrixBase<OtherDerived>& other) const;
 
   enum {
     HNormalized_Size = Direction == Vertical ? internal::traits<ExpressionType>::RowsAtCompileTime
@@ -878,7 +878,7 @@ class VectorwiseOp {
                     const Replicate<HNormalized_Factors, Direction == Vertical ? HNormalized_SizeMinusOne : 1,
                                     Direction == Horizontal ? HNormalized_SizeMinusOne : 1>>;
 
-  EIGEN_DEVICE_FUNC const HNormalizedReturnType hnormalized() const;
+  EIGEN_DEVICE_FUNC constexpr const HNormalizedReturnType hnormalized() const;
 
 #ifdef EIGEN_VECTORWISEOP_PLUGIN
 #include EIGEN_VECTORWISEOP_PLUGIN
