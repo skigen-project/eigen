@@ -576,7 +576,12 @@ constexpr bool check_implication(bool a, bool b) { return !a || b; }
 
 /// \internal Provide fallback for std::is_constant_evaluated for pre-C++20.
 #if EIGEN_COMP_CXXVER >= 20 && defined(__cpp_lib_is_constant_evaluated) && __cpp_lib_is_constant_evaluated >= 201811L
-using std::is_constant_evaluated;
+// Wrapped rather than re-exported: GCC flags a direct call in a function that is constexpr only in newer modes
+// (EIGEN_CONSTEXPR20/23) as always false (-Wtautological-compare), although the guard is needed in those modes.
+constexpr bool is_constant_evaluated() noexcept { return std::is_constant_evaluated(); }
+#elif EIGEN_HAS_BUILTIN(__builtin_is_constant_evaluated) || (EIGEN_COMP_MSVC_STRICT && EIGEN_COMP_MSVC >= 1925)
+// The builtin that std::is_constant_evaluated wraps is available in every language mode; MSVC lacks __has_builtin.
+constexpr bool is_constant_evaluated() noexcept { return __builtin_is_constant_evaluated(); }
 #else
 constexpr bool is_constant_evaluated() { return false; }
 #endif
